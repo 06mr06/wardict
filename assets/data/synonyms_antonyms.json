@@ -1,0 +1,164 @@
+{
+  "A1": [
+    {
+      "word": "happy",
+      "synonyms": ["glad", "joyful", "pleased"],
+      "antonyms": ["sad", "unhappy", "upset"]
+    },
+    {
+      "word": "big",
+      "synonyms": ["large", "huge", "great"],
+      "antonyms": ["small", "little", "tiny"]
+    },
+    {
+      "word": "fast",
+      "synonyms": ["quick", "rapid", "speedy"],
+      "antonyms": ["slow", "sluggish", "lazy"]
+    },
+    {
+      "word": "good",
+      "synonyms": ["nice", "fine", "great"],
+      "antonyms": ["bad", "poor", "awful"]
+    },
+    {
+      "word": "hot",
+      "synonyms": ["warm", "burning", "heated"],
+      "antonyms": ["cold", "cool", "freezing"]
+    }
+  ],
+  "A2": [
+    {
+      "word": "beautiful",
+      "synonyms": ["pretty", "lovely", "attractive"],
+      "antonyms": ["ugly", "plain", "unattractive"]
+    },
+    {
+      "word": "difficult",
+      "synonyms": ["hard", "tough", "challenging"],
+      "antonyms": ["easy", "simple", "effortless"]
+    },
+    {
+      "word": "important",
+      "synonyms": ["significant", "essential", "vital"],
+      "antonyms": ["unimportant", "minor", "trivial"]
+    },
+    {
+      "word": "interesting",
+      "synonyms": ["fascinating", "engaging", "exciting"],
+      "antonyms": ["boring", "dull", "tedious"]
+    },
+    {
+      "word": "angry",
+      "synonyms": ["mad", "furious", "annoyed"],
+      "antonyms": ["calm", "peaceful", "relaxed"]
+    }
+  ],
+  "B1": [
+    {
+      "word": "abundant",
+      "synonyms": ["plentiful", "ample", "copious"],
+      "antonyms": ["scarce", "rare", "limited"]
+    },
+    {
+      "word": "brave",
+      "synonyms": ["courageous", "fearless", "bold"],
+      "antonyms": ["cowardly", "timid", "fearful"]
+    },
+    {
+      "word": "certain",
+      "synonyms": ["sure", "definite", "confident"],
+      "antonyms": ["uncertain", "doubtful", "unsure"]
+    },
+    {
+      "word": "decrease",
+      "synonyms": ["reduce", "diminish", "lessen"],
+      "antonyms": ["increase", "grow", "expand"]
+    },
+    {
+      "word": "genuine",
+      "synonyms": ["real", "authentic", "true"],
+      "antonyms": ["fake", "false", "artificial"]
+    }
+  ],
+  "B2": [
+    {
+      "word": "adequate",
+      "synonyms": ["sufficient", "enough", "satisfactory"],
+      "antonyms": ["inadequate", "insufficient", "lacking"]
+    },
+    {
+      "word": "ambiguous",
+      "synonyms": ["unclear", "vague", "uncertain"],
+      "antonyms": ["clear", "obvious", "definite"]
+    },
+    {
+      "word": "beneficial",
+      "synonyms": ["helpful", "advantageous", "useful"],
+      "antonyms": ["harmful", "detrimental", "damaging"]
+    },
+    {
+      "word": "concise",
+      "synonyms": ["brief", "short", "succinct"],
+      "antonyms": ["lengthy", "verbose", "wordy"]
+    },
+    {
+      "word": "diligent",
+      "synonyms": ["hardworking", "industrious", "dedicated"],
+      "antonyms": ["lazy", "idle", "negligent"]
+    }
+  ],
+  "C1": [
+    {
+      "word": "ambivalent",
+      "synonyms": ["uncertain", "conflicted", "undecided"],
+      "antonyms": ["certain", "decisive", "resolute"]
+    },
+    {
+      "word": "eloquent",
+      "synonyms": ["articulate", "expressive", "fluent"],
+      "antonyms": ["inarticulate", "tongue-tied", "speechless"]
+    },
+    {
+      "word": "ephemeral",
+      "synonyms": ["temporary", "fleeting", "transient"],
+      "antonyms": ["permanent", "enduring", "lasting"]
+    },
+    {
+      "word": "meticulous",
+      "synonyms": ["careful", "thorough", "precise"],
+      "antonyms": ["careless", "sloppy", "negligent"]
+    },
+    {
+      "word": "pragmatic",
+      "synonyms": ["practical", "realistic", "sensible"],
+      "antonyms": ["idealistic", "impractical", "unrealistic"]
+    }
+  ],
+  "C2": [
+    {
+      "word": "ameliorate",
+      "synonyms": ["improve", "enhance", "better"],
+      "antonyms": ["worsen", "deteriorate", "aggravate"]
+    },
+    {
+      "word": "capricious",
+      "synonyms": ["unpredictable", "fickle", "changeable"],
+      "antonyms": ["stable", "constant", "steady"]
+    },
+    {
+      "word": "ebullient",
+      "synonyms": ["enthusiastic", "exuberant", "lively"],
+      "antonyms": ["subdued", "apathetic", "lethargic"]
+    },
+    {
+      "word": "perfunctory",
+      "synonyms": ["cursory", "superficial", "hasty"],
+      "antonyms": ["thorough", "careful", "diligent"]
+    },
+    {
+      "word": "ubiquitous",
+      "synonyms": ["omnipresent", "widespread", "pervasive"],
+      "antonyms": ["rare", "scarce", "uncommon"]
+    }
+  ]
+}

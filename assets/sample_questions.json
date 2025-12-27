@@ -1,0 +1,54 @@
+[
+  {
+    "id": "q1",
+    "prompt": "resilient",
+    "mode": "enToTr",
+    "level": "B2",
+    "options": [
+      "dirayetli",
+      "güçsüz",
+      "kararlı",
+      "özgür"
+    ],
+    "correct": 0
+  },
+  {
+    "id": "q2",
+    "prompt": "dirayetli",
+    "mode": "trToEn",
+    "level": "B1",
+    "options": [
+      "resolute",
+      "fragile",
+      "tedious",
+      "brief"
+    ],
+    "correct": 0
+  },
+  {
+    "id": "q3",
+    "prompt": "comprehensive",
+    "mode": "synAnt",
+    "level": "C1",
+    "options": [
+      "extensive",
+      "narrow",
+      "simple",
+      "fast"
+    ],
+    "correct": 0
+  },
+  {
+    "id": "q4",
+    "prompt": "ertelemek",
+    "mode": "trToEn",
+    "level": "B2",
+    "options": [
+      "put off",
+      "put on",
+      "put up",
+      "put away"
+    ],
+    "correct": 0
+  }
+]

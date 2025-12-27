@@ -1,0 +1,23 @@
+[
+  {
+    "prompt": "resilient",
+    "options": ["dayanıklı", "kırılgan", "zayıf", "geçici"],
+    "correctIndex": 0,
+    "level": "B",
+    "mode": "enToTr"
+  },
+  {
+    "prompt": "ertelemek",
+    "options": ["put off", "put on", "put away", "put out"],
+    "correctIndex": 0,
+    "level": "B",
+    "mode": "trToEn"
+  },
+  {
+    "prompt": "tedious",
+    "options": ["boring", "exciting", "quick", "easy"],
+    "correctIndex": 0,
+    "level": "C",
+    "mode": "relation"
+  }
+]
