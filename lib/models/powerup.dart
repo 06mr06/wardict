@@ -1,11 +1,10 @@
 /// Powerup türleri
 enum PowerupType {
-  revealAnswer('reveal', 'Doğru Cevap', 'Doğru cevabı gösterir', 50, '🎯'),
-  fiftyFifty('fifty', '%50', '2 yanlış şıkkı eler', 30, '✂️'),
-  doubleChance('double', 'İkinci Şans', '2 cevap hakkı verir', 40, '🔄'),
-  freezeTime('freeze', 'Zaman Durdur', 'Süreyi 5 saniye dondurur', 35, '❄️'),
-  shield('shield', 'Kalkan', 'Bir yanlışı siler', 45, '🛡️'),
-  multiplier('multi', '2x Puan', 'Doğru cevaba 2x puan', 60, '⚡');
+  revealAnswer('reveal', 'Doğru Cevap', 'Doğru cevabı gösterir', 200, '🎯'),
+  fiftyFifty('fifty', '%50', '2 yanlış şıkkı eler', 150, '✂️'),
+  doubleChance('double', 'İkinci Şans', '2 cevap hakkı verir', 150, '🔄'),
+  freezeTime('freeze', 'Zaman Durdur', 'Süreyi 5 saniye dondurur', 100, '❄️'),
+  multiplier('multi', '2x Puan', 'Doğru cevaba 2x puan', 250, '⚡');
 
   final String id;
   final String name;

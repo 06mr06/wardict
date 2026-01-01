@@ -1,0 +1,44 @@
+﻿Analyzing wardict_skeleton...                                   
+
+   info - Use 'const' with the constructor to improve performance - lib\main.dart:5:10 - prefer_const_constructors
+warning - Unused import: '../models/question.dart' - lib\providers\base_game_provider.dart:2:8 - unused_import
+warning - Unused import: 'package:flutter/material.dart' - lib\providers\game_provider.dart:1:8 - unused_import
+warning - Unused import: 'package:flutter/material.dart' - lib\providers\practice_provider.dart:1:8 - unused_import
+   info - The private field _questions could be 'final' - lib\providers\practice_provider.dart:14:27 - prefer_final_fields
+warning - The value of the field '_questions' isn't used - lib\providers\practice_provider.dart:14:27 - unused_field
+warning - Unused import: '../../widgets/game/game_progress_bar.dart' - lib\screens\game\base_game_screen.dart:4:8 - unused_import
+warning - Unused import: '../../models/powerup.dart' - lib\screens\game\duel_results_screen.dart:8:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\game\duel_screen.dart:344:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\game\duel_screen.dart:423:26 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\game\duel_screen.dart:425:45 - deprecated_member_use
+warning - The declaration '_modeLabel' isn't referenced - lib\screens\game\duel_screen.dart:472:10 - unused_element
+warning - The declaration '_modeBadgeWidget' isn't referenced - lib\screens\game\duel_screen.dart:483:10 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\game\duel_screen.dart:516:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\game\duel_screen.dart:549:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\game\duel_screen.dart:550:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\game\duel_screen.dart:555:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\game\duel_screen.dart:729:46 - deprecated_member_use
+warning - The declaration '_buildModeSequence' isn't referenced - lib\screens\game\game_screen.dart:189:10 - unused_element
+warning - The value of the local variable 'bestLevel' isn't used - lib\screens\game\placement_test_screen.dart:115:12 - unused_local_variable
+   info - Don't use 'BuildContext's across async gaps - lib\screens\game\practice_screen.dart:57:30 - use_build_context_synchronously
+warning - The value of the local variable 'isCorrect' isn't used - lib\screens\game\practice_screen.dart:105:11 - unused_local_variable
+warning - The value of the field '_shakeVs' isn't used - lib\screens\game\vs_screen.dart:28:26 - unused_field
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\game\vs_screen.dart:77:27 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\game\vs_screen.dart:190:45 - deprecated_member_use
+warning - The declaration '_showLevelInfo' isn't referenced - lib\screens\home\welcome_screen.dart:530:8 - unused_element
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\home\welcome_screen.dart:581:23 - use_build_context_synchronously
+warning - Unused import: '../../models/answered_entry.dart' - lib\screens\profile\my_words_screen.dart:4:8 - unused_import
+warning - Unused import: '../../models/question_mode.dart' - lib\screens\profile\my_words_screen.dart:5:8 - unused_import
+   info - The private field _isSelectionMode could be 'final' - lib\screens\profile\my_words_screen.dart:16:8 - prefer_final_fields
+warning - The value of the field '_isSelectionMode' isn't used - lib\screens\profile\my_words_screen.dart:16:8 - unused_field
+   info - Use 'const' with the constructor to improve performance - lib\screens\profile\profile_screen.dart:155:21 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\profile\profile_screen.dart:156:21 - prefer_const_literals_to_create_immutables
+warning - The declaration '_buildLevelSection' isn't referenced - lib\screens\profile\profile_screen.dart:273:10 - unused_element
+   info - Use 'const' with the constructor to improve performance - lib\screens\profile\profile_screen.dart:538:11 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\profile\profile_screen.dart:539:23 - prefer_const_literals_to_create_immutables
+warning - The value of the field '_invitationsKey' isn't used - lib\services\friend_service.dart:13:23 - unused_field
+   info - Use 'const' with the constructor to improve performance - lib\services\friend_service.dart:67:5 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\services\friend_service.dart:211:17 - prefer_const_constructors
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\game\options_grid.dart:119:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\game\options_grid.dart:135:35 - deprecated_member_use
+

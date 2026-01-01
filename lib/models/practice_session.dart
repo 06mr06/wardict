@@ -7,6 +7,8 @@ class PracticeSession {
   final int consecutiveWrong; // Üst üste yanlış sayısı
   final String currentLevel; // Şuanki seviye (A1, A2, B1, B2, C1, C2)
   final int totalSessionsCompleted; // Tamamlanan toplam oturum sayısı
+  final int levelStreak; // Aynı seviyede üst üste tamamlanan oturum sayısı
+  final String? lastLevel; // Bir önceki oturumun seviyesi
   
   /// Son iki oturumun doğru sayıları (3. oturumdan sonraki seviye düşme kontrolü için)
   final List<int> lastTwoSessionsCorrectCount;
@@ -19,6 +21,8 @@ class PracticeSession {
     this.consecutiveWrong = 0,
     this.currentLevel = 'A2',
     this.totalSessionsCompleted = 0,
+    this.levelStreak = 0,
+    this.lastLevel,
     this.lastTwoSessionsCorrectCount = const [],
   });
 
@@ -32,6 +36,8 @@ class PracticeSession {
       consecutiveWrong: 0,
       currentLevel: currentLevel,
       totalSessionsCompleted: totalSessionsCompleted,
+      levelStreak: levelStreak,
+      lastLevel: lastLevel,
       lastTwoSessionsCorrectCount: lastTwoSessionsCorrectCount,
     );
   }
@@ -46,6 +52,8 @@ class PracticeSession {
       consecutiveWrong: 0,
       currentLevel: currentLevel,
       totalSessionsCompleted: totalSessionsCompleted,
+      levelStreak: levelStreak,
+      lastLevel: lastLevel,
       lastTwoSessionsCorrectCount: lastTwoSessionsCorrectCount,
     );
   }
@@ -60,6 +68,8 @@ class PracticeSession {
       consecutiveWrong: consecutiveWrong + 1,
       currentLevel: currentLevel,
       totalSessionsCompleted: totalSessionsCompleted,
+      levelStreak: levelStreak,
+      lastLevel: lastLevel,
       lastTwoSessionsCorrectCount: lastTwoSessionsCorrectCount,
     );
   }
@@ -74,6 +84,8 @@ class PracticeSession {
       consecutiveWrong: consecutiveWrong,
       currentLevel: newLevel,
       totalSessionsCompleted: totalSessionsCompleted,
+      levelStreak: levelStreak,
+      lastLevel: lastLevel,
       lastTwoSessionsCorrectCount: lastTwoSessionsCorrectCount,
     );
   }
@@ -87,6 +99,14 @@ class PracticeSession {
       updatedLastTwo.removeAt(0);
     }
 
+    // Seviye serisi kontrolü
+    int newStreak = levelStreak;
+    if (lastLevel == currentLevel) {
+      newStreak++;
+    } else {
+      newStreak = 1; // Yeni seriye başla
+    }
+
     return PracticeSession(
       sessionNumber: sessionNumber,
       correctInSession: correctInSession,
@@ -95,6 +115,8 @@ class PracticeSession {
       consecutiveWrong: consecutiveWrong,
       currentLevel: currentLevel,
       totalSessionsCompleted: totalSessionsCompleted + 1,
+      levelStreak: newStreak,
+      lastLevel: currentLevel,
       lastTwoSessionsCorrectCount: updatedLastTwo,
     );
   }
@@ -126,6 +148,8 @@ class PracticeSession {
       'consecutiveWrong': consecutiveWrong,
       'currentLevel': currentLevel,
       'totalSessionsCompleted': totalSessionsCompleted,
+      'levelStreak': levelStreak,
+      'lastLevel': lastLevel,
       'lastTwoSessionsCorrectCount': lastTwoSessionsCorrectCount,
     };
   }
@@ -139,6 +163,8 @@ class PracticeSession {
       consecutiveWrong: json['consecutiveWrong'] ?? 0,
       currentLevel: json['currentLevel'] ?? 'A2',
       totalSessionsCompleted: json['totalSessionsCompleted'] ?? 0,
+      levelStreak: json['levelStreak'] ?? 0,
+      lastLevel: json['lastLevel'],
       lastTwoSessionsCorrectCount: List<int>.from(json['lastTwoSessionsCorrectCount'] ?? []),
     );
   }

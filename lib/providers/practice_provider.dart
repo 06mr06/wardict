@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
+import '../services/quest_service.dart';
+import '../models/quest.dart';
 import '../models/practice_session.dart';
 import '../models/user_level.dart';
+import '../models/question_mode.dart';
 import '../services/user_profile_service.dart';
 import '../services/word_pool_service.dart';
+import '../services/achievement_service.dart';
+import '../models/achievement.dart';
+import 'base_game_provider.dart';
 
 /// Practice modu için özel provider
-/// Adaptif zorluk, oturum takibi ve puanlama yönetir
-class PracticeProvider extends ChangeNotifier {
+class PracticeProvider extends BaseGameProvider {
   PracticeSession _session = const PracticeSession();
-  int _currentQuestionIndex = 0;
-  int _sessionScore = 0;
+  
+  // Internal session specific state
   List<GeneratedQuestion> _questions = [];
   String _currentQuestionLevel = 'A2'; // Soru seviyesi
   
-  // Şuanki soru bilgileri
+  // Şuanki soru bilgileri - Base getterlar için
   GeneratedQuestion? _currentQuestion;
   List<String> _shuffledOptions = [];
   int _shuffledCorrectIndex = 0;
@@ -21,19 +26,53 @@ class PracticeProvider extends ChangeNotifier {
   // Cevap geçmişi
   final List<PracticeAnswerRecord> _answerHistory = [];
 
-  // Getters
-  PracticeSession get session => _session;
-  int get currentQuestionIndex => _currentQuestionIndex;
-  int get sessionScore => _sessionScore;
-  GeneratedQuestion? get currentQuestion => _currentQuestion;
+  // --- BaseGameProvider Implementation ---
+  
+  @override
+  int get totalQuestions => 10;
+  
+  @override
+  String get currentPrompt => _currentQuestion?.prompt ?? 'Loading...';
+  
+  @override
   List<String> get currentOptions => _shuffledOptions;
+  
+  @override
   int get currentCorrectIndex => _shuffledCorrectIndex;
+  
+  @override
+  QuestionMode get currentMode {
+    if (_currentQuestion == null) return QuestionMode.trToEn;
+    switch (_currentQuestion!.mode) {
+      case QuestionType.enToTr:
+        return QuestionMode.enToTr;
+      case QuestionType.trToEn:
+        return QuestionMode.trToEn;
+      case QuestionType.synonym:
+      case QuestionType.antonym:
+      case QuestionType.relation:
+        return QuestionMode.engToEng;
+    }
+  }
+
+  GeneratedQuestion? get currentQuestion => _currentQuestion;
+
+  @override 
+  void nextQuestion() {
+     _nextQuestionInternal();
+  }
+
+  // --- Specific Getters ---
+  PracticeSession get session => _session;
+  int get currentQuestionIndex => index; // Using Base 'index'
+  int get sessionScore => score; // Using Base 'score'
   String get currentLevel => _session.currentLevel;
-  bool get isSessionComplete => _currentQuestionIndex >= 10;
-  int get questionsRemaining => 10 - _currentQuestionIndex;
+  bool get isSessionComplete => index >= 10;
+  int get questionsRemaining => 10 - index;
   List<PracticeAnswerRecord> get answerHistory => List.unmodifiable(_answerHistory);
 
   /// Yeni practice oturumu başlat
+  @override
   Future<void> startSession() async {
     final profile = await UserProfileService.instance.loadProfile();
     _session = profile.practiceSession;
@@ -43,8 +82,8 @@ class PracticeProvider extends ChangeNotifier {
       _session = _session.startNewSession();
     }
     
-    _currentQuestionIndex = _session.totalInSession;
-    _sessionScore = 0;
+    index = _session.totalInSession;
+    score = 0;
     _currentQuestionLevel = _session.currentLevel;
     _answerHistory.clear();
     
@@ -57,6 +96,8 @@ class PracticeProvider extends ChangeNotifier {
   Future<void> _loadNextQuestion() async {
     // Seviyeye göre soru getir
     final level = UserLevel.fromCode(_currentQuestionLevel);
+    // TODO: We technically only need 1 question at a time if we generate on the fly
+    // or we can pre-generate 10. Current logic generates 1.
     final questions = WordPoolService.instance.generateQuestionsForLevel(level, 1);
     
     if (questions.isNotEmpty) {
@@ -70,6 +111,7 @@ class PracticeProvider extends ChangeNotifier {
   }
 
   /// Cevap ver
+  @override
   Future<void> answer(int selectedIndex, int remainingSeconds) async {
     if (_currentQuestion == null) return;
     
@@ -87,7 +129,7 @@ class PracticeProvider extends ChangeNotifier {
       points = PracticeScoring.calculateWrongPoints(questionLevel);
     }
     
-    _sessionScore += points;
+    score += points;
     
     // Cevap kaydı ekle
     _answerHistory.add(PracticeAnswerRecord(
@@ -110,29 +152,32 @@ class PracticeProvider extends ChangeNotifier {
     // Adaptif zorluk kontrolü (ilk 3 oturumda)
     if (_session.isInAdaptivePeriod) {
       if (isCorrect && _session.shouldAdaptivelyIncreaseLevel) {
-        // 2 üst üste doğru - seviye artır
         _currentQuestionLevel = PracticeScoring.getNextLevel(_currentQuestionLevel);
         _session = _session.withLevel(_currentQuestionLevel);
       } else if (!isCorrect && _session.shouldAdaptivelyDecreaseLevel) {
-        // 2 üst üste yanlış - seviye düşür
         _currentQuestionLevel = PracticeScoring.getPreviousLevel(_currentQuestionLevel);
         _session = _session.withLevel(_currentQuestionLevel);
       }
     }
     
-    _currentQuestionIndex++;
+    index++;
     
     // Profili güncelle
     await UserProfileService.instance.updatePracticeScore(points);
     await UserProfileService.instance.updatePracticeSession(_session);
     
+    // Günlük görev ilerlemesini güncelle
+    if (isCorrect) {
+      QuestService.instance.updateProgress(QuestType.answerQuestions, 1);
+    }
+    QuestService.instance.updateProgress(QuestType.earnPoints, points);
+    
     notifyListeners();
   }
 
   /// Sonraki soruya geç
-  Future<void> nextQuestion() async {
+  Future<void> _nextQuestionInternal() async {
     if (isSessionComplete) return;
-    
     await _loadNextQuestion();
     notifyListeners();
   }
@@ -169,13 +214,22 @@ class PracticeProvider extends ChangeNotifier {
     // Profili güncelle
     await UserProfileService.instance.updatePracticeSession(_session);
     
+    // Günlük görev ilerlemesini güncelle (Alıştırma tamamlama)
+    QuestService.instance.updateProgress(QuestType.playPractice, 1);
+    
+    // Seviye serisi başarımı kontrol et (7 maç kuralı)
+    if (_session.levelStreak >= 7) {
+      final achievementId = 'lvl_${_session.currentLevel.toLowerCase()}';
+      await AchievementService.instance.updateAchievementProgressById(achievementId, 7, setExact: true);
+    }
+    
     // Cache'i temizle (profil güncellemesi için)
     UserProfileService.instance.clearCache();
     
     return PracticeSessionResult(
       totalQuestions: 10,
       correctAnswers: _session.correctInSession,
-      sessionScore: _sessionScore,
+      sessionScore: score,
       leveledUp: leveledUp,
       leveledDown: leveledDown,
       newLevel: newLevel,
@@ -188,8 +242,8 @@ class PracticeProvider extends ChangeNotifier {
   Future<void> resetAndStartNewSession() async {
     final profile = await UserProfileService.instance.loadProfile();
     _session = PracticeSession(currentLevel: profile.practiceSession.currentLevel);
-    _currentQuestionIndex = 0;
-    _sessionScore = 0;
+    index = 0;
+    score = 0;
     _currentQuestionLevel = _session.currentLevel;
     _answerHistory.clear();
     
@@ -199,7 +253,7 @@ class PracticeProvider extends ChangeNotifier {
   }
 }
 
-/// Cevap kaydı
+// ... classes PracticeAnswerRecord, PracticeSessionResult (unchanged)
 class PracticeAnswerRecord {
   final String prompt;
   final String correctAnswer;
@@ -220,7 +274,6 @@ class PracticeAnswerRecord {
   });
 }
 
-/// Oturum sonucu
 class PracticeSessionResult {
   final int totalQuestions;
   final int correctAnswers;

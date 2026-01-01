@@ -1,4 +1,4 @@
-package com.example.wardict_skeleton
+package wardict.app
 
 import io.flutter.embedding.android.FlutterActivity
 

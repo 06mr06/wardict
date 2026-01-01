@@ -5,6 +5,14 @@ import '../../providers/game_provider.dart';
 import '../../models/answered_entry.dart';
 import '../../models/question_mode.dart';
 import '../../models/league.dart';
+import '../../widgets/common/top_toast.dart';
+import '../../widgets/game/game_confetti.dart';
+import '../../widgets/game/achievement_celebration.dart';
+import 'package:confetti/confetti.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/achievement_service.dart';
+import '../../models/achievement.dart';
+import '../../services/user_profile_service.dart';
 
 class DuelResultsScreen extends StatefulWidget {
   final int userScore;
@@ -37,9 +45,23 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
 
   bool get allSelected => _selectedIndices.length == items.length && items.isNotEmpty;
 
+  late ConfettiController _confettiController;
+  DateTime? _gameStartTime;
+
   @override
   void initState() {
     super.initState();
+    _gameStartTime = DateTime.now().subtract(const Duration(minutes: 5)); // Oyun başlangıç tahmini
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+    
+    // Play confetti if win
+    if (widget.userScore > widget.botScore) {
+       Future.delayed(const Duration(milliseconds: 500), () => _confettiController.play());
+       _handleDuelWinAchievements();
+    } else {
+       _resetDuelStreak();
+    }
+
     // Başlangıçta GameProvider'dan kaydedilmiş olanları kontrol et
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final gp = context.read<GameProvider>();
@@ -49,7 +71,48 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
         }
       }
       setState(() {});
+      
+      // Yeni kazanılan ödülleri kontrol et ve kutla
+      _checkAndShowNewAchievements();
     });
+  }
+  
+  Future<void> _checkAndShowNewAchievements() async {
+    await Future.delayed(const Duration(milliseconds: 1500)); // Confetti bittikten sonra
+    if (!mounted) return;
+    
+    final newAchievements = await AchievementService.instance.getNewlyUnlockedAchievements();
+    if (newAchievements.isNotEmpty && mounted) {
+      AchievementCelebration.showNewAchievements(context, newAchievements);
+    }
+  }
+  
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleDuelWinAchievements() async {
+    // Toplam galibiyet başarımı (Warrior)
+    await AchievementService.instance.updateProgress(AchievementCategory.career, 1);
+    
+    // Galibiyet serisi takibi (Yenilmez)
+    final prefs = await SharedPreferences.getInstance();
+    int currentStreak = (prefs.getInt('duel_win_streak') ?? 0) + 1;
+    await prefs.setInt('duel_win_streak', currentStreak);
+    
+    if (currentStreak >= 5) {
+      await AchievementService.instance.updateAchievementProgressById('duel_streak_5', 5, setExact: true);
+    }
+    
+    // Sosyal etkileşim başarımı (Zaten düello yapıldı)
+    await AchievementService.instance.updateProgress(AchievementCategory.social, 1);
+  }
+
+  Future<void> _resetDuelStreak() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('duel_win_streak', 0);
   }
 
   void _toggleItem(int index) {
@@ -77,13 +140,7 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
           gp.removeFromPool(items[i]);
         }
         _selectedIndices.clear();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tüm kelimeler havuzdan çıkarıldı'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 1),
-          ),
-        );
+        showTopToast(context, 'Tüm kelimeler havuzdan çıkarıldı', isError: true);
       } else {
         // Tümünü seç
         for (int i = 0; i < items.length; i++) {
@@ -92,13 +149,7 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
             _selectedIndices.add(i);
           }
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${items.length} kelime havuza eklendi'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 1),
-          ),
-        );
+        showTopToast(context, '${items.length} kelime havuza eklendi');
       }
     });
   }
@@ -108,17 +159,19 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
     final isWin = userScore > botScore;
     final isDraw = userScore == botScore;
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 _vibrantScoreboard(userScore, botScore),
@@ -129,33 +182,36 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: eloChange > 0 
-                          ? Colors.green.withValues(alpha: 0.2)
-                          : Colors.red.withValues(alpha: 0.2),
+                          ? Colors.green.withOpacity(0.2)
+                          : Colors.red.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: eloChange > 0 ? Colors.green : Colors.red,
                         width: 1,
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _leagueIcon(league!),
-                        const SizedBox(width: 8),
-                        Icon(
-                          eloChange > 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                          color: eloChange > 0 ? Colors.green : Colors.red,
-                          size: 18,
-                        ),
-                        Text(
-                          '${eloChange > 0 ? '+' : ''}$eloChange',
-                          style: TextStyle(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _leagueIcon(league!),
+                          const SizedBox(width: 8),
+                          Icon(
+                            eloChange > 0 ? Icons.arrow_upward : Icons.arrow_downward,
                             color: eloChange > 0 ? Colors.green : Colors.red,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            size: 18,
                           ),
-                        ),
-                      ],
+                          Text(
+                            '${eloChange > 0 ? '+' : ''}$eloChange',
+                            style: TextStyle(
+                              color: eloChange > 0 ? Colors.green : Colors.red,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 const SizedBox(height: 12),
@@ -173,7 +229,7 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: (isDraw ? Colors.purple : isWin ? Colors.green : Colors.red).withValues(alpha: 0.5),
+                        color: (isDraw ? Colors.purple : isWin ? Colors.green : Colors.red).withOpacity(0.5),
                         blurRadius: 20,
                         spreadRadius: 2,
                       ),
@@ -206,8 +262,8 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
                               color: allSelected 
-                                  ? Colors.orange.withValues(alpha: 0.3)
-                                  : const Color(0xFF6C27FF).withValues(alpha: 0.3),
+                                  ? Colors.orange.withOpacity(0.3)
+                                  : const Color(0xFF6C27FF).withOpacity(0.3),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: allSelected ? Colors.orange : const Color(0xFF6C27FF),
@@ -257,14 +313,14 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: isSaved 
-                                        ? [Colors.green.withValues(alpha: 0.2), Colors.green.withValues(alpha: 0.1)]
-                                        : [Colors.white.withValues(alpha: 0.1), Colors.white.withValues(alpha: 0.05)],
+                                        ? [Colors.green.withOpacity(0.2), Colors.green.withOpacity(0.1)]
+                                        : [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: isSaved 
-                                        ? Colors.green.withValues(alpha: 0.5)
-                                        : Colors.white.withValues(alpha: 0.2),
+                                        ? Colors.green.withOpacity(0.5)
+                                        : Colors.white.withOpacity(0.2),
                                     width: isSaved ? 2 : 1,
                                   ),
                                 ),
@@ -311,6 +367,16 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                                         ],
                                       ),
                                     ),
+                                    // Powerups
+                                    if (e.usedPowerups.isNotEmpty) ...[
+                                      const SizedBox(width: 8),
+                                      Row(
+                                          children: e.usedPowerups.map((p) => Padding(
+                                              padding: const EdgeInsets.only(right: 4),
+                                              child: Text(p.emoji, style: const TextStyle(fontSize: 16))
+                                          )).toList(),
+                                      ),
+                                    ],
                                     // Points
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -377,6 +443,9 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
           ),
         ),
       ),
+      GameConfetti(controller: _confettiController),
+        ],
+      ),
     );
   }
 
@@ -402,57 +471,63 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Left: Sen (Blue)
             Flexible(
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: padding, vertical: 16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF2AA7FF), Color(0xFF1167B1)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(color: const Color(0xFF2AA7FF).withValues(alpha: 0.5), blurRadius: 20, offset: const Offset(0, 8)),
-                  ],
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('👤 Sen', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: labelSize)),
-                    const SizedBox(height: 4),
-                    Text('$left', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w900, color: Colors.white)),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text('⚔️', style: TextStyle(fontSize: 28)),
-            const SizedBox(width: 12),
-            // Right: Bot (Orange)
-            Flexible(
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: padding, vertical: 16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF9800), Color(0xFFCC7A00)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(color: const Color(0xFFFF9800).withValues(alpha: 0.5), blurRadius: 20, offset: const Offset(0, 8)),
-                  ],
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('🤖 Bot', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: labelSize)),
-                    const SizedBox(height: 4),
-                    Text('$right', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w900, color: Colors.white)),
+                    // Left: Sen (Blue)
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: padding, vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF2AA7FF), Color(0xFF1167B1)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: const Color(0xFF2AA7FF).withOpacity(0.5), blurRadius: 20, offset: const Offset(0, 8)),
+                        ],
+                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('👤 Sen', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: labelSize)),
+                          const SizedBox(height: 4),
+                          Text('$left', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w900, color: Colors.white)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('⚔️', style: TextStyle(fontSize: 28)),
+                    const SizedBox(width: 12),
+                    // Right: Bot (Orange)
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: padding, vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF9800), Color(0xFFCC7A00)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: const Color(0xFFFF9800).withOpacity(0.5), blurRadius: 20, offset: const Offset(0, 8)),
+                        ],
+                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('🤖 Bot', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: labelSize)),
+                          const SizedBox(height: 4),
+                          Text('$right', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w900, color: Colors.white)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),

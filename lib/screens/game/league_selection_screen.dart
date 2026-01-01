@@ -16,10 +16,12 @@ class LeagueSelectionScreen extends StatefulWidget {
 
 class _LeagueSelectionScreenState extends State<LeagueSelectionScreen> 
     with SingleTickerProviderStateMixin {
-  League? _selectedLeague;
   LeagueScores? _leagueScores;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  
+  // Devam eden oyunlar listesi (simüle)
+  final List<Map<String, dynamic>> _ongoingGames = [];
 
   @override
   void initState() {
@@ -47,12 +49,10 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
     super.dispose();
   }
 
-  void _startDuel() {
-    if (_selectedLeague == null) return;
-
+  void _startDuelWithBot(League league) {
     // Seçilen lige göre seviyeler belirle
     UserLevel level;
-    switch (_selectedLeague!) {
+    switch (league) {
       case League.beginner:
         level = UserLevel.a1;
         break;
@@ -73,7 +73,87 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
     Navigator.pushReplacementNamed(
       context, 
       '/duel',
-      arguments: _selectedLeague,
+      arguments: league,
+    );
+  }
+
+  void _findOnlineMatch(League league) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FindMatchScreen(
+          leagueCode: league.code,
+          leagueName: league.name,
+        ),
+      ),
+    );
+  }
+
+  void _showOngoingGames() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF2E5A8C),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Devam Eden Oyunlar',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_ongoingGames.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(30),
+                child: Column(
+                  children: [
+                    Icon(Icons.games_outlined, size: 60, color: Colors.white.withOpacity(0.3)),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Devam eden oyun yok',
+                      style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 16),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...List.generate(_ongoingGames.length, (i) {
+                final game = _ongoingGames[i];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blue,
+                    child: Text(game['opponent'][0]),
+                  ),
+                  title: Text(game['opponent'], style: const TextStyle(color: Colors.white)),
+                  subtitle: Text(game['league'], style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                  trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // Oyuna devam et
+                  },
+                );
+              }),
+          ],
+        ),
+      ),
     );
   }
 
@@ -83,7 +163,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
+            colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -102,7 +182,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                     ),
                     const Expanded(
                       child: Text(
-                        'Lig Seç',
+                        'Düello Modu',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
@@ -111,18 +191,50 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 48),
+                    // Devam eden oyunlar butonu
+                    Stack(
+                      children: [
+                        IconButton(
+                          onPressed: _showOngoingGames,
+                          icon: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.white.withOpacity(0.2)),
+                            ),
+                            child: const Icon(Icons.inbox, color: Colors.white, size: 20),
+                          ),
+                        ),
+                        if (_ongoingGames.isNotEmpty)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                '${_ongoingGames.length}',
+                                style: const TextStyle(color: Colors.white, fontSize: 10),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Yarışmak istediğin ligi seç',
+                  'Seviye seç ve rakibini bul!',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: Colors.white.withOpacity(0.7),
                     fontSize: 16,
                   ),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 24),
 
                 // League Cards
                 Expanded(
@@ -133,6 +245,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                         Colors.green,
                         Icons.eco,
                         'Temel kelimeler ve günlük konuşma',
+                        '🤖',
                       ),
                       const SizedBox(height: 16),
                       _buildLeagueCard(
@@ -140,6 +253,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                         Colors.orange,
                         Icons.trending_up,
                         'Orta ve ileri düzey kelimeler',
+                        '🤖',
                       ),
                       const SizedBox(height: 16),
                       _buildLeagueCard(
@@ -147,93 +261,11 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                         Colors.red,
                         Icons.whatshot,
                         'Akademik ve uzman düzey kelimeler',
+                        '🤖',
                       ),
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 20),
-
-                // Start Button
-                if (_selectedLeague != null)
-                  ScaleTransition(
-                    scale: _pulseAnimation,
-                    child: Column(
-                      children: [
-                        // Offline Duel Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _startDuel,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2AA7FF),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 8,
-                              shadowColor: const Color(0xFF2AA7FF).withValues(alpha: 0.5),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.sports_mma, color: Colors.white, size: 24),
-                                const SizedBox(width: 10),
-                                Text(
-                                  '${_selectedLeague!.name} Liginde Düello!',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        // Online Match Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => FindMatchScreen(
-                                    leagueCode: _selectedLeague!.code,
-                                    leagueName: _selectedLeague!.name,
-                                  ),
-                                ),
-                              );
-                            },
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xFF4CAF50), width: 2),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.public, color: Color(0xFF4CAF50), size: 24),
-                                SizedBox(width: 10),
-                                Text(
-                                  'Online Rakip Bul',
-                                  style: TextStyle(
-                                    color: Color(0xFF4CAF50),
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
               ],
             ),
           ),
@@ -242,129 +274,174 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
     );
   }
 
-  Widget _buildLeagueCard(League league, Color color, IconData icon, String description) {
-    final isSelected = _selectedLeague == league;
+  Widget _buildLeagueCard(League league, Color color, IconData icon, String description, String botEmoji) {
     final score = _leagueScores?.getScore(league) ?? 1500;
 
-    return GestureDetector(
-      onTap: () => setState(() => _selectedLeague = league),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isSelected
-                ? [color.withValues(alpha: 0.4), color.withValues(alpha: 0.2)]
-                : [Colors.white.withValues(alpha: 0.1), Colors.white.withValues(alpha: 0.05)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? color : Colors.white.withValues(alpha: 0.2),
-            width: isSelected ? 3 : 1,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                  ),
-                ]
-              : null,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color.withOpacity(0.25), color.withOpacity(0.1)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Üst satır: icon, isim, seviye aralığı
-            Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: color, size: 28),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.5), width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Üst satır: icon, isim, skor
+          Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        league.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          league.levelRange,
-                          style: TextStyle(
-                            color: color,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Skor ve seçim işareti
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                child: Icon(icon, color: color, size: 28),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      league.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: color.withValues(alpha: 0.5)),
+                        color: color.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        '${league.code}$score',
+                        league.levelRange,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Skor
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: color.withOpacity(0.5)),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '$score',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'ELO',
+                      style: TextStyle(
+                        color: color.withOpacity(0.7),
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.6),
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Butonlar satırı
+          Row(
+            children: [
+              // Online Rakip Bul butonu
+              Expanded(
+                flex: 2,
+                child: ScaleTransition(
+                  scale: _pulseAnimation,
+                  child: ElevatedButton(
+                    onPressed: () => _findOnlineMatch(league),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 4,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.person_search, color: Colors.white, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Rakip Bul',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Bot ile oyna butonu
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _startDuelWithBot(league),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: color, width: 2),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(botEmoji, style: const TextStyle(fontSize: 18)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Bot',
                         style: TextStyle(
                           color: color,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                    if (isSelected)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Icon(
-                          Icons.check_circle,
-                          color: color,
-                          size: 20,
-                        ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Alt satır: açıklama
-            Text(
-              description,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 12,
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }

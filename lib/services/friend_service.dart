@@ -201,6 +201,40 @@ class FriendService {
     ];
   }
 
+  /// Bekleyen düello davetlerini getir
+  Future<List<DuelInvitation>> getDuelInvitations() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString(_invitationsKey);
+    
+    if (json != null) {
+      final List<dynamic> list = jsonDecode(json);
+      // Not: DuelInvitation için toJson/fromJson eklenmesi gerekebilir 
+      // veya burada manuel eşleme yapılabilir. 
+      // Basitlik için şu an demo dönelim.
+    }
+    
+    // Simülasyon için bazen bir davet varmış gibi yapalım
+    final now = DateTime.now();
+    if (now.second % 10 == 0) { // Her 10 saniyede bir şans
+       return [
+         DuelInvitation(
+           id: 'demo_inv',
+           fromUser: _demoFriends[0],
+           leagueCode: 'B1',
+           createdAt: now,
+           expiresAt: now.add(const Duration(minutes: 2)),
+         )
+       ];
+    }
+    
+    return [];
+  }
+
+  /// Yeni bir davet simüle et (test için)
+  Future<void> simulateIncomingInvitation() async {
+    // Bu metod UI'da bir bildirimi tetiklemek için kullanılabilir
+  }
+
   /// Düello daveti gönder
   Future<DuelInvitation?> sendDuelInvitation(Friend friend, String leagueCode) async {
     // Simülasyon

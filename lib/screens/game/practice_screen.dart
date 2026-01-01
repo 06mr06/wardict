@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/practice_provider.dart';
 import '../../services/word_pool_service.dart';
+import '../../widgets/game/question_card.dart';
+import '../../widgets/game/options_grid.dart';
 import 'practice_results_screen.dart';
 
 class PracticeScreen extends StatefulWidget {
@@ -64,22 +66,13 @@ class _PracticeScreenState extends State<PracticeScreen> with TickerProviderStat
   }
 
   void _runCountdown() {
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (!mounted) return;
-      setState(() => _countdown = 2);
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (!mounted) return;
-        setState(() => _countdown = 1);
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) return;
-          setState(() {
-            _showCountdown = false;
-            _showPreScreen = false;
-          });
-          _startTimer();
-        });
-      });
+    if (!mounted) return;
+    // Skip 3-2-1 countdown for Practice Mode as requested
+    setState(() {
+      _showCountdown = false;
+      _showPreScreen = false;
     });
+    _startTimer();
   }
 
   void _startTimer() {
@@ -191,7 +184,7 @@ class _PracticeScreenState extends State<PracticeScreen> with TickerProviderStat
               errorBuilder: (context, error, stackTrace) => Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
+                    colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -202,8 +195,8 @@ class _PracticeScreenState extends State<PracticeScreen> with TickerProviderStat
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.black.withValues(alpha: 0.5),
-                    Colors.black.withValues(alpha: 0.7),
+                    Colors.black.withOpacity(0.5),
+                    Colors.black.withOpacity(0.7),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -233,7 +226,7 @@ class _PracticeScreenState extends State<PracticeScreen> with TickerProviderStat
                   errorBuilder: (context, error, stackTrace) => Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
+                        colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -244,8 +237,8 @@ class _PracticeScreenState extends State<PracticeScreen> with TickerProviderStat
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.black.withValues(alpha: 0.5),
-                        Colors.black.withValues(alpha: 0.7),
+                        Colors.black.withOpacity(0.5),
+                        Colors.black.withOpacity(0.7),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -264,8 +257,107 @@ class _PracticeScreenState extends State<PracticeScreen> with TickerProviderStat
           return _buildPreScreen(practiceProvider);
         }
 
-        return _buildQuestionScreen(practiceProvider);
+        return _buildPracticeGameScreen(practiceProvider);
       },
+    );
+  }
+
+  Widget _buildPracticeGameScreen(PracticeProvider provider) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF2E5A8C),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(provider),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  children: [
+                    QuestionCard(
+                      prompt: provider.currentPrompt,
+                    ),
+                    const SizedBox(height: 30),
+                    Expanded(
+                      child: OptionsGrid(
+                        options: provider.currentOptions,
+                        correctIndex: provider.currentCorrectIndex,
+                        selectedIndex: _selectedIndex,
+                        onOptionSelected: _answer,
+                        isLocked: _answered,
+                        showCorrect: _answered,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(PracticeProvider provider) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.1))),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _headerInfo('DÜZEY', provider.currentLevel, Colors.orange),
+                    _headerInfo('SÜRE', '${_timeLeft}s', Colors.redAccent),
+                    _headerInfo('PUAN', '${provider.sessionScore}', Colors.greenAccent),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 40), // Balance for back button
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Progress Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: (provider.currentQuestionIndex + 1) / 10,
+                backgroundColor: Colors.white.withOpacity(0.1),
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2AA7FF)),
+                minHeight: 6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _headerInfo(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 10, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+        ),
+      ],
     );
   }
 
@@ -280,7 +372,7 @@ class _PracticeScreenState extends State<PracticeScreen> with TickerProviderStat
             errorBuilder: (context, error, stackTrace) => Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
+                  colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -291,8 +383,8 @@ class _PracticeScreenState extends State<PracticeScreen> with TickerProviderStat
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.black.withValues(alpha: 0.5),
-                  Colors.black.withValues(alpha: 0.7),
+                  Colors.black.withOpacity(0.5),
+                  Colors.black.withOpacity(0.7),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -313,43 +405,46 @@ class _PracticeScreenState extends State<PracticeScreen> with TickerProviderStat
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFFF9800).withValues(alpha: 0.4),
+                        color: const Color(0xFFFF9800).withOpacity(0.4),
                         blurRadius: 20,
                         spreadRadius: 2,
                       ),
                     ],
                   ),
-                  child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.school, color: Colors.white, size: 22),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Seviye: ${provider.currentLevel}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${provider.currentQuestionIndex + 1}/10',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.school, color: Colors.white, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Seviye: ${provider.currentLevel}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${provider.currentQuestionIndex + 1}/10',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
               ),
               const SizedBox(height: 40),
               // Countdown 3-2-1
@@ -376,7 +471,7 @@ class _PracticeScreenState extends State<PracticeScreen> with TickerProviderStat
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: (_countdown == 1 ? Colors.green : _countdown == 2 ? Colors.orange : Colors.red).withValues(alpha: 0.5),
+                              color: (_countdown == 1 ? Colors.green : _countdown == 2 ? Colors.orange : Colors.red).withOpacity(0.5),
                               blurRadius: 30,
                               spreadRadius: 5,
                             ),
@@ -413,342 +508,4 @@ class _PracticeScreenState extends State<PracticeScreen> with TickerProviderStat
     );
   }
 
-  Widget _buildQuestionScreen(PracticeProvider provider) {
-    final question = provider.currentQuestion!;
-    final options = provider.currentOptions;
-    final correctIndex = provider.currentCorrectIndex;
-
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            'assets/images/welcome.png',
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.black.withValues(alpha: 0.5),
-                  Colors.black.withValues(alpha: 0.7),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Progress bar with question counter
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 8,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            color: Colors.white.withValues(alpha: 0.2),
-                          ),
-                          child: FractionallySizedBox(
-                            alignment: Alignment.centerLeft,
-                            widthFactor: (provider.currentQuestionIndex + 1) / 10,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(4),
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF00F5A0), Color(0xFF00D9F5)],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-                      ),
-                      child: Text(
-                        '${provider.currentQuestionIndex + 1}/10',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                
-                // Header row
-                Row(
-                  children: [
-                    // Seviye badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFF9800), Color(0xFFFF5722)],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        provider.currentLevel,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    // Timer
-                    Container(
-                      height: 50,
-                      width: 50,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: _timeLeft <= 2
-                              ? [Colors.red.shade400, Colors.red.shade700]
-                              : [const Color(0xFFFF9800), const Color(0xFFFF5722)],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: (_timeLeft <= 2 ? Colors.red : Colors.orange).withValues(alpha: 0.5),
-                            blurRadius: 12,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$_timeLeft',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    // Puan
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.green),
-                      ),
-                      child: Text(
-                        'P: ${provider.sessionScore}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                
-                // Puan animasyonu
-                if (_earnedPoint != 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: SlideTransition(
-                        position: _slideAnim,
-                        child: FadeTransition(
-                          opacity: _fadeAnim,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: _earnedPoint > 0
-                                    ? [Colors.green.shade400, Colors.green.shade600]
-                                    : [Colors.red.shade400, Colors.red.shade600],
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: (_earnedPoint > 0 ? Colors.green : Colors.red).withValues(alpha: 0.5),
-                                  blurRadius: 12,
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              _earnedPoint > 0 ? '+$_earnedPoint' : '$_earnedPoint',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                
-                const SizedBox(height: 16),
-                
-                // Question Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.white.withValues(alpha: 0.15), Colors.white.withValues(alpha: 0.05)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
-                  ),
-                  child: Text(
-                    question.prompt,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Options
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isNarrow = constraints.maxWidth < 420;
-                      final crossAxisCount = isNarrow ? 1 : 2;
-                      final aspect = isNarrow ? 3.2 : 2.0;
-                      
-                      return GridView.builder(
-                        itemCount: options.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: aspect,
-                        ),
-                        itemBuilder: (_, i) {
-                          final bool shouldHighlight = (_selectedIndex != null) || (_timeLeft == 0);
-                          List<Color> gradientColors = [Colors.white.withValues(alpha: 0.15), Colors.white.withValues(alpha: 0.05)];
-                          Color borderColor = Colors.white.withValues(alpha: 0.3);
-                          IconData? trailingIcon;
-
-                          if (shouldHighlight) {
-                            if (_selectedIndex == null) {
-                              if (i == correctIndex) {
-                                gradientColors = [Colors.green.shade400, Colors.green.shade600];
-                                borderColor = Colors.green;
-                                trailingIcon = Icons.check_circle;
-                              }
-                            } else {
-                              if (_selectedIndex == correctIndex) {
-                                if (i == _selectedIndex) {
-                                  gradientColors = [Colors.green.shade400, Colors.green.shade600];
-                                  borderColor = Colors.green;
-                                  trailingIcon = Icons.check_circle;
-                                }
-                              } else {
-                                if (i == _selectedIndex) {
-                                  gradientColors = [Colors.red.shade400, Colors.red.shade600];
-                                  borderColor = Colors.red;
-                                  trailingIcon = Icons.cancel;
-                                } else if (i == correctIndex) {
-                                  gradientColors = [Colors.green.shade400, Colors.green.shade600];
-                                  borderColor = Colors.green;
-                                  trailingIcon = Icons.check_circle;
-                                }
-                              }
-                            }
-                          } else if (_selectedIndex == i) {
-                            gradientColors = [const Color(0xFF2AA7FF), const Color(0xFF1167B1)];
-                            borderColor = Colors.white;
-                          }
-
-                          return GestureDetector(
-                            onTap: () => _answer(i),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: gradientColors,
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: borderColor, width: 2),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: borderColor.withValues(alpha: 0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              alignment: Alignment.center,
-                              padding: const EdgeInsets.all(12),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      options[i],
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                  if (trailingIcon != null) ...[
-                                    const SizedBox(width: 8),
-                                    Icon(trailingIcon, color: Colors.white, size: 22),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ),
-        ],
-      ),
-    );
-  }
 }

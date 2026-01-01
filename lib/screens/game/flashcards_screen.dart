@@ -123,18 +123,22 @@ class _FlashcardsScreenState extends State<FlashcardsScreen> with SingleTickerPr
                                 width: w,
                                 height: h,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF4A7AB0), Color(0xFF2E5A8C)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
                                   borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10)],
-                                  border: Border.all(color: Colors.grey.shade300, width: 2),
+                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, spreadRadius: 2)],
+                                  border: Border.all(color: const Color(0xFF6C27FF), width: 2),
                                 ),
                                 alignment: Alignment.center,
-                                padding: const EdgeInsets.all(16),
+                                padding: const EdgeInsets.all(24),
                                 child: progress < 0.5
                                     ? Text(
                                         e.prompt,
                                         textAlign: TextAlign.center,
-                                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                                       )
                                     : Transform(
                                         alignment: Alignment.center,
@@ -142,7 +146,7 @@ class _FlashcardsScreenState extends State<FlashcardsScreen> with SingleTickerPr
                                         child: Text(
                                           e.correctText,
                                           textAlign: TextAlign.center,
-                                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
+                                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF00F5A0)),
                                         ),
                                       ),
                               ),

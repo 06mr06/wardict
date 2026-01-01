@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_level.dart';
 import '../models/league.dart';
 import '../models/practice_session.dart';
+import '../models/match_history_item.dart';
 
 /// Kullanıcı profili yönetimi servisi
 class UserProfileService {
@@ -117,8 +118,48 @@ class UserProfileService {
     return profile.level;
   }
   
+  /// Kullanıcı profili için varsayılan avatarlar (Emojiler)
+  static const List<String> avatars = [
+    '🦁', '🐯', '🐻', '🐨', '🐼', '🦊', '🐮', '🐷', '🐸', '🐙'
+  ];
+
   /// Cache'i temizle (yeniden yükleme için)
   void clearCache() {
     _cachedProfile = null;
+  }
+  
+  /// Profili yeniden yükle (cache'i temizleyerek)
+  Future<UserProfile> reloadProfile() async {
+    clearCache();
+    return await loadProfile();
+  }
+  
+  /// Maç sonucunu geçmişe ekler
+  Future<void> addMatchHistory(MatchHistoryItem item) async {
+    final profile = await loadProfile();
+    final newHistory = List<MatchHistoryItem>.from(profile.matchHistory)..add(item);
+    
+    // Son 20 maçı tutalım
+    if (newHistory.length > 20) {
+      newHistory.sort((a, b) => b.date.compareTo(a.date)); // Sort desc
+      newHistory.removeRange(20, newHistory.length);
+    }
+    
+    final updatedProfile = profile.copyWith(matchHistory: newHistory);
+    await saveProfile(updatedProfile);
+  }
+
+  /// Avatarı günceller
+  Future<void> updateAvatar(String? avatarId) async {
+    final profile = await loadProfile();
+    final updatedProfile = profile.copyWith(avatarId: avatarId, clearAvatarId: avatarId == null);
+    await saveProfile(updatedProfile);
+  }
+  
+  /// Kullanıcı adını günceller
+  Future<void> updateUsername(String newUsername) async {
+    final profile = await loadProfile();
+    final updatedProfile = profile.copyWith(username: newUsername);
+    await saveProfile(updatedProfile);
   }
 }

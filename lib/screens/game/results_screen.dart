@@ -9,14 +9,14 @@ class ResultsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<GameProvider>(context);
-    final total = provider.totalScore;
+    final total = provider.score;
     final items = provider.history;
 
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
+            colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -33,12 +33,12 @@ class ResultsScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.white.withValues(alpha: 0.15), Colors.white.withValues(alpha: 0.05)],
+                      colors: [Colors.white.withOpacity(0.15), Colors.white.withOpacity(0.05)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                    border: Border.all(color: Colors.white.withOpacity(0.2)),
                   ),
                   child: Column(
                     children: [
@@ -62,7 +62,7 @@ class ResultsScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.green.shade400.withValues(alpha: 0.3), Colors.green.shade600.withValues(alpha: 0.1)],
+                            colors: [Colors.green.shade400.withOpacity(0.3), Colors.green.shade600.withOpacity(0.1)],
                           ),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.green.shade400),
@@ -84,7 +84,7 @@ class ResultsScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.orange.shade400.withValues(alpha: 0.3), Colors.orange.shade600.withValues(alpha: 0.1)],
+                            colors: [Colors.orange.shade400.withOpacity(0.3), Colors.orange.shade600.withOpacity(0.1)],
                           ),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.orange.shade400),
@@ -118,10 +118,10 @@ class ResultsScreen extends StatelessWidget {
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: [Colors.white.withValues(alpha: 0.1), Colors.white.withValues(alpha: 0.05)],
+                                  colors: [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
                                 ),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                                border: Border.all(color: Colors.white.withOpacity(0.2)),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,

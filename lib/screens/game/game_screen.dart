@@ -261,7 +261,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             body: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
+                  colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -280,7 +280,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF6C27FF).withValues(alpha: 0.4),
+                            color: const Color(0xFF6C27FF).withOpacity(0.4),
                             blurRadius: 20,
                             spreadRadius: 2,
                           ),
@@ -327,7 +327,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: (_countdown == 1 ? Colors.green : _countdown == 2 ? Colors.orange : Colors.red).withValues(alpha: 0.5),
+                                    color: (_countdown == 1 ? Colors.green : _countdown == 2 ? Colors.orange : Colors.red).withOpacity(0.5),
                                     blurRadius: 30,
                                     spreadRadius: 5,
                                   ),
@@ -368,7 +368,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           body: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
+                colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -384,7 +384,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       height: 8,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(4),
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: Colors.white.withOpacity(0.2),
                       ),
                       child: FractionallySizedBox(
                         alignment: Alignment.centerLeft,
@@ -436,7 +436,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: (_timeLeft <= 2 ? Colors.red : Colors.orange).withValues(alpha: 0.5),
+                              color: (_timeLeft <= 2 ? Colors.red : Colors.orange).withOpacity(0.5),
                               blurRadius: 12,
                               spreadRadius: 2,
                             ),
@@ -489,7 +489,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.green.withValues(alpha: 0.5),
+                                    color: Colors.green.withOpacity(0.5),
                                     blurRadius: 12,
                                   ),
                                 ],
@@ -514,12 +514,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Colors.white.withValues(alpha: 0.15), Colors.white.withValues(alpha: 0.05)],
+                        colors: [Colors.white.withOpacity(0.15), Colors.white.withOpacity(0.05)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
+                      border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
                     ),
                     child: Text(
                       q.prompt,
@@ -553,8 +553,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           ),
                           itemBuilder: (_, i) {
                             final bool shouldHighlight = (_selectedIndex != null) || (_timeLeft == 0);
-                            List<Color> gradientColors = [Colors.white.withValues(alpha: 0.15), Colors.white.withValues(alpha: 0.05)];
-                            Color borderColor = Colors.white.withValues(alpha: 0.3);
+                            List<Color> gradientColors = [Colors.white.withOpacity(0.15), Colors.white.withOpacity(0.05)];
+                            Color borderColor = Colors.white.withOpacity(0.3);
                             IconData? trailingIcon;
 
                             if (shouldHighlight) {
@@ -601,7 +601,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                   border: Border.all(color: borderColor, width: 2),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: borderColor.withValues(alpha: 0.3),
+                                      color: borderColor.withOpacity(0.3),
                                       blurRadius: 8,
                                       offset: const Offset(0, 4),
                                     ),

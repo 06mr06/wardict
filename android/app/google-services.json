@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "241339661354",
+    "project_id": "wardict-app",
+    "storage_bucket": "wardict-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:241339661354:android:7b1fc597fed1d669c75753",
+        "android_client_info": {
+          "package_name": "wardict.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "241339661354-raru5u5mj2a33j50jhinhf54tugpr91n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGHbX90t5-Z6S2eDPvnFlftfTA0WnH8Mo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "241339661354-raru5u5mj2a33j50jhinhf54tugpr91n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

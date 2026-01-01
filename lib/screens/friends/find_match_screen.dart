@@ -8,8 +8,8 @@ class FindMatchScreen extends StatefulWidget {
 
   const FindMatchScreen({
     super.key,
-    required this.leagueCode,
-    required this.leagueName,
+    this.leagueCode = 'beginner',
+    this.leagueName = 'Başlangıç Ligi',
   });
 
   @override
@@ -142,7 +142,7 @@ class _FindMatchScreenState extends State<FindMatchScreen>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
+            colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -150,241 +150,243 @@ class _FindMatchScreenState extends State<FindMatchScreen>
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                // Üst bar
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: _cancelSearch,
-                    ),
-                    Text(
-                      widget.leagueName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Üst bar
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: _cancelSearch,
                       ),
-                    ),
-                    const SizedBox(width: 48), // Balance için
-                  ],
-                ),
-                const Spacer(),
-                // Arama animasyonu
-                if (_isSearching) ...[
-                  RotationTransition(
-                    turns: _rotateAnimation,
-                    child: Container(
-                      width: 150,
-                      height: 150,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.orange.withValues(alpha: 0.3),
-                          width: 3,
+                      Text(
+                        widget.leagueName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      child: Center(
-                        child: ScaleTransition(
-                          scale: _pulseAnimation,
-                          child: Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.orange.shade600,
-                                  Colors.orange.shade400,
+                      const SizedBox(width: 48), // Balance için
+                    ],
+                  ),
+                  const SizedBox(height: 48),
+                  // Arama animasyonu
+                  if (_isSearching) ...[
+                    RotationTransition(
+                      turns: _rotateAnimation,
+                      child: Container(
+                        width: 150,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.orange.withOpacity(0.3),
+                            width: 3,
+                          ),
+                        ),
+                        child: Center(
+                          child: ScaleTransition(
+                            scale: _pulseAnimation,
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.orange.shade600,
+                                    Colors.orange.shade400,
+                                  ],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.orange.withOpacity(0.5),
+                                    blurRadius: 20,
+                                    spreadRadius: 5,
+                                  ),
                                 ],
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.orange.withValues(alpha: 0.5),
-                                  blurRadius: 20,
-                                  spreadRadius: 5,
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.search,
-                              color: Colors.white,
-                              size: 50,
+                              child: const Icon(
+                                Icons.search,
+                                color: Colors.white,
+                                size: 50,
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 40),
-                  Text(
-                    _statusText,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _formattedTime,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontSize: 16,
-                    ),
-                  ),
-                ] else if (_matchFound && _opponent != null) ...[
-                  // Rakip bulundu
-                  Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.green.withValues(alpha: 0.5),
-                        width: 2,
+                    const SizedBox(height: 40),
+                    Text(
+                      _statusText,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        const Icon(
-                          Icons.check_circle,
-                          color: Colors.green,
-                          size: 60,
+                    const SizedBox(height: 16),
+                    Text(
+                      _formattedTime,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 16,
+                      ),
+                    ),
+                  ] else if (_matchFound && _opponent != null) ...[
+                    // Rakip bulundu
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.green.withOpacity(0.5),
+                          width: 2,
                         ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Rakip Bulundu!',
-                          style: TextStyle(
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.check_circle,
                             color: Colors.green,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                            size: 60,
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Colors.blue.shade300,
-                          child: Text(
-                            _opponent!.username[0].toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 32,
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Rakip Bulundu!',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _opponent!.username,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
+                          const SizedBox(height: 24),
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundColor: Colors.blue.shade300,
+                            child: Text(
+                              _opponent!.username[0].toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${_opponent!.eloRating ?? 1500} ELO',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 16,
+                          const SizedBox(height: 16),
+                          Text(
+                            _opponent!.username,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ] else ...[
-                  // Rakip bulunamadı
-                  Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.red.withValues(alpha: 0.5),
-                        width: 2,
+                          const SizedBox(height: 8),
+                          Text(
+                            '${_opponent!.eloRating ?? 1500} ELO',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.7),
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: Colors.red,
-                          size: 60,
+                  ] else ...[
+                    // Rakip bulunamadı
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.red.withOpacity(0.5),
+                          width: 2,
                         ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Rakip Bulunamadı',
-                          style: TextStyle(
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
                             color: Colors.red,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                            size: 60,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Rakip Bulunamadı',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Şu anda bu ligde aktif oyuncu yok.\nDaha sonra tekrar dene!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.7),
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 48),
+                  // Alt buton
+                  if (_isSearching)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _cancelSearch,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Şu anda bu ligde aktif oyuncu yok.\nDaha sonra tekrar dene!',
-                          textAlign: TextAlign.center,
+                        child: const Text(
+                          'İptal',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 16,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
-                      ],
+                      ),
+                    )
+                  else if (!_matchFound)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Geri Dön',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  const SizedBox(height: 20),
                 ],
-                const Spacer(),
-                // Alt buton
-                if (_isSearching)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _cancelSearch,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'İptal',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  )
-                else if (!_matchFound)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Geri Dön',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
           ),
         ),

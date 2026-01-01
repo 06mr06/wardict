@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/friend.dart';
 import '../../services/friend_service.dart';
+import '../../services/online_duel_service.dart';
+import '../game/matchmaking_screen.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -140,7 +142,8 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('${friend.username} ile Düello'),
-        content: Column(
+      content: SingleChildScrollView(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text('Hangi ligde düello yapmak istersin?'),
@@ -167,6 +170,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
             ),
           ],
         ),
+      ),
       ),
     );
     
@@ -197,11 +201,14 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
         onCancel: () => Navigator.pop(ctx),
         onAccepted: () {
           Navigator.pop(ctx);
-          // Online düello ekranına git
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Düello başlıyor! (Demo mod)'),
-              backgroundColor: Colors.green,
+          // Online düello matchmaking ekranına git
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MatchmakingScreen(
+                leagueCode: invitation.leagueCode,
+                invitedFriend: friend,
+              ),
             ),
           );
         },
@@ -216,13 +223,15 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
         title: const Text('Arkadaşlar'),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           tabs: [
             Tab(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.people),
-                  const SizedBox(width: 8),
+                  const Icon(Icons.people, size: 20),
+                  const SizedBox(width: 6),
                   Text('Arkadaşlar (${_friends.length})'),
                 ],
               ),
@@ -231,8 +240,8 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.person_add),
-                  const SizedBox(width: 8),
+                  const Icon(Icons.person_add, size: 20),
+                  const SizedBox(width: 6),
                   Text('İstekler (${_pendingRequests.length})'),
                   if (_pendingRequests.isNotEmpty)
                     Container(
@@ -257,8 +266,8 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.search),
-                  SizedBox(width: 8),
+                  Icon(Icons.search, size: 20),
+                  SizedBox(width: 6),
                   Text('Ara'),
                 ],
               ),
@@ -472,7 +481,12 @@ class _FriendTile extends StatelessWidget {
         ),
         title: Row(
           children: [
-            Text(friend.username),
+            Flexible(
+              child: Text(
+                friend.username,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             const SizedBox(width: 8),
             Text(
               _getLeagueIcon(friend.currentLeague),

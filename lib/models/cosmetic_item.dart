@@ -1,0 +1,340 @@
+enum CosmeticType {
+  frame,
+  title,
+  avatar,
+  animation
+}
+
+class CosmeticItem {
+  final String id;
+  final String name;
+  final String description;
+  final CosmeticType type;
+  final int price;
+  final String previewValue; // Emoji, icon name, or color code
+  final bool isPremiumOnly;
+  final int borderWidth; // Frame için kenar kalınlığı (3-6 arası)
+
+  const CosmeticItem({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.type,
+    required this.price,
+    required this.previewValue,
+    this.isPremiumOnly = false,
+    this.borderWidth = 4,
+  });
+
+  static const List<CosmeticItem> availableItems = [
+    // ===== ÇERÇEVELER (Kalın ve Neon tarzı) =====
+    CosmeticItem(
+      id: 'frame_gold',
+      name: 'Altın Çerçeve',
+      description: 'Profiline asalet katar',
+      type: CosmeticType.frame,
+      price: 200,
+      previewValue: 'ffd700', // Hex color
+      borderWidth: 5,
+    ),
+    CosmeticItem(
+      id: 'frame_neon',
+      name: 'Neon Mavi',
+      description: 'Gelecekten gelen stil',
+      type: CosmeticType.frame,
+      price: 350,
+      previewValue: '00f2ff',
+      borderWidth: 5,
+    ),
+    CosmeticItem(
+      id: 'frame_neon_pink',
+      name: 'Neon Pembe',
+      description: 'Parlak ve enerjik',
+      type: CosmeticType.frame,
+      price: 350,
+      previewValue: 'ff00ff',
+      borderWidth: 5,
+    ),
+    CosmeticItem(
+      id: 'frame_neon_green',
+      name: 'Neon Yeşil',
+      description: 'Matrix vibes',
+      type: CosmeticType.frame,
+      price: 350,
+      previewValue: '00ff00',
+      borderWidth: 5,
+    ),
+    CosmeticItem(
+      id: 'frame_rainbow',
+      name: 'Gökkuşağı',
+      description: 'Tüm renkler bir arada',
+      type: CosmeticType.frame,
+      price: 600,
+      previewValue: 'gradient',
+      borderWidth: 6,
+      isPremiumOnly: true,
+    ),
+    CosmeticItem(
+      id: 'frame_fire',
+      name: 'Ateş Çerçeve',
+      description: 'Alevler içinde parla',
+      type: CosmeticType.frame,
+      price: 500,
+      previewValue: 'ff4500',
+      borderWidth: 6,
+    ),
+    CosmeticItem(
+      id: 'frame_ice',
+      name: 'Buz Çerçeve',
+      description: 'Soğuk ama şık',
+      type: CosmeticType.frame,
+      price: 400,
+      previewValue: 'add8e6',
+      borderWidth: 5,
+    ),
+    
+    // ===== UNVANLAR =====
+    CosmeticItem(
+      id: 'title_legend',
+      name: 'Efsane',
+      description: 'Sadece en iyiler için',
+      type: CosmeticType.title,
+      price: 500,
+      previewValue: 'Efsane',
+      isPremiumOnly: true,
+    ),
+    CosmeticItem(
+      id: 'title_rookie',
+      name: 'Çaylak',
+      description: 'Yeni başlayanların dostu',
+      type: CosmeticType.title,
+      price: 50,
+      previewValue: 'Çaylak',
+    ),
+    CosmeticItem(
+      id: 'title_master',
+      name: 'Usta',
+      description: 'Kelime ustası',
+      type: CosmeticType.title,
+      price: 300,
+      previewValue: 'Usta',
+    ),
+    CosmeticItem(
+      id: 'title_champion',
+      name: 'Şampiyon',
+      description: 'Düello şampiyonu',
+      type: CosmeticType.title,
+      price: 400,
+      previewValue: 'Şampiyon',
+    ),
+    
+    // ===== AVATARLAR (Sevimli ve Çocuk Dostu) =====
+    // Hayvanlar
+    CosmeticItem(
+      id: 'avatar_dragon',
+      name: 'Ejderha',
+      description: 'Ateşli ve heybetli bir görünüm',
+      type: CosmeticType.avatar,
+      price: 500,
+      previewValue: '🐲',
+    ),
+    CosmeticItem(
+      id: 'avatar_unicorn',
+      name: 'Efsanevi Tekboynuz',
+      description: 'Büyülü bir stil',
+      type: CosmeticType.avatar,
+      price: 600,
+      previewValue: '🦄',
+      isPremiumOnly: true,
+    ),
+    CosmeticItem(
+      id: 'avatar_cat',
+      name: 'Sevimli Kedi',
+      description: 'Miyav! 🐱',
+      type: CosmeticType.avatar,
+      price: 150,
+      previewValue: '🐱',
+    ),
+    CosmeticItem(
+      id: 'avatar_dog',
+      name: 'Sadık Köpek',
+      description: 'En iyi arkadaş',
+      type: CosmeticType.avatar,
+      price: 150,
+      previewValue: '🐶',
+    ),
+    CosmeticItem(
+      id: 'avatar_panda',
+      name: 'Tatlı Panda',
+      description: 'Bambu sever',
+      type: CosmeticType.avatar,
+      price: 200,
+      previewValue: '🐼',
+    ),
+    CosmeticItem(
+      id: 'avatar_fox',
+      name: 'Kurnaz Tilki',
+      description: 'Zeki ve çevik',
+      type: CosmeticType.avatar,
+      price: 250,
+      previewValue: '🦊',
+    ),
+    CosmeticItem(
+      id: 'avatar_bear',
+      name: 'Sevimli Ayı',
+      description: 'Kocaman sarılmalar',
+      type: CosmeticType.avatar,
+      price: 200,
+      previewValue: '🐻',
+    ),
+    CosmeticItem(
+      id: 'avatar_rabbit',
+      name: 'Şirin Tavşan',
+      description: 'Havuç sever',
+      type: CosmeticType.avatar,
+      price: 180,
+      previewValue: '🐰',
+    ),
+    CosmeticItem(
+      id: 'avatar_lion',
+      name: 'Aslan Kral',
+      description: 'Ormanın kralı',
+      type: CosmeticType.avatar,
+      price: 350,
+      previewValue: '🦁',
+    ),
+    CosmeticItem(
+      id: 'avatar_owl',
+      name: 'Bilge Baykuş',
+      description: 'Bilginin simgesi',
+      type: CosmeticType.avatar,
+      price: 300,
+      previewValue: '🦉',
+    ),
+    CosmeticItem(
+      id: 'avatar_penguin',
+      name: 'Penguen',
+      description: 'Soğukkanlı ve şık',
+      type: CosmeticType.avatar,
+      price: 200,
+      previewValue: '🐧',
+    ),
+    CosmeticItem(
+      id: 'avatar_koala',
+      name: 'Uyuşuk Koala',
+      description: 'Tembel ama sevimli',
+      type: CosmeticType.avatar,
+      price: 220,
+      previewValue: '🐨',
+    ),
+    
+    // Fantezi Karakterler
+    CosmeticItem(
+      id: 'avatar_wizard',
+      name: 'Büyücü',
+      description: 'Sözcüklerin her zaman efendisi',
+      type: CosmeticType.avatar,
+      price: 350,
+      previewValue: '🧙',
+    ),
+    CosmeticItem(
+      id: 'avatar_ninja',
+      name: 'Sessiz Ninja',
+      description: 'Hızlı ve gizemli',
+      type: CosmeticType.avatar,
+      price: 450,
+      previewValue: '🥷',
+    ),
+    CosmeticItem(
+      id: 'avatar_robot',
+      name: 'Gelecek Robotu',
+      description: 'Metalik bir zeka',
+      type: CosmeticType.avatar,
+      price: 400,
+      previewValue: '🤖',
+    ),
+    CosmeticItem(
+      id: 'avatar_alien',
+      name: 'Uzaylı Dost',
+      description: 'Başka dünyalardan geldi',
+      type: CosmeticType.avatar,
+      price: 300,
+      previewValue: '👽',
+    ),
+    CosmeticItem(
+      id: 'avatar_phoenix',
+      name: 'Anka Kuşu',
+      description: 'Küllerinden doğan başarı',
+      type: CosmeticType.avatar,
+      price: 750,
+      previewValue: '🔥',
+      isPremiumOnly: true,
+    ),
+    CosmeticItem(
+      id: 'avatar_ghost',
+      name: 'Hayalet',
+      description: 'Şeffaf ama etkileyici',
+      type: CosmeticType.avatar,
+      price: 250,
+      previewValue: '👻',
+    ),
+    CosmeticItem(
+      id: 'avatar_fairy',
+      name: 'Peri',
+      description: 'Büyülü ve nazik',
+      type: CosmeticType.avatar,
+      price: 400,
+      previewValue: '🧚',
+    ),
+    CosmeticItem(
+      id: 'avatar_superhero',
+      name: 'Süper Kahraman',
+      description: 'Güç seninle!',
+      type: CosmeticType.avatar,
+      price: 500,
+      previewValue: '🦸',
+    ),
+    CosmeticItem(
+      id: 'avatar_princess',
+      name: 'Prenses',
+      description: 'Zarif ve güçlü',
+      type: CosmeticType.avatar,
+      price: 400,
+      previewValue: '👸',
+    ),
+    CosmeticItem(
+      id: 'avatar_astronaut',
+      name: 'Astronot',
+      description: 'Uzayın kaşifi',
+      type: CosmeticType.avatar,
+      price: 450,
+      previewValue: '👨‍🚀',
+    ),
+    
+    // Yiyecek Temalı (Eğlenceli)
+    CosmeticItem(
+      id: 'avatar_pizza',
+      name: 'Pizza',
+      description: 'Herkesin favorisi',
+      type: CosmeticType.avatar,
+      price: 100,
+      previewValue: '🍕',
+    ),
+    CosmeticItem(
+      id: 'avatar_icecream',
+      name: 'Dondurma',
+      description: 'Tatlı ve serinletici',
+      type: CosmeticType.avatar,
+      price: 100,
+      previewValue: '🍦',
+    ),
+    CosmeticItem(
+      id: 'avatar_cupcake',
+      name: 'Cupcake',
+      description: 'Şekerli ve sevimli',
+      type: CosmeticType.avatar,
+      price: 120,
+      previewValue: '🧁',
+    ),
+  ];
+}

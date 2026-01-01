@@ -5,6 +5,8 @@ import '../../models/question_mode.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/practice_provider.dart';
 import '../../services/word_pool_service.dart';
+import '../../services/achievement_service.dart';
+import '../../widgets/game/achievement_celebration.dart';
 
 class PracticeResultsScreen extends StatefulWidget {
   final PracticeSessionResult result;
@@ -23,12 +25,31 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
   bool get allSelected => _savedIndices.length == result.answerHistory.length && result.answerHistory.isNotEmpty;
 
   @override
+  void initState() {
+    super.initState();
+    // Yeni kazanılan ödülleri kontrol et
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndShowNewAchievements();
+    });
+  }
+  
+  Future<void> _checkAndShowNewAchievements() async {
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+    
+    final newAchievements = await AchievementService.instance.getNewlyUnlockedAchievements();
+    if (newAchievements.isNotEmpty && mounted) {
+      AchievementCelebration.showNewAchievements(context, newAchievements);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
+            colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -90,12 +111,12 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
                       child: ElevatedButton(
                         onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.1),
+                          backgroundColor: Colors.white.withOpacity(0.1),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
-                            side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                            side: BorderSide(color: Colors.white.withOpacity(0.3)),
                           ),
                         ),
                         child: const Text(
@@ -145,7 +166,7 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: (isLevelUp ? Colors.green : Colors.red).withValues(alpha: 0.5),
+            color: (isLevelUp ? Colors.green : Colors.red).withOpacity(0.5),
             blurRadius: 20,
             spreadRadius: 2,
           ),
@@ -191,8 +212,8 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isPositive
-              ? [Colors.green.shade400.withValues(alpha: 0.3), Colors.green.shade600.withValues(alpha: 0.1)]
-              : [Colors.red.shade400.withValues(alpha: 0.3), Colors.red.shade600.withValues(alpha: 0.1)],
+              ? [Colors.green.shade400.withOpacity(0.3), Colors.green.shade600.withOpacity(0.1)]
+              : [Colors.red.shade400.withOpacity(0.3), Colors.red.shade600.withOpacity(0.1)],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
@@ -270,9 +291,9 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         children: [
@@ -289,7 +310,7 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
           Text(
             label,
             style: TextStyle(
-              color: color.withValues(alpha: 0.8),
+              color: color.withOpacity(0.8),
               fontSize: 10,
             ),
           ),
@@ -302,9 +323,9 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -319,7 +340,7 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.2),
+              color: Colors.amber.withOpacity(0.2),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: Colors.amber),
             ),
@@ -340,9 +361,9 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
   Widget _buildAnswerHistory() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Column(
         children: [
@@ -367,8 +388,8 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: allSelected 
-                          ? Colors.orange.withValues(alpha: 0.3)
-                          : const Color(0xFF6C27FF).withValues(alpha: 0.3),
+                          ? Colors.orange.withOpacity(0.3)
+                          : const Color(0xFF6C27FF).withOpacity(0.3),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: allSelected ? Colors.orange : const Color(0xFF6C27FF),
@@ -414,18 +435,18 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: isSaved
-                            ? [Colors.green.withValues(alpha: 0.2), Colors.green.withValues(alpha: 0.1)]
+                            ? [Colors.green.withOpacity(0.2), Colors.green.withOpacity(0.1)]
                             : answer.isCorrect
-                                ? [Colors.green.withValues(alpha: 0.15), Colors.green.withValues(alpha: 0.05)]
-                                : [Colors.red.withValues(alpha: 0.15), Colors.red.withValues(alpha: 0.05)],
+                                ? [Colors.green.withOpacity(0.15), Colors.green.withOpacity(0.05)]
+                                : [Colors.red.withOpacity(0.15), Colors.red.withOpacity(0.05)],
                       ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isSaved
-                            ? Colors.green.withValues(alpha: 0.5)
+                            ? Colors.green.withOpacity(0.5)
                             : answer.isCorrect
-                                ? Colors.green.withValues(alpha: 0.3)
-                                : Colors.red.withValues(alpha: 0.3),
+                                ? Colors.green.withOpacity(0.3)
+                                : Colors.red.withOpacity(0.3),
                         width: isSaved ? 2 : 1,
                       ),
                     ),
@@ -452,7 +473,7 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: Colors.white.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(

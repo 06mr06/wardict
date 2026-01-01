@@ -149,7 +149,7 @@ class _PlacementTestScreenState extends State<PlacementTestScreen>
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
+              colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
@@ -176,7 +176,7 @@ class _PlacementTestScreenState extends State<PlacementTestScreen>
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
+              colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
@@ -209,7 +209,7 @@ class _PlacementTestScreenState extends State<PlacementTestScreen>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
+            colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -238,7 +238,7 @@ class _PlacementTestScreenState extends State<PlacementTestScreen>
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
+                        color: Colors.white.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -260,7 +260,7 @@ class _PlacementTestScreenState extends State<PlacementTestScreen>
                   borderRadius: BorderRadius.circular(10),
                   child: LinearProgressIndicator(
                     value: (_currentIndex + 1) / _questions.length,
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    backgroundColor: Colors.white.withOpacity(0.2),
                     valueColor: const AlwaysStoppedAnimation<Color>(
                       Color(0xFF2AA7FF),
                     ),
@@ -278,7 +278,7 @@ class _PlacementTestScreenState extends State<PlacementTestScreen>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: _getLevelColor(question.level).withValues(alpha: 0.3),
+                      color: _getLevelColor(question.level).withOpacity(0.3),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: _getLevelColor(question.level),
@@ -306,15 +306,15 @@ class _PlacementTestScreenState extends State<PlacementTestScreen>
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Colors.white.withValues(alpha: 0.15),
-                          Colors.white.withValues(alpha: 0.05),
+                          Colors.white.withOpacity(0.15),
+                          Colors.white.withOpacity(0.05),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: Colors.white.withOpacity(0.2),
                         width: 1,
                       ),
                     ),
@@ -341,22 +341,22 @@ class _PlacementTestScreenState extends State<PlacementTestScreen>
                       final isCorrect = index == question.correctIndex;
                       final showResult = _selectedIndex != null;
 
-                      Color bgColor = Colors.white.withValues(alpha: 0.1);
-                      Color borderColor = Colors.white.withValues(alpha: 0.3);
+                      Color bgColor = Colors.white.withOpacity(0.1);
+                      Color borderColor = Colors.white.withOpacity(0.3);
                       IconData? icon;
 
                       if (showResult) {
                         if (isCorrect) {
-                          bgColor = Colors.green.withValues(alpha: 0.3);
+                          bgColor = Colors.green.withOpacity(0.3);
                           borderColor = Colors.green;
                           icon = Icons.check_circle;
                         } else if (isSelected && !isCorrect) {
-                          bgColor = Colors.red.withValues(alpha: 0.3);
+                          bgColor = Colors.red.withOpacity(0.3);
                           borderColor = Colors.red;
                           icon = Icons.cancel;
                         }
                       } else if (isSelected) {
-                        bgColor = const Color(0xFF2AA7FF).withValues(alpha: 0.3);
+                        bgColor = const Color(0xFF2AA7FF).withOpacity(0.3);
                         borderColor = const Color(0xFF2AA7FF);
                       }
 
@@ -378,7 +378,7 @@ class _PlacementTestScreenState extends State<PlacementTestScreen>
                                   width: 32,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: borderColor.withValues(alpha: 0.3),
+                                    color: borderColor.withOpacity(0.3),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Center(
@@ -456,7 +456,7 @@ class PlacementResultScreen extends StatelessWidget {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
+            colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -488,8 +488,8 @@ class PlacementResultScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        _getLevelColor(level).withValues(alpha: 0.3),
-                        _getLevelColor(level).withValues(alpha: 0.1),
+                        _getLevelColor(level).withOpacity(0.3),
+                        _getLevelColor(level).withOpacity(0.1),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -501,7 +501,7 @@ class PlacementResultScreen extends StatelessWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: _getLevelColor(level).withValues(alpha: 0.3),
+                        color: _getLevelColor(level).withOpacity(0.3),
                         blurRadius: 20,
                         spreadRadius: 2,
                       ),
@@ -536,7 +536,7 @@ class PlacementResultScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
