@@ -354,7 +354,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                       ),
                     ),
                     Text(
-                      'ELO',
+                      'WP',
                       style: TextStyle(
                         color: color.withOpacity(0.7),
                         fontSize: 10,

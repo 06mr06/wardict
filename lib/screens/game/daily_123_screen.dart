@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/daily_123_provider.dart';
 import '../../services/daily_123_service.dart';
+import '../../services/network_service.dart';
 import '../../models/daily_123.dart';
 import '../../widgets/game/question_card.dart';
 import '../../widgets/game/options_grid.dart';
+import '../../widgets/common/connection_lost_dialog.dart';
 import 'daily_123_results_screen.dart';
 
 class Daily123Screen extends StatefulWidget {
@@ -14,11 +17,12 @@ class Daily123Screen extends StatefulWidget {
   State<Daily123Screen> createState() => _Daily123ScreenState();
 }
 
-class _Daily123ScreenState extends State<Daily123Screen> {
+class _Daily123ScreenState extends State<Daily123Screen> with NetworkAwareMixin {
   bool _initialized = false;
   bool _showingResult = false;
   int? _selectedIndex;
   bool _locked = false;
+  StreamSubscription<bool>? _networkSubscription;
 
   @override
   void didChangeDependencies() {
@@ -26,7 +30,38 @@ class _Daily123ScreenState extends State<Daily123Screen> {
     if (!_initialized) {
       _initialized = true;
       _initializeGame();
+      _startNetworkMonitoring();
     }
+  }
+
+  @override
+  void dispose() {
+    _networkSubscription?.cancel();
+    NetworkService.instance.stopMonitoring();
+    super.dispose();
+  }
+
+  void _startNetworkMonitoring() {
+    NetworkService.instance.startMonitoring();
+    _networkSubscription = NetworkService.instance.connectionStream.listen((isConnected) {
+      if (!isConnected && mounted && !_showingResult) {
+        // Oyunu duraklat ve bağlantı hatası göster
+        context.read<Daily123Provider>().pauseTimer();
+        showConnectionLostDialog(
+          onRetry: () async {
+            final connected = await NetworkService.instance.checkConnection();
+            if (connected && mounted) {
+              context.read<Daily123Provider>().resumeTimer();
+            } else if (mounted) {
+              _startNetworkMonitoring(); // Tekrar kontrol et
+            }
+          },
+          onExit: () {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+        );
+      }
+    });
   }
   
   Future<void> _initializeGame() async {

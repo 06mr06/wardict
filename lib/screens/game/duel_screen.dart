@@ -7,16 +7,16 @@ import '../../models/league.dart';
 import '../../models/powerup.dart';
 import '../../models/question_mode.dart'; // Fixed import
 import '../../services/user_profile_service.dart';
-import '../../services/word_pool_service.dart';
 import '../../services/quest_service.dart';
 import '../../services/achievement_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/network_service.dart';
 import '../../services/feed_service.dart';
 import '../../models/quest.dart';
 import '../../models/achievement.dart';
 import '../../models/feed_item.dart';
 import '../../services/shop_service.dart';
 import '../../models/cosmetic_item.dart';
+import '../../services/firebase/auth_service.dart';
 import 'base_game_screen.dart';
 import 'duel_results_screen.dart';
 import 'vs_screen.dart';
@@ -28,6 +28,7 @@ import '../../widgets/game/game_confetti.dart';
 import 'package:confetti/confetti.dart';
 import '../../widgets/game/game_background.dart';
 import '../../models/match_history_item.dart'; // Added import
+import '../../widgets/common/connection_lost_dialog.dart';
 
 class DuelScreen extends BaseGameScreen {
   const DuelScreen({super.key});
@@ -36,7 +37,7 @@ class DuelScreen extends BaseGameScreen {
   State<DuelScreen> createState() => _DuelScreenState();
 }
 
-class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
+class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAwareMixin {
   final _rng = Random();
   int? _userSelection;
   int? _botSelection;
@@ -61,6 +62,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
   double _scoreMultiplier = 1.0;
   Set<int> _eliminatedOptions = {};
   String? _selectedAvatarEmoji;
+  String? _myPhotoUrl;
 
   // Animations
   late AnimationController _userPulseController;
@@ -68,6 +70,9 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
   late Animation<double> _userPulseAnim;
   late Animation<double> _botPulseAnim;
   late ConfettiController _confettiController;
+  
+  // Network monitoring
+  StreamSubscription<bool>? _networkSubscription;
 
   @override
   void initState() {
@@ -76,6 +81,31 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
     _initBotIdentity();
     _initDuel();
     _initPulseAnimations();
+    _startNetworkMonitoring();
+  }
+
+  void _startNetworkMonitoring() {
+    NetworkService.instance.startMonitoring();
+    _networkSubscription = NetworkService.instance.connectionStream.listen((isConnected) {
+      if (!isConnected && mounted) {
+        // Timer'ı duraklat
+        timer?.cancel();
+        showConnectionLostDialog(
+          onRetry: () async {
+            final connected = await NetworkService.instance.checkConnection();
+            if (connected && mounted) {
+              // Timer'ı yeniden başlat
+              startTimer();
+            } else if (mounted) {
+              _startNetworkMonitoring();
+            }
+          },
+          onExit: () {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+        );
+      }
+    });
   }
 
   void _initBotIdentity() {
@@ -96,6 +126,16 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
   }
 
   @override
+  void dispose() {
+    _networkSubscription?.cancel();
+    NetworkService.instance.stopMonitoring();
+    _userPulseController.dispose();
+    _botPulseController.dispose();
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments;
@@ -105,6 +145,12 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
   }
 
   Future<void> _initDuel() async {
+    // Get user's photo URL from Firebase Auth (Google profile picture)
+    final photoUrl = AuthService.instance.photoURL;
+    if (photoUrl != null && photoUrl.isNotEmpty && mounted) {
+      setState(() => _myPhotoUrl = photoUrl);
+    }
+    
     final inventory = await ShopService.instance.getInventory();
     final avatarId = await ShopService.instance.getSelectedCosmetic(CosmeticType.avatar);
     String? emoji;
@@ -169,7 +215,8 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
   }
   
   // Interstitial State
-  bool _showNextQuestionOverlay = false;
+  // ignore: unused_field - Interstitial overlay için saklanıyor  
+  final bool _showNextQuestionOverlay = false;
   List<PowerupType> _roundPowerups = [];
 
   @override
@@ -251,7 +298,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
         if (_showVsAnim)
           VsScreen(
             onAnimationComplete: _onVsAnimationComplete,
-            userAvatarUrl: _selectedAvatarEmoji ?? '👤', // Using emoji if URL is not supported yet
+            userAvatarUrl: _myPhotoUrl ?? _selectedAvatarEmoji ?? '👤',
             botAvatarUrl: _botAvatar,
           ),
       ],
@@ -419,27 +466,25 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
   void _showResult() async {
     final gp = context.read<GameProvider>();
     int eloChange = 0;
-    
-    // Save Match History
-    final historyItem = MatchHistoryItem(
-      opponentName: 'Bot', // Could use random name
-      userScore: gp.score,
-      opponentScore: botScore,
-      isWin: gp.score > botScore,
-      date: DateTime.now(),
-      league: _currentLeague,
-      eloChange: 0, // Placeholder until calc
-    );
+    int userEloBeforeMatch = 1500;
+    const int botElo = 1500;
 
     if (_currentLeague != null) {
         final isWin = gp.score > botScore;
         final isDraw = gp.score == botScore;
         final profile = await UserProfileService.instance.loadProfile();
-        final currentElo = profile.leagueScores.getScore(_currentLeague!);
-        const botElo = 1500;
+        userEloBeforeMatch = profile.leagueScores.getScore(_currentLeague!);
+        
+        // Oyun sayısını al (dinamik K-Factor için)
+        final gamesPlayed = profile.gamesPlayed;
         
         if (!isDraw) {
-            eloChange = League.calculateEloChange(currentElo: currentElo, opponentElo: botElo, won: isWin);
+            eloChange = League.calculateEloChange(
+              currentElo: userEloBeforeMatch, 
+              opponentElo: botElo, 
+              won: isWin,
+              gamesPlayed: gamesPlayed,
+            );
             await UserProfileService.instance.updateLeagueScore(_currentLeague!, eloChange);
         }
         
@@ -481,7 +526,9 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
             botScore: botScore,
             items: gp.history,
             league: _currentLeague,
-            eloChange: eloChange
+            eloChange: eloChange,
+            userElo: userEloBeforeMatch,
+            botElo: botElo,
         )
     ));
   }
@@ -628,6 +675,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
      );
   }
 
+  // ignore: unused_element - Mod etiketi için saklanıyor
   String _modeLabel(QuestionMode mode) {
     switch (mode) {
       case QuestionMode.trToEn:
@@ -639,6 +687,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
     }
   }
 
+  // ignore: unused_element - Mod badge widget'ı için saklanıyor
   Widget _modeBadgeWidget(QuestionMode mode) {
     switch (mode) {
       case QuestionMode.trToEn:
@@ -771,6 +820,8 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
         return _scoreMultiplier > 1.0;
       case PowerupType.revealAnswer:
         return false; // Can use anytime
+      case PowerupType.streakShield:
+        return true; // Not usable in game, only passive
     }
   }
 
@@ -799,6 +850,9 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
         break;
       case PowerupType.multiplier:
         _useMultiplier();
+        break;
+      case PowerupType.streakShield:
+        // Passive powerup - not used in game directly
         break;
     }
   }
@@ -975,6 +1029,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
     );
   }
   
+  // ignore: unused_element - Numara emojisi için saklanıyor
   String _getNumberEmoji(int number) {
     const emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
     if (number >= 1 && number <= 10) {
@@ -983,6 +1038,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
     return '❓';
   }
   
+  // ignore: unused_element - Mod flag text için saklanıyor
   String _getModeFlagText(QuestionMode mode) {
     switch (mode) {
       case QuestionMode.trToEn:
@@ -994,6 +1050,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> {
     }
   }
   
+  // ignore: unused_element - Mod emojisi için saklanıyor
   String _getModeEmoji(QuestionMode mode) {
     switch (mode) {
       case QuestionMode.trToEn:

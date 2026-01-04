@@ -73,13 +73,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
     final success = await FriendService.instance.sendFriendRequest(user.username);
     
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${user.username} kullanıcısına istek gönderildi'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
+      // Sessiz onay - SnackBar gösterilmiyor
       // Sonuçlardan kaldır
       setState(() {
         _searchResults.removeWhere((r) => r.oderId == user.oderId);
@@ -91,14 +85,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
     final success = await FriendService.instance.acceptFriendRequest(friend.oderId);
     if (success) {
       await _loadData();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${friend.username} artık arkadaşın! 🎉'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      // Sessiz onay - SnackBar gösterilmiyor
     }
   }
 

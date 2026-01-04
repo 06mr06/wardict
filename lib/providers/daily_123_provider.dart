@@ -155,6 +155,19 @@ class Daily123Provider extends BaseGameProvider {
     });
   }
 
+  /// Network kesintisi için timer'ı duraklat
+  void pauseTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  /// Network bağlandıktan sonra timer'ı devam ettir
+  void resumeTimer() {
+    if (!_isGameOver && _timeLeft > 0) {
+      _startTimer();
+    }
+  }
+
   void _endGame() {
     _isGameOver = true;
     _timer?.cancel();

@@ -120,7 +120,7 @@ class UserProfileService {
   
   /// Kullanıcı profili için varsayılan avatarlar (Emojiler)
   static const List<String> avatars = [
-    '🦁', '🐯', '🐻', '🐨', '🐼', '🦊', '🐮', '🐷', '🐸', '🐙'
+    '🦁', '🐯', '🐻', '🐨', '🐼', '🦊', '🐮', '🦋', '🐸', '🐙'
   ];
 
   /// Cache'i temizle (yeniden yükleme için)

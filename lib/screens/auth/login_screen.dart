@@ -4,6 +4,8 @@ import '../../services/firebase/auth_service.dart';
 import '../../services/firebase/firestore_service.dart';
 import '../../services/user_profile_service.dart';
 import '../home/welcome_screen.dart';
+import '../support/privacy_policy_screen.dart';
+import '../support/terms_of_service_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -49,29 +51,42 @@ class _LoginScreenState extends State<LoginScreen> {
           _showError(AuthService.instance.errorMessage ?? 'Giriş başarısız');
         }
       } else {
-        // Kayıt ol
+        // Kayıt ol - önce kullanıcı adı kontrolü yap
+        final username = _usernameController.text.trim();
+        
+        // Kullanıcı adı benzersizlik kontrolü
+        final isUnique = await FirestoreService.instance.isUsernameUnique(username);
+        if (!isUnique) {
+          _showError('Bu kullanıcı adı zaten kullanılıyor. Lütfen farklı bir kullanıcı adı seçin.');
+          return;
+        }
+        
         final credential = await AuthService.instance.signUpWithEmail(
           email: _emailController.text.trim(),
           password: _passwordController.text,
-          displayName: _usernameController.text.trim(),
+          displayName: username,
         );
 
         if (credential != null && mounted) {
-          final username = _usernameController.text.trim();
-          
-          // Firestore'da profil oluştur
-          await FirestoreService.instance.createUserProfile(
-            odlevel: credential.user!.uid,
-            username: username,
-          );
-
-          // Lokal profili güncelle - username'i kaydet
-          final localProfile = await UserProfileService.instance.loadProfile();
-          final updatedProfile = localProfile.copyWith(username: username);
-          await UserProfileService.instance.saveProfile(updatedProfile);
-          
-          // Lokal profili cloud'a senkronize et
-          await FirestoreService.instance.syncFromLocal(updatedProfile);
+          // Firestore'da profil oluştur (hata olursa devam et)
+          try {
+            await FirestoreService.instance.createUserProfile(
+              odlevel: credential.user!.uid,
+              username: username,
+            );
+            
+            // Lokal profili cloud'a senkronize et
+            final localProfile = await UserProfileService.instance.loadProfile();
+            final updatedProfile = localProfile.copyWith(username: username);
+            await UserProfileService.instance.saveProfile(updatedProfile);
+            await FirestoreService.instance.syncFromLocal(updatedProfile);
+          } catch (e) {
+            debugPrint('⚠️ Firestore profil oluşturulamadı (devam ediliyor): $e');
+            // Lokal profili güncelle - username'i kaydet
+            final localProfile = await UserProfileService.instance.loadProfile();
+            final updatedProfile = localProfile.copyWith(username: username);
+            await UserProfileService.instance.saveProfile(updatedProfile);
+          }
 
           _navigateToHome();
         } else {
@@ -85,6 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // ignore: unused_element - Misafir girişi için saklanıyor
   Future<void> _handleGuestLogin() async {
     setState(() => _isLoading = true);
 
@@ -94,11 +110,15 @@ class _LoginScreenState extends State<LoginScreen> {
       if (credential != null && mounted) {
         final guestUsername = 'Misafir${DateTime.now().millisecondsSinceEpoch % 10000}';
         
-        // Anonim kullanıcı için profil oluştur
-        await FirestoreService.instance.createUserProfile(
-          odlevel: credential.user!.uid,
-          username: guestUsername,
-        );
+        // Anonim kullanıcı için profil oluştur (hata olursa devam et)
+        try {
+          await FirestoreService.instance.createUserProfile(
+            odlevel: credential.user!.uid,
+            username: guestUsername,
+          );
+        } catch (e) {
+          debugPrint('⚠️ Firestore profil oluşturulamadı (devam ediliyor): $e');
+        }
 
         // Lokal profili güncelle
         final localProfile = await UserProfileService.instance.loadProfile();
@@ -129,12 +149,17 @@ class _LoginScreenState extends State<LoginScreen> {
         
         debugPrint('🔥 Google Giriş - Username: $username, Email: $email');
         
-        // Firestore'da profil oluştur (varsa güncelle)
-        await FirestoreService.instance.createUserProfile(
-          odlevel: user.uid,
-          username: username,
-          email: email,
-        );
+        // Firestore'da profil oluştur (hata olursa devam et)
+        try {
+          await FirestoreService.instance.createUserProfile(
+            odlevel: user.uid,
+            username: username,
+            email: email,
+          );
+        } catch (e) {
+          debugPrint('⚠️ Firestore profil oluşturulamadı (devam ediliyor): $e');
+          // Firestore hatası olsa bile giriş devam etsin
+        }
 
         // Lokal profili yükle ve güncelle
         final localProfile = await UserProfileService.instance.loadProfile();
@@ -150,6 +175,52 @@ class _LoginScreenState extends State<LoginScreen> {
         _navigateToHome();
       } else {
         _showError(AuthService.instance.errorMessage ?? 'Google girişi başarısız');
+      }
+    } catch (e) {
+      _showError('Bir hata oluştu: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleAppleSignIn() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final credential = await AuthService.instance.signInWithApple();
+      
+      if (credential != null && mounted) {
+        final user = credential.user!;
+        final username = user.displayName ?? user.email?.split('@').first ?? 'AppleUser';
+        final email = user.email ?? '';
+        
+        debugPrint('🍎 Apple Giriş - Username: $username, Email: $email');
+        
+        // Firestore'da profil oluştur (hata olursa devam et)
+        try {
+          await FirestoreService.instance.createUserProfile(
+            odlevel: user.uid,
+            username: username,
+            email: email,
+          );
+        } catch (e) {
+          debugPrint('⚠️ Firestore profil oluşturulamadı (devam ediliyor): $e');
+        }
+
+        // Lokal profili yükle ve güncelle
+        final localProfile = await UserProfileService.instance.loadProfile();
+        final updatedProfile = localProfile.copyWith(
+          username: username,
+          email: email,
+        );
+        await UserProfileService.instance.saveProfile(updatedProfile);
+        
+        // Profili yeniden yükle
+        await UserProfileService.instance.reloadProfile();
+
+        _navigateToHome();
+      } else {
+        _showError(AuthService.instance.errorMessage ?? 'Apple girişi başarısız');
       }
     } catch (e) {
       _showError('Bir hata oluştu: $e');
@@ -186,8 +257,14 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Şifre sıfırlama emaili gönderildi'),
-          backgroundColor: Colors.green,
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Şifre sıfırlama emaili gönderildi'),
+            ],
+          ),
+          backgroundColor: Color(0xFF2E5A8C),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -245,12 +322,12 @@ class _LoginScreenState extends State<LoginScreen> {
           SafeArea(
             child: Column(
               children: [
-                // Üst boşluk - resim görünsün
-                const Spacer(flex: 3),
+                // Üst boşluk - resim görünsün (daha fazla alan)
+                const Spacer(flex: 4),
                 
-                // Alt kısım - Form ve Butonlar
+                // Alt kısım - Form ve Butonlar (daha az alan)
                 Expanded(
-                  flex: 7,
+                  flex: 6,
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
@@ -275,6 +352,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // ignore: unused_element - Alternatif logo widget'ı olarak saklanıyor
   Widget _buildLogo() {
     return Column(
       children: [
@@ -573,73 +651,116 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 16),
         
-        // Google ile Giriş
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _handleGoogleSignIn,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black87,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+        // Google ve Apple ile Giriş - Yan yana simge butonları
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Google butonu - Apple gibi beyaz çerçeveli siyah zemin
+            Container(
+              width: 60,
+              height: 50,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white, width: 2),
               ),
-              elevation: 2,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Renkli Google logosu - Basit text versiyon
-                const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('G', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF4285F4))),
-                    Text('o', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFEA4335))),
-                    Text('o', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFFBBC05))),
-                    Text('g', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF4285F4))),
-                    Text('l', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF34A853))),
-                    Text('e', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFEA4335))),
-                  ],
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _handleGoogleSignIn,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
                 ),
-                const SizedBox(width: 12),
-                const Text(
-                  'ile Giriş Yap',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                child: ShaderMask(
+                  shaderCallback: (bounds) => const SweepGradient(
+                    center: Alignment.center,
+                    startAngle: 0.5,
+                    endAngle: 6.0,
+                    colors: [
+                      Color(0xFF4285F4), // Mavi
+                      Color(0xFF34A853), // Yeşil
+                      Color(0xFFFBBC05), // Sarı
+                      Color(0xFFEA4335), // Kırmızı
+                      Color(0xFF4285F4), // Mavi (döngü)
+                    ],
+                  ).createShader(bounds),
+                  child: const Text(
+                    'G',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        
-        // Misafir olarak devam et
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: OutlinedButton.icon(
-            onPressed: _isLoading ? null : _handleGuestLogin,
-            icon: const Icon(Icons.person_outline),
-            label: const Text('Misafir Olarak Devam Et'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white70,
-              side: BorderSide(color: Colors.white.withOpacity(0.3)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
               ),
             ),
-          ),
+            const SizedBox(width: 16),
+            // Apple butonu - Her platformda göster
+            Container(
+              width: 60,
+              height: 50,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _handleAppleSignIn,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Icon(Icons.apple, size: 28),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        Text(
-          'Misafir hesaplar cihaz değiştiğinde kaybolabilir',
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.4),
-            fontSize: 11,
-          ),
+        const SizedBox(height: 16),
+        // Privacy Policy ve Terms of Service linkleri
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+              ),
+              child: Text(
+                'Gizlilik Politikası',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 12,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+            Text(
+              ' • ',
+              style: TextStyle(color: Colors.white.withOpacity(0.4)),
+            ),
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TermsOfServiceScreen()),
+              ),
+              child: Text(
+                'Kullanım Şartları',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 12,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

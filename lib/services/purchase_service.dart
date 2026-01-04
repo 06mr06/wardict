@@ -224,12 +224,14 @@ class PurchaseService {
     ]);
   }
 
+  // ignore: unused_element - İleride ürün tipi belirleme için kullanılacak
   ProductType _getProductType(String productId) {
     if (productId.startsWith('coins_')) return ProductType.consumable;
     if (productId.startsWith('premium_')) return ProductType.subscription;
     return ProductType.nonConsumable;
   }
 
+  // ignore: unused_element - İleride coin miktarı hesaplama için kullanılacak
   int? _getCoinAmount(String productId) {
     switch (productId) {
       case coinPack100Id: return 100;
@@ -382,6 +384,7 @@ class PurchaseService {
   }
 
   /// Satın alma işlemi bittiğinde (stream listener)
+  // ignore: unused_element - in_app_purchase paketi eklenince implement edilecek
   void _onPurchaseUpdated(List<dynamic> purchaseDetailsList) {
     // in_app_purchase paketi eklendiğinde implement edilecek
     /*

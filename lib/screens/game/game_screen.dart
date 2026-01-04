@@ -185,7 +185,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Pre-screen: show flag → arrow → flag sequentially (direction based on mode)
+  // ignore: unused_element
+  /// Pre-screen: show flag → arrow → flag sequentially (direction based on mode)
   Widget _buildModeSequence(QuestionMode mode, {required double size, required double t}) {
     List<Widget> pieces;
     switch (mode) {

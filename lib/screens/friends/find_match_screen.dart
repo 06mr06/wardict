@@ -111,8 +111,14 @@ class _FindMatchScreenState extends State<FindMatchScreen>
     // TODO: Online düello ekranına git
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${_opponent?.username} ile düello başlıyor! (Demo mod)'),
-        backgroundColor: Colors.green,
+        content: Row(
+          children: [
+            const Icon(Icons.sports_esports, color: Colors.white),
+            const SizedBox(width: 8),
+            Text('${_opponent?.username} ile düello başlıyor! (Demo mod)'),
+          ],
+        ),
+        backgroundColor: const Color(0xFF2E5A8C),
       ),
     );
     Navigator.pop(context);

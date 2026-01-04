@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "241339661354-eud5imqknemevjemteqr3b7pq9kb7a5u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "wardict.app",
+            "certificate_hash": "0a32de37c60e225ef7fe5c151dba45c5ed8e0405"
+          }
+        },
+        {
           "client_id": "241339661354-raru5u5mj2a33j50jhinhf54tugpr91n.apps.googleusercontent.com",
           "client_type": 3
         }

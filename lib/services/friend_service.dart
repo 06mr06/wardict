@@ -64,7 +64,7 @@ class FriendService {
 
   // Demo gelen istekler
   static final List<Friend> _demoPendingRequests = [
-    Friend(
+    const Friend(
       oderId: 'pending_1',
       username: 'NewLearner2024',
       status: OnlineStatus.online,
@@ -207,10 +207,10 @@ class FriendService {
     final json = prefs.getString(_invitationsKey);
     
     if (json != null) {
-      final List<dynamic> list = jsonDecode(json);
       // Not: DuelInvitation için toJson/fromJson eklenmesi gerekebilir 
       // veya burada manuel eşleme yapılabilir. 
       // Basitlik için şu an demo dönelim.
+      // final List<dynamic> list = jsonDecode(json);
     }
     
     // Simülasyon için bazen bir davet varmış gibi yapalım
@@ -242,7 +242,7 @@ class FriendService {
     
     final invitation = DuelInvitation(
       id: 'inv_${DateTime.now().millisecondsSinceEpoch}',
-      fromUser: Friend(
+      fromUser: const Friend(
         oderId: 'current_user',
         username: 'Sen',
         status: OnlineStatus.online,

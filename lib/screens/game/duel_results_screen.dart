@@ -8,11 +8,12 @@ import '../../models/league.dart';
 import '../../widgets/common/top_toast.dart';
 import '../../widgets/game/game_confetti.dart';
 import '../../widgets/game/achievement_celebration.dart';
+import '../../widgets/common/ad_banner_widget.dart';
 import 'package:confetti/confetti.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/achievement_service.dart';
+import '../../services/shop_service.dart';
 import '../../models/achievement.dart';
-import '../../services/user_profile_service.dart';
 
 class DuelResultsScreen extends StatefulWidget {
   final int userScore;
@@ -20,6 +21,8 @@ class DuelResultsScreen extends StatefulWidget {
   final List<AnsweredEntry> items;
   final League? league;
   final int eloChange;
+  final int userElo;
+  final int botElo;
   
   const DuelResultsScreen({
     super.key, 
@@ -28,6 +31,8 @@ class DuelResultsScreen extends StatefulWidget {
     required this.items,
     this.league,
     this.eloChange = 0,
+    this.userElo = 1500,
+    this.botElo = 1500,
   });
 
   @override
@@ -42,10 +47,13 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
   List<AnsweredEntry> get items => widget.items;
   League? get league => widget.league;
   int get eloChange => widget.eloChange;
+  int get userElo => widget.userElo;
+  int get botElo => widget.botElo;
 
   bool get allSelected => _selectedIndices.length == items.length && items.isNotEmpty;
 
   late ConfettiController _confettiController;
+  // ignore: unused_field - Oyun süresi hesaplama için saklanıyor
   DateTime? _gameStartTime;
 
   @override
@@ -111,8 +119,57 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
   }
 
   Future<void> _resetDuelStreak() async {
+    // Seri Koruma var mı kontrol et
+    final hasShield = await ShopService.instance.hasActiveStreakShield();
+    if (hasShield) {
+      // Kalkan aktif - seri korunur, sıfırlamıyoruz
+      return;
+    }
+    
+    // Kalkan yok - seri sıfırlanır
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('duel_win_streak', 0);
+  }
+
+  /// Rövanş talebi gönder
+  void _requestRematch() {
+    // Bot maçı için direkt yeni oyun başlat
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2E5A8C),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Text('🔄', style: TextStyle(fontSize: 28)),
+            SizedBox(width: 8),
+            Text('Rövanş', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: const Text(
+          'Aynı rakiple tekrar oynamak ister misin?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Dialog kapat
+              Navigator.pop(context); // Sonuç ekranı kapat
+              // Yeni düello başlat - duel_screen'e geri dön
+              Navigator.pushReplacementNamed(context, '/duel');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6B6B),
+            ),
+            child: const Text('Rövanş!'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _toggleItem(int index) {
@@ -174,8 +231,8 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                 padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _vibrantScoreboard(userScore, botScore),
-                const SizedBox(height: 12),
+                _vibrantScoreboard(userScore, botScore, userElo, botElo, eloChange),
+                const SizedBox(height: 8),
                 // Elo Change Display with League Icon
                 if (league != null && eloChange != 0)
                   Container(
@@ -203,7 +260,7 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                             size: 18,
                           ),
                           Text(
-                            '${eloChange > 0 ? '+' : ''}$eloChange',
+                            '${eloChange > 0 ? '+' : ''}$eloChange WP',
                             style: TextStyle(
                               color: eloChange > 0 ? Colors.green : Colors.red,
                               fontSize: 16,
@@ -401,6 +458,11 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                         ),
                 ),
                 const SizedBox(height: 12),
+                
+                // Chess.com benzeri büyük reklam banner
+                const AdBannerWidget(isMediumRectangle: true),
+                const SizedBox(height: 12),
+                
                 SizedBox(
                   width: double.infinity,
                   child: Row(
@@ -417,23 +479,35 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                           child: const Text('Ana Sayfa', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
+                      // Rematch Butonu
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF6B6B),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        onPressed: _requestRematch,
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.replay, size: 20),
+                            SizedBox(width: 4),
+                            Text('Rövanş', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2AA7FF),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ),
                         onPressed: () => _shareResult(context),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.share, size: 20),
-                            SizedBox(width: 6),
-                            Text('Paylaş', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
+                        child: const Icon(Icons.share, size: 20),
                       ),
                     ],
                   ),
@@ -460,7 +534,11 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
     }
   }
 
-  Widget _vibrantScoreboard(int left, int right) {
+  Widget _vibrantScoreboard(int left, int right, int leftElo, int rightElo, int eloChange) {
+    final isWin = left > right;
+    final userEloChange = eloChange;
+    final botEloChange = -eloChange; // Rakip ters puan alır
+    
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 360;
@@ -498,6 +576,34 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                           Text('👤 Sen', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: labelSize)),
                           const SizedBox(height: 4),
                           Text('$left', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w900, color: Colors.white)),
+                          // ELO Değişimi
+                          if (eloChange != 0) ...[  
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '$leftElo',
+                                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                  ),
+                                  Text(
+                                    ' ${userEloChange >= 0 ? "+" : ""}$userEloChange',
+                                    style: TextStyle(
+                                      color: userEloChange >= 0 ? Colors.greenAccent : Colors.redAccent,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -525,6 +631,34 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                           Text('🤖 Bot', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: labelSize)),
                           const SizedBox(height: 4),
                           Text('$right', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w900, color: Colors.white)),
+                          // ELO Değişimi (Rakip)
+                          if (eloChange != 0) ...[  
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '$rightElo',
+                                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                  ),
+                                  Text(
+                                    ' ${botEloChange >= 0 ? "+" : ""}$botEloChange',
+                                    style: TextStyle(
+                                      color: botEloChange >= 0 ? Colors.greenAccent : Colors.redAccent,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

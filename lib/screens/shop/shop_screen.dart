@@ -8,7 +8,9 @@ import '../../services/purchase_service.dart';
 import '../../services/user_profile_service.dart';
 
 class ShopScreen extends StatefulWidget {
-  const ShopScreen({super.key});
+  final int initialTabIndex;
+  
+  const ShopScreen({super.key, this.initialTabIndex = 0});
 
   @override
   State<ShopScreen> createState() => _ShopScreenState();
@@ -25,7 +27,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 4, vsync: this, initialIndex: widget.initialTabIndex);
     _loadData();
   }
 
@@ -83,6 +85,8 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                 ),
                 child: TabBar(
                   controller: _tabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.center,
                   indicator: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF6C27FF), Color(0xFF2AA7FF)],
@@ -91,12 +95,15 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                   ),
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.white60,
+                  labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  unselectedLabelStyle: const TextStyle(fontSize: 13),
                   dividerColor: Colors.transparent,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 16),
                   tabs: const [
-                    Tab(text: 'Powerups'),
-                    Tab(text: 'Özelleştir'),
-                    Tab(text: 'Coinler'),
-                    Tab(text: 'Premium'),
+                    Tab(icon: Icon(Icons.flash_on, size: 18), text: 'Powerups'),
+                    Tab(icon: Icon(Icons.palette, size: 18), text: 'Özelleştir'),
+                    Tab(icon: Icon(Icons.monetization_on, size: 18), text: 'Coinler'),
+                    Tab(icon: Icon(Icons.star, size: 18), text: 'Premium'),
                   ],
                 ),
               ),
@@ -222,6 +229,10 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
           const SizedBox(height: 24),
         ],
         
+        // Seri Koruma özel bölümü
+        _buildStreakShieldSection(),
+        const SizedBox(height: 24),
+        
         // Reklam izle bölümü
         _buildWatchAdSection(),
         const SizedBox(height: 24),
@@ -236,9 +247,202 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
           ),
         ),
         const SizedBox(height: 12),
-        ...PowerupType.values.map((powerup) => _buildPowerupCard(powerup)),
+        ...PowerupType.values.where((p) => p != PowerupType.streakShield).map((powerup) => _buildPowerupCard(powerup)),
       ],
     );
+  }
+
+  Widget _buildStreakShieldSection() {
+    return FutureBuilder<DateTime?>(
+      future: ShopService.instance.getStreakShieldExpiry(),
+      builder: (context, snapshot) {
+        final expiry = snapshot.data;
+        final isActive = expiry != null;
+        final remainingDays = isActive ? expiry.difference(DateTime.now()).inDays + 1 : 0;
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isActive
+                  ? [const Color(0xFF4CAF50).withOpacity(0.3), const Color(0xFF2E7D32).withOpacity(0.2)]
+                  : [const Color(0xFFFF9800).withOpacity(0.2), const Color(0xFFF57C00).withOpacity(0.1)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isActive ? const Color(0xFF4CAF50).withOpacity(0.5) : const Color(0xFFFF9800).withOpacity(0.5),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: isActive 
+                      ? const Color(0xFF4CAF50).withOpacity(0.3) 
+                      : const Color(0xFFFF9800).withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Text('🛡️', style: TextStyle(fontSize: 28)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Seri Koruma',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      isActive
+                          ? '✅ Aktif! $remainingDays gün kaldı'
+                          : 'Kaybetsen de serin bozulmasın!',
+                      style: TextStyle(
+                        color: isActive ? const Color(0xFF4CAF50) : Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!isActive)
+                GestureDetector(
+                  onTap: _buyStreakShield,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFF9800), Color(0xFFF57C00)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🪙', style: TextStyle(fontSize: 14)),
+                        const SizedBox(width: 4),
+                        const Text(
+                          '150',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4CAF50).withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    '3 Gün ✓',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _buyStreakShield() async {
+    if (_userCoins < 150) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Yeterli altın yok! 🪙'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2E5A8C),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Text('🛡️', style: TextStyle(fontSize: 28)),
+            const SizedBox(width: 8),
+            const Text('Seri Koruma', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '3 gün boyunca seriler korunur!',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            SizedBox(height: 12),
+            Text(
+              '• Daily123 kaybetsen de seri bozulmaz\n• Düello kaybetsen de galibiyet serisi korunur',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('🪙', style: TextStyle(fontSize: 20)),
+                SizedBox(width: 4),
+                Text(
+                  '150 Altın',
+                  style: TextStyle(color: Colors.amber, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('İptal', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF9800)),
+            child: const Text('Satın Al'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final success = await ShopService.instance.buyStreakShield();
+      if (success) {
+        await _loadData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Text('🛡️', style: TextStyle(fontSize: 18)),
+                  SizedBox(width: 8),
+                  Text('Seri Koruma 3 gün aktif!'),
+                ],
+              ),
+              backgroundColor: Color(0xFF4CAF50),
+            ),
+          );
+        }
+      }
+    }
   }
   
   Widget _buildWatchAdSection() {
@@ -764,16 +968,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
             '🚫 Reklamsız deneyim',
             '🏆 Liderlik tablosu rozeti',
             '📊 İstatistik dışa aktarma',
-          ],
-        ),
-        const SizedBox(height: 16),
-        
-        // VIP tier
-        _buildPremiumTierCard(
-          tier: PremiumTier.vip,
-          features: [
-            '✨ Tüm Premium özellikleri',
-            '⚡ Özel VIP powerup\'lar',
+            '⚡ Özel powerup\'lar',
             '🎨 Özel temalar',
             '⏱️ Öncelikli eşleşme',
             '📱 Çevrimdışı mod',
@@ -810,9 +1005,9 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
         children: [
           Row(
             children: [
-              Text(
-                tier == PremiumTier.vip ? '👑' : '⭐',
-                style: const TextStyle(fontSize: 28),
+              const Text(
+                '⭐',
+                style: TextStyle(fontSize: 28),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1040,16 +1235,51 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
               ),
               child: Text(isSelected ? 'Seçili' : 'Kullan'),
             )
+          else if (isLockedPremium)
+            // Premium kilitli - tıklanabilir yaparak bilgi ver
+            GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Bu ürün sadece Premium üyeler için! ⭐'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock, color: Colors.orange, size: 14),
+                    SizedBox(width: 4),
+                    Text(
+                      'Premium',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
           else
             GestureDetector(
-              onTap: (canAfford && !isLockedPremium) ? () => _buyCosmetic(item) : null,
+              onTap: canAfford ? () => _buyCosmetic(item) : null,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  gradient: (canAfford && !isLockedPremium)
+                  gradient: canAfford
                       ? const LinearGradient(colors: [Color(0xFFFFD700), Color(0xFFFFA000)])
                       : null,
-                  color: (canAfford && !isLockedPremium) ? null : Colors.grey.withOpacity(0.2),
+                  color: canAfford ? null : Colors.grey.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -1059,7 +1289,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                     Text(
                       '${item.price}',
                       style: TextStyle(
-                        color: (canAfford && !isLockedPremium) ? Colors.black87 : Colors.white38,
+                        color: canAfford ? Colors.black87 : Colors.white38,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1073,14 +1303,55 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _buyCosmetic(CosmeticItem item) async {
+    // Premium kontrolü UI tarafında da yap
+    if (item.isPremiumOnly && _subscription.tier == PremiumTier.free) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bu ürün sadece Premium üyeler için! ⭐'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+    
+    // Coin kontrolü
+    if (_userCoins < item.price) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Yeterli coin yok! 🪙'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
     final success = await ShopService.instance.buyCosmetic(item);
     if (success) {
       await _loadData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${item.name} başarıyla satın alındı! ✨'),
-            backgroundColor: Colors.green,
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('${item.name} başarıyla satın alındı! ✨'),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2E5A8C),
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Satın alma başarısız!'),
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -1113,8 +1384,14 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${powerup.emoji} ${powerup.name} satın alındı!'),
-            backgroundColor: Colors.green,
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('${powerup.emoji} ${powerup.name} satın alındı!'),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2E5A8C),
           ),
         );
       }
@@ -1146,9 +1423,28 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
         builder: (context) => AlertDialog(
           backgroundColor: const Color(0xFF2E5A8C),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            '${pkg.totalCoins} Altın',
-            style: const TextStyle(color: Colors.white),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${pkg.coins} Altın',
+                style: const TextStyle(color: Colors.white),
+              ),
+              if (pkg.bonusCoins != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '+${pkg.bonusCoins}',
+                    style: const TextStyle(fontSize: 12, color: Colors.white),
+                  ),
+                ),
+              ],
+            ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1163,6 +1459,16 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              if (pkg.bonusCoins != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Toplam: ${pkg.totalCoins} altın',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ],
           ),
           actions: [

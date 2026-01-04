@@ -25,7 +25,9 @@ class _PracticeScreenState extends State<PracticeScreen> with TickerProviderStat
   int _earnedPoint = 0;
   
   late AnimationController _animController;
+  // ignore: unused_field - Fade animasyonu gelecekte kullanılacak
   late Animation<double> _fadeAnim;
+  // ignore: unused_field - Slide animasyonu gelecekte kullanılacak
   late Animation<Offset> _slideAnim;
   late AnimationController _waveController;
   
@@ -104,7 +106,6 @@ class _PracticeScreenState extends State<PracticeScreen> with TickerProviderStat
     _timer?.cancel();
     
     final practiceProvider = context.read<PracticeProvider>();
-    final isCorrect = index == practiceProvider.currentCorrectIndex;
     
     setState(() {
       _selectedIndex = index;

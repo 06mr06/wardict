@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/answered_entry.dart';
 import '../../providers/game_provider.dart';
 import '../../widgets/game/game_confetti.dart';
+import '../../widgets/common/ad_banner_widget.dart';
 
 class OnlineDuelResultsScreen extends StatefulWidget {
   final bool isWinner;
@@ -14,6 +15,8 @@ class OnlineDuelResultsScreen extends StatefulWidget {
   final int totalQuestions;
   final bool isDemo;
   final List<AnsweredEntry> answeredItems;
+  final String? myAvatarEmoji;
+  final String? opponentAvatarEmoji;
 
   const OnlineDuelResultsScreen({
     super.key,
@@ -25,6 +28,8 @@ class OnlineDuelResultsScreen extends StatefulWidget {
     this.totalQuestions = 10,
     this.isDemo = false,
     this.answeredItems = const [],
+    this.myAvatarEmoji,
+    this.opponentAvatarEmoji,
   });
 
   @override
@@ -34,9 +39,12 @@ class OnlineDuelResultsScreen extends StatefulWidget {
 class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
     with TickerProviderStateMixin {
   late AnimationController _mainController;
+  // ignore: unused_field - Animasyonlar ileride kullanılacak
   late Animation<double> _scaleAnimation;
+  // ignore: unused_field - Animasyonlar ileride kullanılacak
   late Animation<double> _fadeAnimation;
   late AnimationController _bounceController;
+  // ignore: unused_field - Animasyonlar ileride kullanılacak
   late Animation<double> _bounceAnimation;
   late ConfettiController _confettiController;
 
@@ -148,8 +156,14 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('$addedCount kelime My Words\'e eklendi'),
-          backgroundColor: Colors.green,
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Text('$addedCount kelime My Words\'e eklendi'),
+            ],
+          ),
+          backgroundColor: const Color(0xFF2E5A8C),
         ),
       );
     }
@@ -175,55 +189,39 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
               GameConfetti(controller: _confettiController),
             
             SafeArea(
-              child: AnimatedBuilder(
-                animation: _mainController,
-                builder: (context, child) {
-                  return Opacity(
-                    opacity: _fadeAnimation.value,
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        
-                        // Sonuç başlığı
-                        AnimatedBuilder(
-                          animation: _bounceController,
-                          builder: (context, child) {
-                            return Transform.translate(
-                              offset: Offset(0, -_bounceAnimation.value),
-                              child: Transform.scale(
-                                scale: _scaleAnimation.value,
-                                child: _buildResultHeader(isDraw),
-                              ),
-                            );
-                          },
-                        ),
-                        
-                        const SizedBox(height: 30),
-                        
-                        // Skor kartları
-                        _buildScoreCards(),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Kelime listesi toggle
-                        if (widget.answeredItems.isNotEmpty)
-                          _buildWordsToggle(),
-                        
-                        // Kelime listesi
-                        if (_showWordsList && widget.answeredItems.isNotEmpty)
-                          Expanded(child: _buildWordsList()),
-                        
-                        if (!_showWordsList)
-                          const Spacer(),
-                        
-                        // Butonlar
-                        _buildActionButtons(),
-                        
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  );
-                },
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  
+                  // Sonuç başlığı (kompakt)
+                  _buildCompactResultHeader(isDraw),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Skor kartları
+                  _buildScoreCards(),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // Kelime listesi toggle
+                  if (widget.answeredItems.isNotEmpty)
+                    _buildWordsToggle(),
+                  
+                  // Kelime listesi
+                  if (_showWordsList && widget.answeredItems.isNotEmpty)
+                    Expanded(child: _buildWordsList()),
+                  
+                  if (!_showWordsList)
+                    const Spacer(),
+                  
+                  // Reklam banner (chess.com tarzı)
+                  const AdBannerWidget(),
+                  
+                  // Butonlar
+                  _buildActionButtons(),
+                  
+                  const SizedBox(height: 16),
+                ],
               ),
             ),
           ],
@@ -232,56 +230,43 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
     );
   }
 
-  Widget _buildResultHeader(bool isDraw) {
+  Widget _buildCompactResultHeader(bool isDraw) {
     String title;
     Color titleColor;
-    IconData icon;
+    String emoji;
 
     if (isDraw) {
       title = 'BERABERE';
       titleColor = Colors.orange;
-      icon = Icons.handshake;
+      emoji = '🤝';
     } else if (widget.isWinner) {
       title = 'KAZANDIN!';
       titleColor = Colors.green;
-      icon = Icons.emoji_events;
+      emoji = '🏆';
     } else {
       title = 'KAYBETTİN';
       titleColor = Colors.red;
-      icon = Icons.sentiment_dissatisfied;
+      emoji = '😢';
     }
 
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: titleColor.withOpacity(0.2),
-            border: Border.all(color: titleColor, width: 3),
-            boxShadow: [
-              BoxShadow(
-                color: titleColor.withOpacity(0.4),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
+            border: Border.all(color: titleColor, width: 2),
           ),
-          child: Icon(icon, size: 60, color: titleColor),
+          child: Text(emoji, style: const TextStyle(fontSize: 40)),
         ),
-        const SizedBox(height: 15),
+        const SizedBox(height: 10),
         Text(
           title,
           style: TextStyle(
-            fontSize: 36,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
             color: titleColor,
-            shadows: [
-              Shadow(
-                color: titleColor.withOpacity(0.5),
-                blurRadius: 10,
-              ),
-            ],
           ),
         ),
       ],
@@ -289,51 +274,48 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
   }
 
   Widget _buildScoreCards() {
+    final isDraw = widget.myScore == widget.opponentScore;
+    final iWon = widget.isWinner && !isDraw;
+    final theyWon = !widget.isWinner && !isDraw;
+    
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          // Benim kartım
+          // Benim kartım (Sol - Yeşil)
           Expanded(
-            child: _buildPlayerCard(
+            child: _buildCompactPlayerCard(
               name: widget.myName,
               score: widget.myScore,
-              isMe: true,
-              isWinner: widget.isWinner && widget.myScore != widget.opponentScore,
+              avatarEmoji: widget.myAvatarEmoji,
+              isWinner: iWon,
+              cardColor: iWon ? Colors.green : Colors.blue,
+              initial: 'S',
             ),
           ),
           
           // VS
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 10),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.deepPurple.shade700,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.deepPurple.withOpacity(0.5),
-                  blurRadius: 10,
-                ),
-              ],
-            ),
-            child: const Text(
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
               'VS',
               style: TextStyle(
-                color: Colors.white,
+                color: Colors.white60,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
             ),
           ),
           
-          // Rakip kartı
+          // Rakip kartı (Sağ - Kırmızı)
           Expanded(
-            child: _buildPlayerCard(
+            child: _buildCompactPlayerCard(
               name: widget.opponentName,
               score: widget.opponentScore,
-              isMe: false,
-              isWinner: !widget.isWinner && widget.myScore != widget.opponentScore,
+              avatarEmoji: widget.opponentAvatarEmoji,
+              isWinner: theyWon,
+              cardColor: theyWon ? Colors.green : Colors.red.shade700,
+              initial: widget.opponentName.isNotEmpty ? widget.opponentName[0].toUpperCase() : 'R',
             ),
           ),
         ],
@@ -341,62 +323,65 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
     );
   }
 
-  Widget _buildPlayerCard({
+  Widget _buildCompactPlayerCard({
     required String name,
     required int score,
-    required bool isMe,
+    String? avatarEmoji,
     required bool isWinner,
+    required Color cardColor,
+    required String initial,
   }) {
-    final Color cardColor = isWinner ? Colors.green : (isMe ? Colors.blue : Colors.red);
-    
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: [
-            cardColor.withOpacity(0.3),
-            cardColor.withOpacity(0.1),
+            cardColor.withOpacity(0.4),
+            cardColor.withOpacity(0.2),
           ],
         ),
         border: Border.all(
-          color: cardColor.withOpacity(0.5),
+          color: cardColor.withOpacity(0.6),
           width: 2,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: cardColor.withOpacity(0.3),
-            blurRadius: 10,
-            spreadRadius: 2,
-          ),
-        ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Avatar
-          CircleAvatar(
-            radius: 25,
-            backgroundColor: cardColor.withOpacity(0.3),
-            child: Text(
-              name.isNotEmpty ? name[0].toUpperCase() : '?',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: cardColor,
-              ),
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: cardColor.withOpacity(0.3),
+              border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+            ),
+            child: Center(
+              child: avatarEmoji != null && avatarEmoji.isNotEmpty
+                  ? Text(avatarEmoji, style: const TextStyle(fontSize: 28))
+                  : Text(
+                      initial,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: cardColor,
+                      ),
+                    ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           
           // İsim
           Text(
             name,
             style: const TextStyle(
               color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -404,37 +389,37 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
           const SizedBox(height: 8),
           
           // Skor
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: cardColor.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '$score',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: cardColor,
-              ),
+          Text(
+            '$score',
+            style: TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.w900,
+              color: cardColor,
+              shadows: [
+                Shadow(
+                  color: cardColor.withOpacity(0.5),
+                  blurRadius: 10,
+                ),
+              ],
             ),
           ),
           
           // Kazanan rozet
           if (isWinner)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.emoji_events, color: Colors.amber, size: 16),
-                  const SizedBox(width: 4),
+                  Icon(Icons.emoji_events, color: Colors.amber, size: 14),
+                  SizedBox(width: 2),
                   Text(
                     'KAZANAN',
                     style: TextStyle(
                       color: Colors.amber,
                       fontWeight: FontWeight.bold,
-                      fontSize: 10,
+                      fontSize: 9,
                     ),
                   ),
                 ],
@@ -492,7 +477,7 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'Çıkan Kelimeler',
                 style: TextStyle(
                   color: Colors.white,
@@ -509,7 +494,7 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
                 ),
                 label: Text(
                   _allSelected ? 'Tümünü Kaldır' : 'Tümünü Seç',
-                  style: TextStyle(color: Colors.amber),
+                  style: const TextStyle(color: Colors.amber),
                 ),
               ),
             ],
@@ -562,7 +547,7 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
                     ),
                     subtitle: Text(
                       item.prompt,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white60,
                         fontSize: 12,
                       ),

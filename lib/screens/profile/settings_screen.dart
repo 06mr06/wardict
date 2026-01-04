@@ -3,7 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../services/firebase/auth_service.dart';
+import '../../services/shop_service.dart';
 import '../auth/login_screen.dart';
+import '../onboarding/tutorial_screen.dart';
+import '../support/support_screen.dart';
+import '../support/privacy_policy_screen.dart';
+import '../support/terms_of_service_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -179,6 +184,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ]),
 
+                      const SizedBox(height: 24),
+
+                      // Diğer
+                      _buildSectionTitle('Diğer'),
+                      const SizedBox(height: 12),
+                      _buildSettingsCard([
+                        _buildNavigationTile(
+                          icon: Icons.support_agent,
+                          title: 'Destek',
+                          subtitle: 'Yardım ve geri bildirim',
+                          onTap: () => _openSupport(),
+                        ),
+                        const Divider(color: Colors.white12),
+                        _buildNavigationTile(
+                          icon: Icons.menu_book,
+                          title: 'Rehber',
+                          onTap: () => _showGuide(),
+                        ),
+                        const Divider(color: Colors.white12),
+                        _buildNavigationTile(
+                          icon: Icons.play_circle_outline,
+                          title: 'Tutorial\'ı Tekrar İzle',
+                          onTap: () => _showTutorial(),
+                        ),
+                        const Divider(color: Colors.white12),
+                        _buildNavigationTile(
+                          icon: Icons.card_giftcard,
+                          title: 'Promosyon Kodu Kullan',
+                          onTap: () => _showPromoCodeDialog(),
+                        ),
+                      ]),
+
                       const SizedBox(height: 40),
 
                       // Version
@@ -271,7 +308,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(0xFF00D9F5),
+            activeThumbColor: const Color(0xFF00D9F5),
           ),
         ],
       ),
@@ -282,6 +319,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+    String? subtitle,
     Color? iconColor,
     Color? textColor,
   }) {
@@ -302,13 +340,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: textColor ?? Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: textColor ?? Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (subtitle != null)
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: textColor?.withOpacity(0.7) ?? Colors.white60,
+                        fontSize: 12,
+                      ),
+                    ),
+                ],
               ),
             ),
             Icon(
@@ -322,85 +373,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _openSupport() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SupportScreen()),
+    );
+  }
+
   void _showTermsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A3A5C),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Terms and Conditions', style: TextStyle(color: Colors.white)),
-        content: SingleChildScrollView(
-          child: Text(
-            '''WARDICT KULLANIM KOŞULLARI
-
-1. Kabul
-Bu uygulamayı kullanarak aşağıdaki şartları kabul etmiş sayılırsınız.
-
-2. Kullanım Hakları
-Uygulama yalnızca kişisel ve ticari olmayan amaçlarla kullanılabilir.
-
-3. Hesap Güvenliği
-Hesabınızın güvenliğinden siz sorumlusunuz.
-
-4. İçerik
-Kullanıcılar uygunsuz içerik paylaşamaz.
-
-5. Sorumluluk Reddi
-Uygulama "olduğu gibi" sunulmaktadır.
-
-Son güncelleme: 31 Aralık 2025''',
-            style: TextStyle(color: Colors.white.withOpacity(0.8)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Kapat', style: TextStyle(color: Colors.white70)),
-          ),
-        ],
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TermsOfServiceScreen()),
     );
   }
 
   void _showPrivacyDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A3A5C),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Privacy Policy', style: TextStyle(color: Colors.white)),
-        content: SingleChildScrollView(
-          child: Text(
-            '''GİZLİLİK POLİTİKASI
-
-1. Toplanan Veriler
-- E-posta adresi
-- Kullanıcı adı
-- Oyun istatistikleri
-
-2. Veri Kullanımı
-Verileriniz yalnızca uygulama deneyimini iyileştirmek için kullanılır.
-
-3. Veri Güvenliği
-Verileriniz Firebase üzerinde güvenli şekilde saklanır.
-
-4. Üçüncü Taraflar
-Verileriniz üçüncü taraflarla paylaşılmaz.
-
-5. İletişim
-sorular için: support@wardict.com
-
-Son güncelleme: 31 Aralık 2025''',
-            style: TextStyle(color: Colors.white.withOpacity(0.8)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Kapat', style: TextStyle(color: Colors.white70)),
-          ),
-        ],
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
     );
   }
 
@@ -443,6 +433,266 @@ Son güncelleme: 31 Aralık 2025''',
         );
       }
     }
+  }
+
+  void _showTutorial() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TutorialScreen(
+          onComplete: () => Navigator.of(context).pop(),
+        ),
+      ),
+    );
+  }
+
+  void _showPromoCodeDialog() {
+    final codeController = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1A3A5C),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.card_giftcard, color: Colors.amber, size: 28),
+              SizedBox(width: 8),
+              Text(
+                'Promosyon Kodu',
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Premium kazanmak için promosyon kodunuzu girin:',
+                style: TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: codeController,
+                textCapitalization: TextCapitalization.characters,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Kodu girin...',
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.1),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  prefixIcon: const Icon(Icons.code, color: Colors.white54),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final code = codeController.text.trim();
+                      if (code.isEmpty) return;
+
+                      setDialogState(() => isLoading = true);
+
+                      final result = await ShopService.instance.redeemPromoCode(code);
+
+                      setDialogState(() => isLoading = false);
+
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+
+                      // Sonucu göster
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        SnackBar(
+                          content: Text(result['message'] as String),
+                          backgroundColor: result['success'] == true
+                              ? Colors.green
+                              : Colors.red.shade700,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Uygula'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showGuide() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF1A3A5C),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white38,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Title
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.menu_book, color: Colors.amber, size: 28),
+                    SizedBox(width: 12),
+                    Text(
+                      'Oyun Rehberi',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(color: Colors.white24),
+              // Content
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    _buildGuideSection(
+                      icon: '🎮',
+                      title: 'WARDICT Nedir?',
+                      description: 'İngilizce kelime bilgini test et ve geliştir! '
+                          'Farklı oyun modlarıyla eğlenerek öğren.',
+                      color: const Color(0xFF6C27FF),
+                    ),
+                    _buildGuideSection(
+                      icon: '⚔️',
+                      title: 'Duel Modu',
+                      description: 'Online rakiplerinle, arkadaşlarınla veya '
+                          'seviyene uygun botla 10 soruluk düellolara katıl!',
+                      color: const Color(0xFF2AA7FF),
+                    ),
+                    _buildGuideSection(
+                      icon: '🎯',
+                      title: 'Daily 123',
+                      description: '123 saniyede 123 puana ulaşmaya çalış! '
+                          'Her gün yeni bir meydan okuma seni bekliyor. '
+                          'Hızlı ol, üst sıraları yakala!',
+                      color: const Color(0xFFFF6B6B),
+                    ),
+                    _buildGuideSection(
+                      icon: '📚',
+                      title: 'Practice Modu',
+                      description: 'Kendi hızında pratik yap. '
+                          'A2 seviyesinden başla, başarına göre seviye atla!',
+                      color: const Color(0xFF00D9F5),
+                    ),
+
+                    _buildGuideSection(
+                      icon: '⭐',
+                      title: 'Premium Özellikler',
+                      description: 'Premium üyelikle reklamsız deneyim, '
+                          'özel temalar, sınırsız duel ve daha fazlası!',
+                      color: const Color(0xFF00F5A0),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuideSection({
+    required String icon,
+    required String title,
+    required String description,
+    required Color color,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color.withOpacity(0.3), color.withOpacity(0.1)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(icon, style: const TextStyle(fontSize: 32)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  description,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

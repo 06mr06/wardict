@@ -89,24 +89,52 @@ FirebaseOptions _getFirebaseOptions() {
 
 ### Firestore Güvenlik Kuralları (Üretim için)
 
+⚠️ **ÖNEMLİ**: Firebase Console → Firestore Database → Rules sekmesinden bu kuralları ekleyin:
+
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Kullanıcılar
+    // Kullanıcılar - Kendi profilini okuyabilir ve yazabilir
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false; // Profil silinemez
     }
     
-    // Liderlik tablosu (herkes okuyabilir)
+    // Liderlik tablosu (herkes okuyabilir, giriş yapanlar yazabilir)
     match /leaderboard/{doc} {
       allow read: if true;
       allow write: if request.auth != null;
     }
+    
+    // Practice sessions (sadece kendi verileri)
+    match /practice_sessions/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Destek talepleri (kullanıcı kendi taleplerini görebilir/yazabilir)
+    match /support_tickets/{ticketId} {
+      // Kullanıcı kendi talebini okuyabilir
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Kullanıcı yeni talep oluşturabilir
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Kullanıcı kendi talebine mesaj ekleyebilir (mesajlar array'e eklenir)
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Silme yasak
+      allow delete: if false;
+    }
   }
 }
 ```
+
+### ⚠️ "Permission Denied" Hatası Alıyorsanız
+
+1. **Firebase Console** → **Firestore Database** → **Rules** sekmesine gidin
+2. Yukarıdaki kuralları kopyalayıp yapıştırın
+3. **Publish** butonuna tıklayın
+4. Kuralların yayınlanması 1-2 dakika sürebilir
 
 ## 🧪 Adım 6: Test Etme
 
@@ -144,9 +172,47 @@ lib/
 ## 🔜 Sonraki Adımlar
 
 - [x] Google Sign-In ekleme
+- [x] Destek sistemi (Firestore mesajlaşma)
 - [ ] Gerçek zamanlı düello sistemi
 - [ ] Push notifications
 - [ ] Liderlik tablosu UI
+
+---
+
+## 📞 Destek Sistemi - Admin Yanıt Verme
+
+Kullanıcı destek taleplerini yanıtlamak için Firebase Console kullanabilirsiniz:
+
+### Firestore Console'dan Yanıt Verme
+
+1. [Firebase Console](https://console.firebase.google.com) → **Firestore Database**
+2. `support_tickets` koleksiyonunu açın
+3. İlgili ticket belgesini seçin
+4. `messages` array'ine yeni bir mesaj objesi ekleyin:
+
+```json
+{
+  "id": "ticket_id_msg_admin_1",
+  "senderId": "admin",
+  "senderName": "Wardict Destek",
+  "isAdmin": true,
+  "message": "Merhaba! Size nasıl yardımcı olabiliriz?",
+  "createdAt": <Timestamp>,
+  "isRead": false
+}
+```
+
+5. `status` alanını `"answered"` olarak güncelleyin
+6. `unreadCount` alanını `1` artırın
+7. `updatedAt` alanını güncelleyin
+
+### Admin Panel (İleri Seviye)
+
+İlerleyen dönemde ayrı bir admin web paneli oluşturulabilir:
+- Next.js veya React ile
+- Firebase Admin SDK kullanarak
+- Tüm destek taleplerini görüntüleme
+- Toplu yanıt verme
 
 ---
 
@@ -198,6 +264,67 @@ flutter run
 ```
 
 Artık Google ile giriş yapabilirsiniz! 🎉
+
+---
+
+## 🍎 Apple Sign-In Kurulumu (iOS)
+
+**iOS cihazlarda Apple ile giriş için aşağıdaki adımları izleyin:**
+
+### Ön Koşullar
+
+1. Apple Developer Program üyeliği ($99/yıl)
+2. Xcode yüklü Mac bilgisayar
+3. Bundle Identifier belirlenmeli
+
+### Adım 1: Apple Developer Console Ayarları
+
+1. [Apple Developer Console](https://developer.apple.com/account) açın
+2. **Certificates, Identifiers & Profiles** → **Identifiers**
+3. App ID'nizi seçin (veya yeni oluşturun)
+4. **Capabilities** bölümünde **Sign In with Apple** seçeneğini aktifleştirin
+5. **Configure** butonuna tıklayın:
+   - **Primary App ID** seçin
+   - **Kaydet**
+
+### Adım 2: Xcode Ayarları
+
+1. `ios/Runner.xcworkspace` dosyasını Xcode ile açın
+2. **Runner** → **Signing & Capabilities** sekmesi
+3. **+ Capability** butonuna tıklayın
+4. **Sign in with Apple** ekleyin
+5. Team ve Bundle Identifier'ın doğru olduğundan emin olun
+
+### Adım 3: Firebase Console Ayarları
+
+1. [Firebase Console](https://console.firebase.google.com) açın
+2. **Authentication** → **Sign-in method**
+3. **Apple** sağlayıcısını etkinleştirin
+4. Bilgileri doldurun:
+   - **Services ID**: `com.example.wardict_skeleton` (Bundle ID ile aynı olabilir)
+   - **Apple Team ID**: Apple Developer hesabınızdan alın
+   - **Key ID** ve **Private Key**: Apple Developer Console'dan oluşturun
+
+### Adım 4: Apple Private Key Oluşturma
+
+1. Apple Developer Console → **Keys**
+2. **+** butonuna tıklayın
+3. İsim: `WARDICT Sign In`
+4. **Sign in with Apple** seçeneğini işaretleyin
+5. **Configure** → Primary App ID seçin
+6. **Register** → Private Key (.p8 dosyası) indirin
+7. Key ID'yi not edin
+8. Firebase Console'a bu bilgileri girin
+
+### Adım 5: Test
+
+```bash
+flutter clean
+flutter pub get
+flutter run -d <your_ios_device>
+```
+
+iOS cihazda Apple ile giriş butonu görünecek ve çalışacaktır! 🍎
 
 ---
 

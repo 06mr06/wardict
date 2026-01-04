@@ -22,10 +22,10 @@ class AdService {
   bool _isAdLoading = false;
   
   // Test Ad IDs (Production'da gerçek ID'ler kullanılmalı)
-  // Android Test IDs
-  static const String _androidBannerTestId = 'ca-app-pub-3940256099942544/6300978111';
-  static const String _androidInterstitialTestId = 'ca-app-pub-3940256099942544/1033173712';
-  static const String _androidRewardedTestId = 'ca-app-pub-3940256099942544/5224354917';
+  // Android Production IDs
+  static const String _androidBannerTestId = 'ca-app-pub-3940256099942544/6300978111'; // Test ID - Banner kullanılmıyor
+  static const String _androidInterstitialTestId = 'ca-app-pub-7518151017798456/6525598980'; // Duel oyun sonu
+  static const String _androidRewardedTestId = 'ca-app-pub-7518151017798456/7277581480'; // 25 Altın + Daily123
   
   // iOS Test IDs
   static const String _iosBannerTestId = 'ca-app-pub-3940256099942544/2934735716';

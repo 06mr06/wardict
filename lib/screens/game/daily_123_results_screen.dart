@@ -110,6 +110,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
     );
   }
   
+  // ignore: unused_element - Compact answer boxes için saklanıyor
   Widget _buildCompactAnswerBoxes() {
     return Column(
       children: [
@@ -169,8 +170,35 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
   }
   
   Widget _buildScoreAndAnswerRow() {
+    // Süre hesapla (salise ile)
+    final seconds = widget.timeSpent;
+    final timeStr = '$seconds.00 sn';
+    
     return Row(
       children: [
+        // Süre kutusu
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Column(
+              children: [
+                const Icon(Icons.timer, color: Colors.cyan, size: 28),
+                const SizedBox(height: 4),
+                Text(
+                  timeStr,
+                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const Text('Süre', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
         // Puan kutusu
         Expanded(
           child: Container(
@@ -308,9 +336,9 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
             ),
           ],
         ),
-        child: Column(
+        child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.play_circle_filled, color: Colors.white, size: 36),
             SizedBox(height: 6),
             Text('Watch Ad', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
@@ -321,6 +349,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
     );
   }
   
+  // ignore: unused_element - Answer boxes için saklanıyor
   Widget _buildAnswerBoxes() {
     return Row(
       children: [
@@ -611,8 +640,14 @@ class _AnswerListSheetState extends State<_AnswerListSheet> {
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$addedCount kelime "Kelimelerim"e eklendi'),
-        backgroundColor: Colors.green,
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 8),
+            Text('$addedCount kelime "Kelimelerim"e eklendi'),
+          ],
+        ),
+        backgroundColor: const Color(0xFF2E5A8C),
       ),
     );
     

@@ -7,6 +7,7 @@ import '../../services/online_duel_service.dart';
 import '../../services/sound_service.dart';
 import '../../services/user_profile_service.dart';
 import '../../services/shop_service.dart';
+import '../../services/firebase/auth_service.dart';
 import '../../models/cosmetic_item.dart';
 import '../../models/question_mode.dart';
 import '../../models/answered_entry.dart';
@@ -67,6 +68,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
   List<int> _shuffledCorrectIndexes = [];
   
   String? _myAvatarEmoji;
+  String? _myPhotoUrl;
   String _opponentAvatar = '👤';
   late String _botName;
   
@@ -101,6 +103,13 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
   }
 
   Future<void> _initAvatars() async {
+    // Get user's photo URL from Firebase Auth (Google profile picture)
+    final photoUrl = AuthService.instance.photoURL;
+    if (photoUrl != null && photoUrl.isNotEmpty && mounted) {
+      setState(() => _myPhotoUrl = photoUrl);
+    }
+    
+    // Also get selected cosmetic avatar (emoji) as fallback
     final avatarId = await ShopService.instance.getSelectedCosmetic(CosmeticType.avatar);
     if (avatarId != null && avatarId.isNotEmpty) {
       final items = CosmeticItem.availableItems.where((i) => i.id == avatarId);
@@ -109,7 +118,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
       }
     }
     
-    final avatars = UserProfileService.avatars;
+    const avatars = UserProfileService.avatars;
     if (mounted) {
       setState(() => _opponentAvatar = avatars[_rng.nextInt(avatars.length)]);
     }
@@ -411,11 +420,14 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
           totalQuestions: _match.questions.length,
           isDemo: _isDemo,
           answeredItems: _answeredItems,
+          myAvatarEmoji: _myAvatarEmoji,
+          opponentAvatarEmoji: _isDemo ? _opponentAvatar : null,
         ),
       ),
     );
   }
 
+  // ignore: unused_element - Çıkış butonu için saklanıyor
   void _quitGame() {
     showDialog(
       context: context,
@@ -488,7 +500,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
         if (_showVsAnim)
           VsScreen(
             onAnimationComplete: _onVsAnimationComplete,
-            userAvatarUrl: _myAvatarEmoji ?? '👤',
+            userAvatarUrl: _myPhotoUrl ?? _myAvatarEmoji ?? '👤',
             botAvatarUrl: _opponentAvatar,
           ),
       ],

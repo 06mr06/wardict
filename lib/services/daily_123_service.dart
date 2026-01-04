@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/daily_123.dart';
 import 'achievement_service.dart';
 import '../models/achievement.dart';
+import 'shop_service.dart';
 
 class Daily123Service {
   static final Daily123Service instance = Daily123Service._();
@@ -43,7 +44,23 @@ class Daily123Service {
     final stats = await getStats();
     final newHistory = List<Daily123Result>.from(stats.history)..add(result);
     
-    int newStreak = result.isWin ? stats.currentStreak + 1 : 0;
+    int newStreak;
+    
+    if (result.isWin) {
+      // Kazandı - seri artar
+      newStreak = stats.currentStreak + 1;
+    } else {
+      // Kaybetti - Seri Koruma var mı kontrol et
+      final hasShield = await ShopService.instance.hasActiveStreakShield();
+      if (hasShield) {
+        // Kalkan aktif - seri korunur!
+        newStreak = stats.currentStreak;
+      } else {
+        // Kalkan yok - seri sıfırlanır
+        newStreak = 0;
+      }
+    }
+    
     int newHighest = newStreak > stats.highestStreak ? newStreak : stats.highestStreak;
 
     final newStats = Daily123Stats(

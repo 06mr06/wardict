@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/services.dart';
 import '../models/user_level.dart';
+import 'word_usage_service.dart';
 
 /// Kelime havuzu ve soru üretimi servisi
 class WordPoolService {
@@ -18,16 +19,21 @@ class WordPoolService {
   Future<void> loadWordPool() async {
     if (_wordsByLevel != null) return;
 
-    // Ana kelime havuzunu yükle
-    final jsonString = await rootBundle.loadString('assets/data/a12b12c12.json');
-    final data = json.decode(jsonString) as Map<String, dynamic>;
-    final wordsByLevelRaw = data['words_by_level'] as Map<String, dynamic>;
-
     _wordsByLevel = {};
-    for (final entry in wordsByLevelRaw.entries) {
-      _wordsByLevel![entry.key] = (entry.value as List)
-          .map((e) => Map<String, String>.from(e as Map))
-          .toList();
+    
+    // Her seviye için ayrı dosyadan yükle
+    final levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+    for (final level in levels) {
+      try {
+        final jsonString = await rootBundle.loadString('assets/data/words_${level.toLowerCase()}.json');
+        final wordList = json.decode(jsonString) as List<dynamic>;
+        _wordsByLevel![level] = wordList
+            .map((e) => Map<String, String>.from(e as Map))
+            .toList();
+      } catch (e) {
+        // Dosya yoksa boş liste
+        _wordsByLevel![level] = [];
+      }
     }
 
     // Eş anlam / zıt anlam havuzunu yükle
@@ -63,8 +69,9 @@ class WordPoolService {
   }
 
   /// Kullanıcı seviyesine göre soru dağılımını hesaplar
-  /// 10 soru: 7 çeviri + 3 eş/zıt anlam
-  /// Dağılım: 5 ana seviye, 3 bir üst, 2 iki üst
+  /// 10 soru: 5 kendi seviyesi, 3 bir üst, 2 iki üst
+  /// C1: 5 C1 + 5 C2 (iki üst olmadığı için)
+  /// C2: 10 C2 (hepsi kendi seviyesi)
   Map<String, int> getQuestionDistribution(UserLevel userLevel) {
     switch (userLevel) {
       case UserLevel.a1:
@@ -76,9 +83,9 @@ class WordPoolService {
       case UserLevel.b2:
         return {'B2': 5, 'C1': 3, 'C2': 2};
       case UserLevel.c1:
-        return {'C1': 7, 'C2': 3};
+        return {'C1': 5, 'C2': 5}; // C1'de iki üst olmadığı için 5-5
       case UserLevel.c2:
-        return {'C2': 10};
+        return {'C2': 10}; // C2'de tüm sorular C2
     }
   }
 
@@ -94,16 +101,21 @@ class WordPoolService {
       levelCounts.add(entry);
     }
 
-    // Her seviyeden gerekli sayıda kelime seç
+    // Her seviyeden gerekli sayıda kelime seç - az kullanılanlara öncelik ver
     final selectedWords = <MapEntry<String, Map<String, String>>>[];
     for (final entry in levelCounts) {
       final levelWords = getWordsForLevel(entry.key);
       if (levelWords.isEmpty) continue;
 
-      final shuffled = List<Map<String, String>>.from(levelWords)..shuffle(_random);
-      final count = min(entry.value, shuffled.length);
-      for (int i = 0; i < count; i++) {
-        selectedWords.add(MapEntry(entry.key, shuffled[i]));
+      // Ağırlıklı rastgele seçim - az kullanılan kelimeler daha çok seçilir
+      final selected = WordUsageService.instance.weightedRandomSelect<Map<String, String>>(
+        levelWords,
+        (word) => word['english'] ?? '',
+        entry.value,
+      );
+      
+      for (final word in selected) {
+        selectedWords.add(MapEntry(entry.key, word));
       }
     }
 
@@ -131,6 +143,10 @@ class WordPoolService {
         level: entry.key,
       ));
     }
+
+    // Kullanılan kelimeleri işaretle (tekrar önceliklendirmesi için)
+    final usedWords = selectedWords.map((e) => e.value['english'] ?? '').toList();
+    WordUsageService.instance.markWordsUsed(usedWords);
 
     return questions;
   }
@@ -235,13 +251,18 @@ class WordPoolService {
     final wrongOptions = <String>[];
     final shuffledWords = List<SynonymAntonymWord>.from(allWords)..shuffle(_random);
     
+    // Prompt kelimesinin lowercase versiyonu (karşılaştırma için)
+    final promptLower = prompt.toLowerCase();
+    
     for (final w in shuffledWords) {
       if (wrongOptions.length >= 3) break;
-      if (w.word == prompt) continue;
+      if (w.word.toLowerCase() == promptLower) continue;
       
       // Zıt anlamlarını yanlış seçenek olarak kullan
       for (final opt in w.antonyms) {
         if (wrongOptions.length >= 3) break;
+        // Prompt ile aynı kelime olmasın (büyük/küçük harf fark etmez)
+        if (opt.toLowerCase() == promptLower) continue;
         if (opt != correctAnswer && !wrongOptions.contains(opt) && !correctAnswers.contains(opt)) {
           wrongOptions.add(opt);
         }
@@ -252,7 +273,9 @@ class WordPoolService {
     if (wrongOptions.length < 3) {
       for (final w in shuffledWords) {
         if (wrongOptions.length >= 3) break;
-        if (w.word != prompt && !wrongOptions.contains(w.word) && !correctAnswers.contains(w.word)) {
+        // Prompt ile aynı kelime olmasın (büyük/küçük harf fark etmez)
+        if (w.word.toLowerCase() == promptLower) continue;
+        if (!wrongOptions.contains(w.word) && !correctAnswers.contains(w.word)) {
           wrongOptions.add(w.word);
         }
       }
@@ -335,17 +358,22 @@ class WordPoolService {
     return _generateQuestionsFromWords(levelWords, levelCode, count);
   }
 
-  /// Kelime listesinden soru üretir
+  /// Kelime listesinden soru üretir - az kullanılan kelimelere öncelik verir
   List<GeneratedQuestion> _generateQuestionsFromWords(
     List<Map<String, String>> words,
     String level,
     int count,
   ) {
     final questions = <GeneratedQuestion>[];
-    final shuffled = List<Map<String, String>>.from(words)..shuffle(_random);
     
-    for (int i = 0; i < min(count, shuffled.length); i++) {
-      final word = shuffled[i];
+    // Ağırlıklı rastgele seçim - az kullanılan kelimeler öncelikli
+    final selectedWords = WordUsageService.instance.weightedRandomSelect<Map<String, String>>(
+      words,
+      (word) => word['english'] ?? '',
+      count,
+    );
+    
+    for (final word in selectedWords) {
       final isEnToTr = _random.nextBool();
       
       questions.add(_createTranslationQuestion(
@@ -354,6 +382,10 @@ class WordPoolService {
         isEnToTr: isEnToTr,
       ));
     }
+    
+    // Kullanılan kelimeleri işaretle
+    final usedWords = selectedWords.map((w) => w['english'] ?? '').toList();
+    WordUsageService.instance.markWordsUsed(usedWords);
     
     return questions;
   }

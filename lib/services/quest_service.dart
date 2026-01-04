@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/quest.dart';
 import 'shop_service.dart';
@@ -42,7 +41,6 @@ class QuestService {
 
   /// Yeni günlük görevler oluşturur.
   Future<List<Quest>> _generateDailyQuests() async {
-    final random = Random();
     final quests = <Quest>[];
     final now = DateTime.now();
 

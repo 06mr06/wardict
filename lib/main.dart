@@ -3,6 +3,7 @@ import 'app.dart';
 import 'services/firebase/firebase_service.dart';
 import 'services/ad_service.dart';
 import 'services/purchase_service.dart';
+import 'services/word_usage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,9 @@ void main() async {
   
   // Satın alma servisini başlat
   await PurchaseService.instance.initialize();
+  
+  // Kelime kullanım servisini başlat
+  await WordUsageService.instance.loadUsageData();
   
   runApp(const WardictApp());
 }

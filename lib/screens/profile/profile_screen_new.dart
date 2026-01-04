@@ -7,10 +7,13 @@ import '../../services/firebase/auth_service.dart';
 import '../../services/firebase/firestore_service.dart';
 import '../friends/friends_screen.dart';
 import '../auth/login_screen.dart';
+import '../leaderboard/leaderboard_screen.dart';
 import '../../models/cosmetic_item.dart';
 import '../../models/achievement.dart';
 import '../../services/shop_service.dart';
 import '../../services/achievement_service.dart';
+import '../support/support_screen.dart';
+import '../onboarding/tutorial_screen.dart';
 import 'settings_screen.dart';
 
 class ProfileScreenNew extends StatefulWidget {
@@ -26,6 +29,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
   List<String> _unlockedCosmetics = [];
   String? _selectedFrameId;
   bool _isLoading = true;
+  bool _isPremium = false;
 
   @override
   void initState() {
@@ -38,12 +42,14 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
     final achievements = await AchievementService.instance.getAchievements();
     final unlockedCosmetics = await ShopService.instance.getUnlockedCosmetics();
     final selectedFrame = await ShopService.instance.getSelectedCosmetic(CosmeticType.frame);
+    final subscription = await ShopService.instance.getSubscription();
     
     setState(() {
       _profile = profile;
       _achievements = achievements;
       _unlockedCosmetics = unlockedCosmetics;
       _selectedFrameId = selectedFrame;
+      _isPremium = subscription.isActive;
       _isLoading = false;
     });
   }
@@ -175,15 +181,29 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
             }),
             _buildMenuItem(Icons.leaderboard, 'LİDERLER SIRALAMASI', Colors.green, () {
               Navigator.pop(context);
-              // TODO: Leaderboard screen
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen()));
             }),
             _buildMenuItem(Icons.newspaper, 'HABERLER', Colors.orange, () {
               Navigator.pop(context);
               // TODO: News screen
             }),
+            _buildMenuItem(Icons.menu_book, 'REHBER', Colors.teal, () {
+              Navigator.pop(context);
+              _showGuide();
+            }),
+            _buildMenuItem(Icons.play_circle_outline, 'TUTORIAL', Colors.cyan, () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => TutorialScreen(
+                onComplete: () => Navigator.of(context).pop(),
+              )));
+            }),
+            _buildMenuItem(Icons.card_giftcard, 'PROMOSYON KODU', Colors.amber, () {
+              Navigator.pop(context);
+              _showPromoCodeDialog();
+            }),
             _buildMenuItem(Icons.support_agent, 'DESTEK', Colors.indigo, () {
               Navigator.pop(context);
-              // TODO: Support screen
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen()));
             }),
             _buildMenuItem(Icons.logout, 'ÇIKIŞ', Colors.red, () {
               Navigator.pop(context);
@@ -236,8 +256,8 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
       }
     }
     
-    // Frame rengi ve kalınlığı
-    Color frameColor = Colors.white;
+    // Frame rengi ve kalınlığı - varsayılan mor
+    Color frameColor = const Color(0xFF6C27FF);
     double borderWidth = 3.0;
     bool isRainbow = false;
     
@@ -312,6 +332,30 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
               ),
             ),
           ),
+          // Premium ikonu (sol üst köşe)
+          if (_isPremium)
+            Positioned(
+              left: 0,
+              top: 0,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
+                  ),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFFD700).withOpacity(0.5),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.star, color: Colors.white, size: 16),
+              ),
+            ),
           // Düzenleme ikonu
           Positioned(
             right: 0,
@@ -757,8 +801,14 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                   _loadProfile();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Kullanıcı adı güncellendi!'),
-                      backgroundColor: Colors.green,
+                      content: Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text('Kullanıcı adı güncellendi!'),
+                        ],
+                      ),
+                      backgroundColor: Color(0xFF2E5A8C),
                     ),
                   );
                 }
@@ -785,6 +835,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
     return months[month - 1];
   }
 
+  // ignore: unused_element - Member badge için saklanıyor
   Widget _buildMemberBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -793,12 +844,12 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.cyan, width: 1),
       ),
-      child: Row(
+      child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.diamond, color: Colors.cyan, size: 18),
-          const SizedBox(width: 6),
-          const Text(
+          Icon(Icons.diamond, color: Colors.cyan, size: 18),
+          SizedBox(width: 6),
+          Text(
             'Elmas Üye',
             style: TextStyle(
               color: Colors.cyan,
@@ -811,6 +862,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
     );
   }
 
+  // ignore: unused_element - Add Friends button için saklanıyor
   Widget _buildAddFriendsButton() {
     return SizedBox(
       width: double.infinity,
@@ -830,6 +882,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
     );
   }
 
+  // ignore: unused_element - Section header için saklanıyor
   Widget _buildSectionHeader(String title, String action) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1599,5 +1652,256 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
         );
       }
     }
+  }
+
+  void _showGuide() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white30,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Oyun Rehberi',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildGuideSection(
+                        'Nasıl Oynanır?',
+                        Icons.games,
+                        '• Her turda bir İngilizce kelime ve 4 Türkçe seçenek görürsün\n'
+                        '• Doğru Türkçe anlamı 10 saniye içinde seç\n'
+                        '• Hızlı ve doğru cevaplar daha çok puan kazandırır\n'
+                        '• Arka arkaya doğru cevaplar combo yapar',
+                      ),
+                      _buildGuideSection(
+                        'Duel Modu',
+                        Icons.sports_kabaddi,
+                        '• Bot rakibe karşı yarış\n'
+                        '• Her oyun 10 soru içerir\n'
+                        '• Kazanan WP (War Points) kazanır\n'
+                        '• Kaybeden WP kaybeder',
+                      ),
+                      _buildGuideSection(
+                        'Online Duel',
+                        Icons.wifi,
+                        '• Gerçek oyunculara karşı yarış\n'
+                        '• Arkadaşlarını davet edebilirsin\n'
+                        '• Eşleşme rastgele de olabilir',
+                      ),
+                      _buildGuideSection(
+                        'Ligler & Sıralama',
+                        Icons.emoji_events,
+                        '• Bronz → Gümüş → Altın → Platin → Elmas → Efsane\n'
+                        '• Her lig belirli WP aralığına sahip\n'
+                        '• Lider tablosunda en iyiler görünür',
+                      ),
+                      _buildGuideSection(
+                        'Mağaza',
+                        Icons.store,
+                        '• Altın ile yeni avatarlar, çerçeveler, temalar satın al\n'
+                        '• Özel efektler ve güç artırıcıları keşfet\n'
+                        '• Premium üyelik ile reklamsız oyna',
+                      ),
+                      _buildGuideSection(
+                        'Günlük Görevler',
+                        Icons.task_alt,
+                        '• Her gün yeni görevler\n'
+                        '• Görevleri tamamla, altın kazan\n'
+                        '• Streak bonusu ile ekstra ödüller',
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuideSection(String title, IconData icon, String content) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: Colors.amber, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            content,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPromoCodeDialog() {
+    final codeController = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1A3A5C),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.card_giftcard, color: Colors.amber, size: 28),
+              SizedBox(width: 8),
+              Text(
+                'Promosyon Kodu',
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Premium kazanmak için promosyon kodunuzu girin:',
+                style: TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: codeController,
+                textCapitalization: TextCapitalization.characters,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Kodu girin...',
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.1),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  prefixIcon: const Icon(Icons.code, color: Colors.white54),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final code = codeController.text.trim();
+                      if (code.isEmpty) return;
+
+                      setDialogState(() => isLoading = true);
+
+                      final result = await ShopService.instance.redeemPromoCode(code);
+
+                      setDialogState(() => isLoading = false);
+
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+
+                      // Sonucu göster
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        SnackBar(
+                          content: Text(result['message'] as String),
+                          backgroundColor: result['success'] == true
+                              ? const Color(0xFF2E5A8C)
+                              : Colors.red.shade700,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Uygula'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

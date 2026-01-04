@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
-import '../../models/answered_entry.dart';
-import '../../models/question_mode.dart';
 
 class MyWordsScreen extends StatefulWidget {
   const MyWordsScreen({super.key});
@@ -13,7 +11,8 @@ class MyWordsScreen extends StatefulWidget {
 
 class _MyWordsScreenState extends State<MyWordsScreen> {
   final Set<int> _selectedIndices = {};
-  bool _isSelectionMode = false;
+  // ignore: unused_field - Seçim modu için saklanıyor
+  final bool _isSelectionMode = false;
   
   // Note: We need to load saved words. 
   // GameProvider has 'savedPool' but it might be session based?

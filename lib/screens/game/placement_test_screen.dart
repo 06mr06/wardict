@@ -112,14 +112,12 @@ class _PlacementTestScreenState extends State<PlacementTestScreen>
     // Eşitlik durumunda daha yüksek seviye seçilir
 
     int maxCorrect = 0;
-    String bestLevel = 'A1';
 
     // C2'den A1'e doğru kontrol et (eşitlikte yüksek seviye öncelikli)
     for (final level in ['C2', 'C1', 'B2', 'B1', 'A2', 'A1']) {
       final correct = _correctByLevel[level] ?? 0;
       if (correct > maxCorrect) {
         maxCorrect = correct;
-        bestLevel = level;
       }
     }
 

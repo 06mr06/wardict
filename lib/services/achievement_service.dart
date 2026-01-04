@@ -20,8 +20,28 @@ class AchievementService {
       return await _initializeAchievements();
     }
 
-    final List<dynamic> list = jsonDecode(jsonStr);
-    return list.map((e) => Achievement.fromJson(e)).toList();
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      final achievements = list.map((e) => Achievement.fromJson(e)).toList();
+      
+      // Bozuk veri kontrolü: Eğer hiç progress olmadan isUnlocked true ise sıfırla
+      bool hasCorruptedData = achievements.any((a) => 
+        a.isUnlocked && a.currentProgress < a.goal
+      );
+      
+      if (hasCorruptedData) {
+        // Bozuk veri tespit edildi, sıfırla
+        await prefs.remove(_achievementsKey);
+        await prefs.remove('last_achievement_check_time');
+        return await _initializeAchievements();
+      }
+      
+      return achievements;
+    } catch (e) {
+      // Parse hatası varsa sıfırla
+      await prefs.remove(_achievementsKey);
+      return await _initializeAchievements();
+    }
   }
 
   /// Başlangıç başarımlarını oluşturur.
@@ -31,10 +51,10 @@ class AchievementService {
       Achievement(
         id: 'lvl_a1',
         title: 'Harf (A1)',
-        description: 'Kelime yolculuğuna başladın!',
+        description: 'Practice modunda 3 kez A1 seviyesinde oyna!',
         category: AchievementCategory.level,
         tier: AchievementTier.bronze,
-        goal: 1,
+        goal: 3,
         rewardCoins: 50,
         badgeIcon: '👶',
       ),
@@ -240,11 +260,25 @@ class AchievementService {
     await prefs.setString(_achievementsKey, jsonEncode(achievements.map((a) => a.toJson()).toList()));
   }
   
+  /// Tüm başarım verilerini sıfırlar (debug/test için)
+  Future<void> resetAllAchievements() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_achievementsKey);
+    await prefs.remove('last_achievement_check_time');
+  }
+  
   /// Son oyundan bu yana yeni açılan ödülleri getirir ve işaretler
   Future<List<Achievement>> getNewlyUnlockedAchievements() async {
     final prefs = await SharedPreferences.getInstance();
     final lastCheck = prefs.getString('last_achievement_check_time');
-    final lastCheckTime = lastCheck != null ? DateTime.parse(lastCheck) : DateTime.now().subtract(const Duration(days: 365));
+    
+    // İlk kez açılıyorsa, yeni ödül gösterme (sadece şu anki zamandan sonrakileri göster)
+    if (lastCheck == null) {
+      await prefs.setString('last_achievement_check_time', DateTime.now().toIso8601String());
+      return [];
+    }
+    
+    final lastCheckTime = DateTime.parse(lastCheck);
     
     final achievements = await getAchievements();
     final newlyUnlocked = achievements

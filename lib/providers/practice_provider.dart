@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import '../services/quest_service.dart';
 import '../models/quest.dart';
 import '../models/practice_session.dart';
@@ -7,7 +6,6 @@ import '../models/question_mode.dart';
 import '../services/user_profile_service.dart';
 import '../services/word_pool_service.dart';
 import '../services/achievement_service.dart';
-import '../models/achievement.dart';
 import 'base_game_provider.dart';
 
 /// Practice modu için özel provider
@@ -15,7 +13,8 @@ class PracticeProvider extends BaseGameProvider {
   PracticeSession _session = const PracticeSession();
   
   // Internal session specific state
-  List<GeneratedQuestion> _questions = [];
+  // ignore: unused_field - Soru listesi için saklanıyor
+  final List<GeneratedQuestion> _questions = [];
   String _currentQuestionLevel = 'A2'; // Soru seviyesi
   
   // Şuanki soru bilgileri - Base getterlar için
@@ -149,17 +148,6 @@ class PracticeProvider extends BaseGameProvider {
       _session = _session.onWrongAnswer();
     }
     
-    // Adaptif zorluk kontrolü (ilk 3 oturumda)
-    if (_session.isInAdaptivePeriod) {
-      if (isCorrect && _session.shouldAdaptivelyIncreaseLevel) {
-        _currentQuestionLevel = PracticeScoring.getNextLevel(_currentQuestionLevel);
-        _session = _session.withLevel(_currentQuestionLevel);
-      } else if (!isCorrect && _session.shouldAdaptivelyDecreaseLevel) {
-        _currentQuestionLevel = PracticeScoring.getPreviousLevel(_currentQuestionLevel);
-        _session = _session.withLevel(_currentQuestionLevel);
-      }
-    }
-    
     index++;
     
     // Profili güncelle
@@ -183,31 +171,30 @@ class PracticeProvider extends BaseGameProvider {
   }
 
   /// Oturumu tamamla
+  /// Yeni kurgu: 2 üst üste %70+ = seviye atla, 2 üst üste %30- = seviye düş
   Future<PracticeSessionResult> completeSession() async {
     _session = _session.completeSession();
     
-    // 3. oturumdan sonra seviye değerlendirmesi
     bool leveledUp = false;
     bool leveledDown = false;
     String? newLevel;
     
-    if (!_session.isInAdaptivePeriod) {
-      if (_session.canLevelUp) {
-        // 7+ doğru - seviye artır
-        final nextLevel = PracticeScoring.getNextLevel(_session.currentLevel);
-        if (nextLevel != _session.currentLevel) {
-          _session = _session.withLevel(nextLevel);
-          leveledUp = true;
-          newLevel = nextLevel;
-        }
-      } else if (_session.shouldLevelDown) {
-        // 2 oturum üst üste 3 veya altında - seviye düşür
-        final prevLevel = PracticeScoring.getPreviousLevel(_session.currentLevel);
-        if (prevLevel != _session.currentLevel) {
-          _session = _session.withLevel(prevLevel);
-          leveledDown = true;
-          newLevel = prevLevel;
-        }
+    // Seviye değerlendirmesi (completeSession sonrası canLevelUp/shouldLevelDown kontrol et)
+    if (_session.canLevelUp && _session.currentLevel != 'C2') {
+      // 2 üst üste %70+ başarı - seviye artır
+      final nextLevel = PracticeScoring.getNextLevel(_session.currentLevel);
+      if (nextLevel != _session.currentLevel) {
+        _session = _session.withLevel(nextLevel);
+        leveledUp = true;
+        newLevel = nextLevel;
+      }
+    } else if (_session.shouldLevelDown && _session.currentLevel != 'A1') {
+      // 2 üst üste %30- başarısızlık - seviye düşür
+      final prevLevel = PracticeScoring.getPreviousLevel(_session.currentLevel);
+      if (prevLevel != _session.currentLevel) {
+        _session = _session.withLevel(prevLevel);
+        leveledDown = true;
+        newLevel = prevLevel;
       }
     }
     
@@ -235,6 +222,8 @@ class PracticeProvider extends BaseGameProvider {
       newLevel: newLevel,
       currentLevel: _session.currentLevel,
       answerHistory: _answerHistory,
+      consecutiveHighSuccess: _session.consecutiveHighSuccess,
+      consecutiveLowSuccess: _session.consecutiveLowSuccess,
     );
   }
 
@@ -283,6 +272,8 @@ class PracticeSessionResult {
   final String? newLevel;
   final String currentLevel;
   final List<PracticeAnswerRecord> answerHistory;
+  final int consecutiveHighSuccess; // Üst üste yüksek başarı sayısı
+  final int consecutiveLowSuccess;  // Üst üste düşük başarı sayısı
 
   const PracticeSessionResult({
     required this.totalQuestions,
@@ -293,7 +284,15 @@ class PracticeSessionResult {
     this.newLevel,
     required this.currentLevel,
     required this.answerHistory,
+    this.consecutiveHighSuccess = 0,
+    this.consecutiveLowSuccess = 0,
   });
 
   double get accuracy => totalQuestions > 0 ? correctAnswers / totalQuestions : 0;
+  
+  /// %70+ başarı mı?
+  bool get hasHighSuccess => correctAnswers >= 7;
+  
+  /// %30- başarısızlık mı?
+  bool get hasLowSuccess => correctAnswers <= 3;
 }

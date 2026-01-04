@@ -9,22 +9,17 @@ import '../../services/firebase/auth_service.dart';
 import '../../services/sound_service.dart';
 import '../game/saved_pool_screen.dart';
 import '../game/level_selection_screen.dart';
-import '../game/league_selection_screen.dart';
 import '../profile/profile_screen_new.dart';
-import '../game/daily_123_screen.dart';
 import '../../services/daily_123_service.dart';
 import '../../services/friend_service.dart';
-import '../../models/friend.dart';
 import '../../models/cosmetic_item.dart';
 import '../friends/friends_screen.dart';
+import '../shop/shop_screen.dart';
 
-import '../../services/achievement_service.dart';
-import '../../models/achievement.dart';
 import '../game/daily_123_intro_screen.dart';
-import '../friends/find_match_screen.dart';
-import '../../models/league.dart';
 import '../game/matchmaking_screen.dart';
 import '../game/maxi_game_screen.dart';
+import '../onboarding/tutorial_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -35,6 +30,7 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _pulseController;
+  // ignore: unused_field - Pulse animasyonu için saklanıyor
   late Animation<double> _pulseAnimation;
   late AnimationController _coinAnimController;
   late Animation<double> _coinScaleAnim;
@@ -43,11 +39,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   Timer? _invitationTimer;
   
   bool _isLoading = true;
-  bool _hasCompletedTest = false;
+  // ignore: unused_field - Test tamamlama durumu için saklanıyor
+  final bool _hasCompletedTest = false;
   bool _canPlayDaily123 = true;
   UserProfile? _userProfile;
   int _coins = 0;
   int _pendingInvitationsCount = 0;
+  // ignore: unused_field - Premium durumu için saklanıyor
   bool _isPremium = false;
   String? _selectedFrameId;
 
@@ -161,11 +159,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       }
     }
     
-    // Yeni kullanıcıysa A1 set et ve rozeti ver
+    // Yeni kullanıcıysa A1 set et (başarım practice sonunda verilecek)
     if (!profile.hasCompletedPlacementTest) {
       await UserProfileService.instance.markPlacementTestCompleted();
       await UserProfileService.instance.updateLevel(UserLevel.a1);
-      await AchievementService.instance.updateAchievementProgressById('lvl_a1', 1);
+      // Başarım ilk oyunda değil, 3 oyun sonra verilecek
     }
     
     // Check for welcome gift
@@ -195,6 +193,18 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
         _selectedFrameId = selectedFrame;
         _isLoading = false;
       });
+      
+      // İlk girişte tutorial göster
+      final shouldShowTutorial = await TutorialScreen.shouldShowTutorial();
+      if (shouldShowTutorial && mounted) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => TutorialScreen(
+              onComplete: () => Navigator.of(context).pop(),
+            ),
+          ),
+        );
+      }
       
       // Show welcome gift dialog
       if (isNewUser) {
@@ -230,7 +240,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
-                'WARDICT\'e hoşgeldin! 🎉\n\nSana hoşgeldin hediyesi olarak tüm jokerlerden 2\'şer adet verdik!',
+                'WARDICT\'e hoşgeldin! 🎉\n\n💰 100 Altın\n🃏 Tüm jokerlerden 2\'şer adet\n\nHediyeleriniz hesabınıza eklendi!',
                 style: TextStyle(color: Colors.white, fontSize: 16, height: 1.5),
                 textAlign: TextAlign.center,
               ),
@@ -338,11 +348,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF2E5A8C),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
+        title: const Row(
           children: [
-            const Text('⚔️', style: TextStyle(fontSize: 28)),
-            const SizedBox(width: 12),
-            const Text('Duel Modu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text('⚔️', style: TextStyle(fontSize: 28)),
+            SizedBox(width: 12),
+            Text('Duel Modu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ],
         ),
         content: SingleChildScrollView(
@@ -362,9 +372,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                 '• Hızlı cevap bonusu: 8+ saniye = %50 ekstra'),
               const SizedBox(height: 16),
               _buildInfoSection('🏆 Lig Sistemi',
-                '• Kazanılan maçlar ELO puanını artırır\n'
-                '• Kaybedilen maçlar ELO puanını düşürür\n'
-                '• A, B, C ligleri ayrı ELO puanlarına sahip'),
+                '• Kazanılan maçlar WP puanını artırır\n'
+                '• Kaybedilen maçlar WP puanını düşürür\n'
+                '• A, B, C ligleri ayrı WP puanlarına sahip'),
               const SizedBox(height: 16),
               _buildInfoSection('🤖 Mod Seçenekleri',
                 '• Bot: Yapay zekaya karşı pratik yap\n'
@@ -409,6 +419,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                 '• A2 seviyesinden başlarsınız\n'
                 '• %70+ başarı (7+ doğru): Üst seviyeye geçiş\n'
                 '• %30 altı başarı (3- doğru): Alt seviyeye düşüş\n'
+                '• ⚠️ İki kere üst üste başarılı/başarısız olunca seviye değişir!\n'
                 '• Seviyeler: A1 → A2 → B1 → B2 → C1 → C2'),
               const SizedBox(height: 16),
               _buildInfoSection('💰 Puanlama',
@@ -551,21 +562,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
             ),
             const SizedBox(height: 20),
             
-            // MaxiGame (Premium)
+            // MaxiGame (Premium) - TEST MODE: temporarily unlocked
             _DuelModeButton(
               emoji: '👑',
               title: 'MaxiGame',
-              subtitle: _isPremium ? '3-4 kişilik multiplayer!' : '⭐ Premium üyelere özel',
-              color: _isPremium ? const Color(0xFFFFD700) : const Color(0xFF9E9E9E),
+              subtitle: '3-4 kişilik multiplayer!',
+              color: const Color(0xFFFFD700),
               isPremium: true,
-              isLocked: !_isPremium,
+              isLocked: false, // TEST: Premium check disabled for testing
               onTap: () {
                 Navigator.pop(ctx);
-                if (_isPremium) {
-                  _showMaxiGameOptions();
-                } else {
-                  _showPremiumRequiredDialog();
-                }
+                _showMaxiGameOptions();
               },
             ),
             const SizedBox(height: 10),
@@ -779,17 +786,18 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     );
   }
   
+  // ignore: unused_element - Premium dialog için saklanıyor
   void _showPremiumRequiredDialog() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF2E5A8C),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
+        title: const Row(
           children: [
-            const Text('👑', style: TextStyle(fontSize: 28)),
-            const SizedBox(width: 10),
-            const Text('Premium Gerekli', style: TextStyle(color: Colors.white)),
+            Text('👑', style: TextStyle(fontSize: 28)),
+            SizedBox(width: 10),
+            Text('Premium Gerekli', style: TextStyle(color: Colors.white)),
           ],
         ),
         content: Column(
@@ -960,113 +968,118 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
           ),
           
           SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-                    // Üst Bar: Profil ve Para
-                    _buildTopBar(),
-                    const SizedBox(height: 24),
-                    
-                    // Karşılama Metni
-                    const Text(
-                      'Go Wardict Go! 💪',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const Text(
-                      'Master a new word every day!',
-                      style: TextStyle(
-                        color: Colors.white60,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // Ana Menü Kartları (Grid)
-                    GridView.count(
-                      crossAxisCount: 1,
-                      childAspectRatio: 2.6,
-                      mainAxisSpacing: 12,
-                      physics: const NeverScrollableScrollPhysics(), // Kaydırma kaldırıldı
-                      shrinkWrap: true,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildMenuCard(
-                          title: 'Practice',
-                          subtitle: 'Kelimeleri pekiştir ve öğren',
-                          icon: 'assets/images/menu_practice.jpg',
-                          color: const Color(0xFF26A69A), // Ocean Teal
-                          onTap: _startPractice,
-                          onInfoTap: _showPracticeInfo,
-                        ),
-                        _buildMenuCard(
-                          title: 'Duel',
-                          subtitle: 'Arkadaşlarınla veya bota karşı yarış',
-                          icon: 'assets/images/menu_duel.jpg',
-                          color: const Color(0xFF8FB6D9), // Soft Sky Blue
-                          onTap: _startDuel,
-                          onInfoTap: _showDuelInfo,
-                          useGradient: false, // Gradyan kaldırıldı
-                        ),
-                        _buildMenuCard(
-                          title: 'Daily 123',
-                          subtitle: 'Günün rekorunu kırmak için yarış',
-                          icon: 'assets/images/menu_daily123.jpg',
-                          color: const Color(0xFFFF8A65), // Vibrant Coral (Davetlerin eski rengi)
-                          onTap: () async {
-                            if (_canPlayDaily123) {
-                               await Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const Daily123IntroScreen()),
-                              );
-                              _loadUserData();
-                            }
-                          },
-                          isLocked: !_canPlayDaily123,
-                          useGradient: false,
-                          onInfoTap: _showDaily123Info,
-                        ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Alt Butonlar (Daha canlı ve belirgin)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: _buildVibrantButton(
-                            icon: Icons.bookmark_rounded,
-                            label: 'My Words',
-                            color: const Color(0xFF4FC3F7), // Daha açık ve canlı bir mavi
-                            textColor: Colors.black87,
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SavedPoolScreen())),
+                        const SizedBox(height: 16),
+                        // Üst Bar: Profil ve Para
+                        _buildTopBar(),
+                        const SizedBox(height: 24),
+                        
+                        // Karşılama Metni
+                        const Text(
+                          'Go Wardict Go! 💪',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildVibrantButton(
-                            icon: Icons.storefront_rounded,
-                            label: 'Market',
-                            color: const Color(0xFFFFD700), // Canlı Altın/Sarı
-                            textColor: Colors.black87,
-                            onTap: () => Navigator.pushNamed(context, '/shop').then((_) => _refreshCoins(animate: true)),
+                        const Text(
+                          'Master a new word every day!',
+                          style: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 14,
                           ),
                         ),
+                        const SizedBox(height: 20),
+                        
+                        // Ana Menü Kartları (Grid)
+                        GridView.count(
+                          crossAxisCount: 1,
+                          childAspectRatio: 2.6,
+                          mainAxisSpacing: 12,
+                          physics: const NeverScrollableScrollPhysics(), // Kaydırma kaldırıldı
+                          shrinkWrap: true,
+                          children: [
+                            _buildMenuCard(
+                              title: 'Practice',
+                              subtitle: 'Kelimeleri pekiştir ve öğren',
+                              icon: 'assets/images/menu_practice.jpg',
+                              color: const Color(0xFF26A69A), // Ocean Teal
+                              onTap: _startPractice,
+                              onInfoTap: _showPracticeInfo,
+                            ),
+                            _buildMenuCard(
+                              title: 'Duel',
+                              subtitle: 'Arkadaşlarınla veya bota karşı yarış',
+                              icon: 'assets/images/menu_duel.jpg',
+                              color: const Color(0xFF8FB6D9), // Soft Sky Blue
+                              onTap: _startDuel,
+                              onInfoTap: _showDuelInfo,
+                              useGradient: false, // Gradyan kaldırıldı
+                            ),
+                            _buildMenuCard(
+                              title: 'Daily 123',
+                              subtitle: 'Günün rekorunu kırmak için yarış',
+                              icon: 'assets/images/menu_daily123.jpg',
+                              color: const Color(0xFFFF8A65), // Vibrant Coral (Davetlerin eski rengi)
+                              onTap: () async {
+                                if (_canPlayDaily123) {
+                                   await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const Daily123IntroScreen()),
+                                  );
+                                  _loadUserData();
+                                }
+                              },
+                              isLocked: !_canPlayDaily123,
+                              useGradient: false,
+                              onInfoTap: _showDaily123Info,
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Alt Butonlar (Daha canlı ve belirgin)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: _buildVibrantButton(
+                                icon: Icons.bookmark_rounded,
+                                label: 'My Words',
+                                color: const Color(0xFF4FC3F7), // Daha açık ve canlı bir mavi
+                                textColor: Colors.black87,
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SavedPoolScreen())),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildVibrantButton(
+                                icon: Icons.storefront_rounded,
+                                label: 'Market',
+                                color: const Color(0xFFFFD700), // Canlı Altın/Sarı
+                                textColor: Colors.black87,
+                                onTap: () => Navigator.pushNamed(context, '/shop').then((_) => _refreshCoins(animate: true)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -1107,7 +1120,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       ),
       child: CircleAvatar(
         radius: 20,
-        backgroundColor: const Color(0xFF6C27FF),
+        backgroundColor: (_userProfile?.avatarId != null && _userProfile!.avatarId!.isNotEmpty)
+            ? Colors.transparent  // Avatar varsa şeffaf
+            : const Color(0xFF2E5A8C),  // Avatar yoksa koyu mavi
         child: _userProfile?.avatarId != null && _userProfile!.avatarId!.isNotEmpty
           ? Text(
               CosmeticItem.availableItems.where((i) => i.id == _userProfile!.avatarId).isNotEmpty
@@ -1129,31 +1144,37 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // Profil Bölümü
-        GestureDetector(
-          onTap: () async {
-            await Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreenNew()));
-            _refreshProfile();
-            // Çerçeveyi de yeniden yükle
-            final frame = await ShopService.instance.getSelectedCosmetic(CosmeticType.frame);
-            if (mounted) {
-              setState(() => _selectedFrameId = frame);
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: Row(
-              children: [
-                _buildAvatarWithFrame(),
-                const SizedBox(width: 8),
-                Text(
-                  _userProfile?.username ?? 'Player',
-                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                ),
-              ],
+        Flexible(
+          child: GestureDetector(
+            onTap: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreenNew()));
+              _refreshProfile();
+              // Çerçeveyi de yeniden yükle
+              final frame = await ShopService.instance.getSelectedCosmetic(CosmeticType.frame);
+              if (mounted) {
+                setState(() => _selectedFrameId = frame);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildAvatarWithFrame(),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      _userProfile?.username ?? 'Player',
+                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1223,9 +1244,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                   style: const TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.w900, fontSize: 16),
                 ),
                 const SizedBox(width: 8),
-                // Market butonu (Coin yanına ikon olarak eklendi)
+                // Market coin sayfasına git butonu
                 GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/shop').then((_) => _refreshCoins(animate: true)),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ShopScreen(initialTabIndex: 2)),
+                  ).then((_) => _refreshCoins(animate: true)),
                   child: const Icon(Icons.add_circle_outline, color: Color(0xFFFFD700), size: 20),
                 ),
               ],
@@ -1288,7 +1312,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                 right: 10,
                 child: Container(
                   padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
                     boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
@@ -1305,6 +1329,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     );
   }
 
+  // ignore: unused_element - Icon button yapısı için saklanıyor
   Widget _buildIconButton({
     required IconData icon,
     required String label,
@@ -1326,6 +1351,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     );
   }
 
+  // ignore: unused_element - Level info dialog için saklanıyor
   void _showLevelInfo(BuildContext context) {
     showModalBottomSheet(
       context: context,

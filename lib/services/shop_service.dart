@@ -5,6 +5,7 @@ import '../models/premium.dart';
 import '../models/cosmetic_item.dart';
 import 'achievement_service.dart';
 import '../models/achievement.dart';
+import 'sound_service.dart';
 
 class ShopService {
   static final ShopService instance = ShopService._();
@@ -17,6 +18,15 @@ class ShopService {
   static const String _selectedCosmeticsKey = 'selected_cosmetics';
   static const String _lastLoginBonusKey = 'last_login_bonus';
   static const String _isInitializedKey = 'shop_initialized';
+  static const String _usedPromoCodesKey = 'used_promo_codes';
+  static const String _streakShieldKey = 'streak_shield_expiry';
+
+  /// Promosyon kodları ve süreleri (gün cinsinden)
+  static const Map<String, int> _promoCodes = {
+    'ATOTTURKCE': 30,      // 1 aylık ücretsiz premium
+    'WARDICT2024': 7,       // 1 haftalık premium
+    'WELCOME': 3,           // 3 günlük premium
+  };
 
   // Get user's coin balance
   Future<int> getCoins() async {
@@ -70,6 +80,9 @@ class ShopService {
     
     // Başarım ilerlemesi
     AchievementService.instance.updateProgress(AchievementCategory.economy, amount);
+    
+    // Coin kazanma sesi çal
+    SoundService.instance.playCoinSound();
   }
 
   // Spend coins
@@ -148,6 +161,52 @@ class ShopService {
     await saveSubscription(subscription);
   }
 
+  /// Promosyon kodu kullan
+  /// Returns: {'success': bool, 'message': String, 'days': int?}
+  Future<Map<String, dynamic>> redeemPromoCode(String code) async {
+    final prefs = await SharedPreferences.getInstance();
+    final normalizedCode = code.trim().toUpperCase();
+    
+    // Kod geçerli mi kontrol et
+    if (!_promoCodes.containsKey(normalizedCode)) {
+      return {
+        'success': false,
+        'message': 'Geçersiz promosyon kodu',
+        'days': null,
+      };
+    }
+    
+    // Daha önce kullanılmış mı kontrol et
+    final usedCodesJson = prefs.getStringList(_usedPromoCodesKey) ?? [];
+    if (usedCodesJson.contains(normalizedCode)) {
+      return {
+        'success': false,
+        'message': 'Bu kod daha önce kullanılmış',
+        'days': null,
+      };
+    }
+    
+    // Kodu kullan ve premium aktifle
+    final days = _promoCodes[normalizedCode]!;
+    await activatePremium(PremiumTier.premium, days);
+    
+    // Kullanılan kodları kaydet
+    usedCodesJson.add(normalizedCode);
+    await prefs.setStringList(_usedPromoCodesKey, usedCodesJson);
+    
+    return {
+      'success': true,
+      'message': 'Promosyon kodu başarıyla uygulandı! $days gün premium kazandınız.',
+      'days': days,
+    };
+  }
+
+  /// Kullanılmış promosyon kodlarını getir
+  Future<List<String>> getUsedPromoCodes() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_usedPromoCodesKey) ?? [];
+  }
+
   // Check if user has premium feature
   Future<bool> hasFeature(String featureId) async {
     final subscription = await getSubscription();
@@ -205,8 +264,9 @@ class ShopService {
       streak = 1;
     }
     
-    // Bonus coins based on streak (max 7 days)
-    final bonusCoins = 10 + (streak.clamp(1, 7) * 5);
+    // Bonus coins based on streak: streak * 20, max 200 (at day 10)
+    // Day 1: 20, Day 2: 40, Day 3: 60, ... Day 10+: 200
+    final bonusCoins = (streak * 20).clamp(20, 200);
     
     await addCoins(bonusCoins);
     await prefs.setString('last_daily_claim', now.toIso8601String());
@@ -256,6 +316,9 @@ class ShopService {
     final hasReceivedGift = prefs.getBool('welcome_gift_received') ?? false;
     
     if (!hasReceivedGift) {
+      // Başlangıç hediyesi: 100 altın
+      await addCoins(100);
+      
       // Give 2 of each powerup as welcome gift
       var inventory = await getInventory();
       for (final powerup in PowerupType.values) {
@@ -319,5 +382,63 @@ class ShopService {
     }
     map[type.name] = id;
     await prefs.setString(_selectedCosmeticsKey, jsonEncode(map));
+  }
+
+  // ============ STREAK SHIELD (Seri Koruma) ============
+
+  /// Seri Koruma satın al (150 altın, 3 gün koruma)
+  Future<bool> buyStreakShield() async {
+    const price = 150;
+    final canSpend = await spendCoins(price);
+    if (canSpend) {
+      await activateStreakShield();
+      return true;
+    }
+    return false;
+  }
+
+  /// Seri Koruma'yı aktifleştir (3 gün)
+  Future<void> activateStreakShield() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expiry = DateTime.now().add(const Duration(days: 3));
+    await prefs.setString(_streakShieldKey, expiry.toIso8601String());
+  }
+
+  /// Seri Koruma aktif mi?
+  Future<bool> hasActiveStreakShield() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expiryStr = prefs.getString(_streakShieldKey);
+    if (expiryStr == null) return false;
+    
+    final expiry = DateTime.parse(expiryStr);
+    return DateTime.now().isBefore(expiry);
+  }
+
+  /// Seri Koruma bitiş tarihi
+  Future<DateTime?> getStreakShieldExpiry() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expiryStr = prefs.getString(_streakShieldKey);
+    if (expiryStr == null) return null;
+    
+    final expiry = DateTime.parse(expiryStr);
+    if (DateTime.now().isAfter(expiry)) return null;
+    return expiry;
+  }
+
+  /// Seri Koruma'yı kullan (bir seferlik koruma harcandı mı kontrolü için)
+  Future<bool> useStreakShield() async {
+    final hasShield = await hasActiveStreakShield();
+    if (hasShield) {
+      // Kalkan hala aktif, kullanıldı olarak işaretle ama süre dolana kadar aktif kalsın
+      return true;
+    }
+    return false;
+  }
+
+  /// Kalan gün sayısı
+  Future<int> getStreakShieldRemainingDays() async {
+    final expiry = await getStreakShieldExpiry();
+    if (expiry == null) return 0;
+    return expiry.difference(DateTime.now()).inDays + 1;
   }
 }

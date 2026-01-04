@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Kimlik doğrulama durumu
 enum AuthStatus {
@@ -152,10 +153,46 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// Çıkış yap
+  /// Apple ile giriş (iOS)
+  Future<UserCredential?> signInWithApple() async {
+    try {
+      _errorMessage = null;
+      
+      final appleProvider = AppleAuthProvider();
+      appleProvider.addScope('email');
+      appleProvider.addScope('name');
+      
+      if (kIsWeb) {
+        // Web için popup kullan
+        final credential = await _auth.signInWithPopup(appleProvider);
+        debugPrint('✅ Apple giriş başarılı (Web): ${credential.user?.email}');
+        return credential;
+      } else {
+        // Mobil için signInWithProvider kullan
+        final credential = await _auth.signInWithProvider(appleProvider);
+        debugPrint('✅ Apple giriş başarılı (Mobil): ${credential.user?.email}');
+        return credential;
+      }
+    } catch (e) {
+      _errorMessage = 'Apple ile giriş başarısız oldu.';
+      _status = AuthStatus.error;
+      notifyListeners();
+      debugPrint('❌ Apple giriş hatası: $e');
+      return null;
+    }
+  }
+
+  /// Çıkış yap - Tüm lokal verileri temizle
   Future<void> signOut() async {
     try {
+      // SharedPreferences'ı tamamen temizle (yeni kullanıcı eski verileri görmesin)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      
+      // Firebase'den çıkış yap
       await _auth.signOut();
+      
+      debugPrint('✅ Çıkış yapıldı ve tüm lokal veriler temizlendi');
     } catch (e) {
       debugPrint('❌ Çıkış hatası: $e');
     }

@@ -1,4 +1,8 @@
 /// Practice oturum durumunu temsil eder
+/// Yeni kurgu:
+/// - A2 seviyeden başlanır
+/// - 10 soruda %70+ başarı (7+) üst üste 2 kez = seviye atlama
+/// - 10 soruda %30- başarısızlık (3-) üst üste 2 kez = seviye düşme
 class PracticeSession {
   final int sessionNumber; // Oturum numarası (1, 2, 3, ...)
   final int correctInSession; // Bu oturumdaki doğru sayısı
@@ -10,8 +14,14 @@ class PracticeSession {
   final int levelStreak; // Aynı seviyede üst üste tamamlanan oturum sayısı
   final String? lastLevel; // Bir önceki oturumun seviyesi
   
-  /// Son iki oturumun doğru sayıları (3. oturumdan sonraki seviye düşme kontrolü için)
+  /// Son iki oturumun doğru sayıları (seviye değişimi kontrolü için)
   final List<int> lastTwoSessionsCorrectCount;
+  
+  /// Üst üste %70+ başarı sayısı (2 olunca seviye atlar)
+  final int consecutiveHighSuccess;
+  
+  /// Üst üste %30- başarısızlık sayısı (2 olunca seviye düşer)
+  final int consecutiveLowSuccess;
 
   const PracticeSession({
     this.sessionNumber = 1,
@@ -19,11 +29,13 @@ class PracticeSession {
     this.totalInSession = 0,
     this.consecutiveCorrect = 0,
     this.consecutiveWrong = 0,
-    this.currentLevel = 'A2',
+    this.currentLevel = 'A2', // A2'den başla
     this.totalSessionsCompleted = 0,
     this.levelStreak = 0,
     this.lastLevel,
     this.lastTwoSessionsCorrectCount = const [],
+    this.consecutiveHighSuccess = 0,
+    this.consecutiveLowSuccess = 0,
   });
 
   /// Yeni bir oturum başlat
@@ -39,6 +51,8 @@ class PracticeSession {
       levelStreak: levelStreak,
       lastLevel: lastLevel,
       lastTwoSessionsCorrectCount: lastTwoSessionsCorrectCount,
+      consecutiveHighSuccess: consecutiveHighSuccess,
+      consecutiveLowSuccess: consecutiveLowSuccess,
     );
   }
 
@@ -55,6 +69,8 @@ class PracticeSession {
       levelStreak: levelStreak,
       lastLevel: lastLevel,
       lastTwoSessionsCorrectCount: lastTwoSessionsCorrectCount,
+      consecutiveHighSuccess: consecutiveHighSuccess,
+      consecutiveLowSuccess: consecutiveLowSuccess,
     );
   }
 
@@ -71,6 +87,8 @@ class PracticeSession {
       levelStreak: levelStreak,
       lastLevel: lastLevel,
       lastTwoSessionsCorrectCount: lastTwoSessionsCorrectCount,
+      consecutiveHighSuccess: consecutiveHighSuccess,
+      consecutiveLowSuccess: consecutiveLowSuccess,
     );
   }
 
@@ -87,10 +105,13 @@ class PracticeSession {
       levelStreak: levelStreak,
       lastLevel: lastLevel,
       lastTwoSessionsCorrectCount: lastTwoSessionsCorrectCount,
+      consecutiveHighSuccess: 0, // Seviye değişince sıfırla
+      consecutiveLowSuccess: 0,
     );
   }
 
   /// Oturum tamamlandığında güncelle
+  /// Yeni kurgu: %70+ başarı = highSuccess++, %30- başarısızlık = lowSuccess++
   PracticeSession completeSession() {
     // Son iki oturumun doğru sayılarını güncelle
     List<int> updatedLastTwo = List.from(lastTwoSessionsCorrectCount);
@@ -106,6 +127,24 @@ class PracticeSession {
     } else {
       newStreak = 1; // Yeni seriye başla
     }
+    
+    // Başarı kontrolü: %70+ = 7/10 doğru, %30- = 3/10 veya altı
+    int newHighSuccess = consecutiveHighSuccess;
+    int newLowSuccess = consecutiveLowSuccess;
+    
+    if (correctInSession >= 7) {
+      // %70+ başarı
+      newHighSuccess++;
+      newLowSuccess = 0; // Düşük başarı serisini sıfırla
+    } else if (correctInSession <= 3) {
+      // %30- başarısızlık
+      newLowSuccess++;
+      newHighSuccess = 0; // Yüksek başarı serisini sıfırla
+    } else {
+      // %30-%70 arası - serileri sıfırla
+      newHighSuccess = 0;
+      newLowSuccess = 0;
+    }
 
     return PracticeSession(
       sessionNumber: sessionNumber,
@@ -118,26 +157,22 @@ class PracticeSession {
       levelStreak: newStreak,
       lastLevel: currentLevel,
       lastTwoSessionsCorrectCount: updatedLastTwo,
+      consecutiveHighSuccess: newHighSuccess,
+      consecutiveLowSuccess: newLowSuccess,
     );
   }
 
-  /// İlk 3 oturumda mıyız? (adaptif zorluk aktif)
-  bool get isInAdaptivePeriod => totalSessionsCompleted < 3;
+  /// Üst seviyeye çıkılabilir mi? (2 üst üste %70+ başarı)
+  bool get canLevelUp => consecutiveHighSuccess >= 2;
 
-  /// Oturumda üst seviyeye çıkılabilir mi? (10 soruda 7+ doğru)
-  bool get canLevelUp => correctInSession >= 7;
+  /// Alt seviyeye düşülmeli mi? (2 üst üste %30- başarısızlık)
+  bool get shouldLevelDown => consecutiveLowSuccess >= 2;
 
-  /// İki oturum üst üste 3 veya altında doğru mu?
-  bool get shouldLevelDown {
-    if (lastTwoSessionsCorrectCount.length < 2) return false;
-    return lastTwoSessionsCorrectCount.every((count) => count <= 3);
-  }
-
-  /// 2 üst üste doğru mu? (adaptif dönemde seviye atlama için)
-  bool get shouldAdaptivelyIncreaseLevel => consecutiveCorrect >= 2;
-
-  /// 2 üst üste yanlış mı? (adaptif dönemde seviye düşme için)
-  bool get shouldAdaptivelyDecreaseLevel => consecutiveWrong >= 2;
+  /// Bu oturumda %70+ başarı var mı?
+  bool get hasHighSuccess => correctInSession >= 7;
+  
+  /// Bu oturumda %30- başarısızlık var mı?
+  bool get hasLowSuccess => correctInSession <= 3;
 
   Map<String, dynamic> toJson() {
     return {
@@ -151,6 +186,8 @@ class PracticeSession {
       'levelStreak': levelStreak,
       'lastLevel': lastLevel,
       'lastTwoSessionsCorrectCount': lastTwoSessionsCorrectCount,
+      'consecutiveHighSuccess': consecutiveHighSuccess,
+      'consecutiveLowSuccess': consecutiveLowSuccess,
     };
   }
 
@@ -166,6 +203,8 @@ class PracticeSession {
       levelStreak: json['levelStreak'] ?? 0,
       lastLevel: json['lastLevel'],
       lastTwoSessionsCorrectCount: List<int>.from(json['lastTwoSessionsCorrectCount'] ?? []),
+      consecutiveHighSuccess: json['consecutiveHighSuccess'] ?? 0,
+      consecutiveLowSuccess: json['consecutiveLowSuccess'] ?? 0,
     );
   }
 }

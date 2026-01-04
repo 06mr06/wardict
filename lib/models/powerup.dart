@@ -4,7 +4,8 @@ enum PowerupType {
   fiftyFifty('fifty', '%50', '2 yanlış şıkkı eler', 150, '✂️'),
   doubleChance('double', 'İkinci Şans', '2 cevap hakkı verir', 150, '🔄'),
   freezeTime('freeze', 'Zaman Durdur', 'Süreyi 5 saniye dondurur', 100, '❄️'),
-  multiplier('multi', '2x Puan', 'Doğru cevaba 2x puan', 250, '⚡');
+  multiplier('multi', '2x Puan', 'Doğru cevaba 2x puan', 250, '⚡'),
+  streakShield('shield', 'Seri Koruma', 'Kaybetsen de seri bozulmaz (3 gün)', 150, '🛡️');
 
   final String id;
   final String name;
@@ -104,7 +105,7 @@ class CoinPackage {
   static const List<CoinPackage> packages = [
     CoinPackage(id: 'coins_100', coins: 100, priceUSD: 0.99),
     CoinPackage(id: 'coins_500', coins: 500, priceUSD: 3.99, bonusCoins: 50),
-    CoinPackage(id: 'coins_1200', coins: 1200, priceUSD: 7.99, bonusCoins: 200, isBestValue: true),
-    CoinPackage(id: 'coins_3000', coins: 3000, priceUSD: 17.99, bonusCoins: 600),
+    CoinPackage(id: 'coins_1200', coins: 1200, priceUSD: 7.99, bonusCoins: 300, isBestValue: true),
+    CoinPackage(id: 'coins_3000', coins: 3000, priceUSD: 17.99, bonusCoins: 2000),
   ];
 }

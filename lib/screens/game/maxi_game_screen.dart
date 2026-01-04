@@ -6,11 +6,8 @@ import '../../services/shop_service.dart';
 import '../../services/user_profile_service.dart';
 import '../../models/cosmetic_item.dart';
 import '../../services/online_duel_service.dart';
-import '../../widgets/game/question_card.dart';
-import '../../widgets/game/options_grid.dart';
-import '../../widgets/game/game_timer.dart';
 import '../../widgets/game/game_background.dart';
-import '../../widgets/game/game_confetti.dart';
+import '../../widgets/common/ad_banner_widget.dart';
 
 enum MaxiGameMode {
   quickMatch,
@@ -36,13 +33,14 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
   // Game state
   bool _isLoading = true;
   bool _isMatchmaking = true;
+  // ignore: unused_field - Oyun başladı mı kontrolü için saklanıyor
   bool _isGameStarted = false;
   bool _isGameEnded = false;
   
   // Room info
   String _roomCode = '';
   int _playerCount = 0;
-  int _maxPlayers = 4;
+  final int _maxPlayers = 4;
   
   // Players
   final List<_Player> _players = [];
@@ -115,6 +113,7 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
         name: profile.username,
         avatar: myAvatar,
         score: 0,
+        streak: 0,
         isMe: true,
       ));
       _playerCount = 1;
@@ -151,6 +150,7 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
           name: name,
           avatar: avatar,
           score: 0,
+          streak: 0,
           isMe: false,
         ));
         _playerCount = _players.length;
@@ -232,11 +232,10 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
         if (!mounted || _answered || _currentQuestionIndex >= _questions.length) return;
         
         final isCorrect = _random.nextDouble() < 0.65; // 65% correct rate for bots
-        final correctIndex = _questions[_currentQuestionIndex]['correctIndex'] as int;
         
         if (isCorrect) {
           final timeBonus = _timeRemaining;
-          final baseScore = 10;
+          const baseScore = 10;
           player.score += baseScore + timeBonus;
           player.streak++;
           if (player.streak > 1) {
@@ -264,7 +263,7 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
     
     if (isCorrect) {
       final timeBonus = _timeRemaining;
-      final baseScore = 10;
+      const baseScore = 10;
       _myScore += baseScore + timeBonus;
       _myStreak++;
       if (_myStreak > 1) {
@@ -350,9 +349,9 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
   }
 
   Widget _buildLoadingScreen() {
-    return Scaffold(
+    return const Scaffold(
       body: GameBackground(
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -929,6 +928,9 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
                 ),
               ),
               
+              // Reklam banner
+              const AdBannerWidget(),
+              
               // Actions
               Padding(
                 padding: const EdgeInsets.all(24),
@@ -999,7 +1001,7 @@ class _Player {
     required this.name,
     required this.avatar,
     required this.score,
-    this.streak = 0,
+    required this.streak,
     required this.isMe,
   });
 }

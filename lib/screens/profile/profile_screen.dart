@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/user_level.dart';
 import '../../models/league.dart';
-import '../../models/match_history_item.dart';
 import '../../services/user_profile_service.dart';
 import '../../services/firebase/auth_service.dart';
 import '../../services/firebase/firestore_service.dart';
@@ -455,6 +454,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // ignore: unused_element - Level section için saklanıyor
   Widget _buildLevelSection() {
     final level = _profile?.level ?? UserLevel.a1;
     return Container(
@@ -724,6 +724,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // ignore: unused_element - Stat row için saklanıyor
   Widget _buildStatRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -962,6 +963,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // ignore: unused_element - My Words butonu için saklanıyor
   Widget _buildMyWordsButton() {
     return SizedBox(
       width: double.infinity,
@@ -997,6 +999,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // ignore: unused_element - Award badge için saklanıyor
   Widget _buildAwardBadge(String award) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1129,7 +1132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               );
-            }).toList(),
+            }),
         ],
       ),
     );

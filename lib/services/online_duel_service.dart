@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/friend.dart';
 import '../models/question_mode.dart';
 import 'user_profile_service.dart';
+import 'word_usage_service.dart';
 
 /// Online düello durumu
 enum OnlineDuelStatus {
@@ -241,6 +242,7 @@ class OnlineDuelService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   
   static const String _matchesCollection = 'online_duels';
+  // ignore: unused_field - Waiting queue için saklanıyor
   static const String _waitingCollection = 'waiting_players';
 
   StreamSubscription<DocumentSnapshot>? _matchSubscription;
@@ -314,7 +316,7 @@ class OnlineDuelService {
 
   /// Maç oluştur
   Future<OnlineDuelMatch?> _createMatch(String leagueCode, {String? invitedUserId}) async {
-    final matchId = 'match_${DateTime.now().millisecondsSinceEpoch}_${_currentUserId}';
+    final matchId = 'match_${DateTime.now().millisecondsSinceEpoch}_$_currentUserId';
     
     final questions = _generateQuestions(leagueCode);
     
@@ -523,44 +525,53 @@ class OnlineDuelService {
     // Demo sorular - gerçek uygulamada Firestore'dan çekilir
     // Her soru için hem İngilizce hem Türkçe veriler
     final allQuestions = <Map<String, dynamic>>[
-      {'english': 'abandon', 'turkish': 'terk etmek', 'wrongTr': ['kabul etmek', 'başarmak', 'reddetmek'], 'wrongEn': ['accept', 'achieve', 'refuse']},
-      {'english': 'brilliant', 'turkish': 'parlak', 'wrongTr': ['karanlık', 'yavaş', 'sakin'], 'wrongEn': ['dark', 'slow', 'calm']},
-      {'english': 'courage', 'turkish': 'cesaret', 'wrongTr': ['korku', 'şüphe', 'utanç'], 'wrongEn': ['fear', 'doubt', 'shame']},
-      {'english': 'diligent', 'turkish': 'çalışkan', 'wrongTr': ['tembel', 'yorgun', 'kızgın'], 'wrongEn': ['lazy', 'tired', 'angry']},
-      {'english': 'enormous', 'turkish': 'devasa', 'wrongTr': ['küçücük', 'orta', 'dar'], 'wrongEn': ['tiny', 'medium', 'narrow']},
-      {'english': 'fierce', 'turkish': 'azgın', 'wrongTr': ['nazik', 'sakin', 'yavaş'], 'wrongEn': ['gentle', 'calm', 'slow']},
-      {'english': 'generous', 'turkish': 'cömert', 'wrongTr': ['cimri', 'zalim', 'korkak'], 'wrongEn': ['stingy', 'cruel', 'coward']},
-      {'english': 'hesitate', 'turkish': 'tereddüt etmek', 'wrongTr': ['acele etmek', 'karar vermek', 'emin olmak'], 'wrongEn': ['hurry', 'decide', 'be sure']},
-      {'english': 'immense', 'turkish': 'muazzam', 'wrongTr': ['minik', 'dar', 'kısa'], 'wrongEn': ['tiny', 'narrow', 'short']},
-      {'english': 'jealous', 'turkish': 'kıskanç', 'wrongTr': ['mutlu', 'nazik', 'sakin'], 'wrongEn': ['happy', 'kind', 'calm']},
-      {'english': 'accomplish', 'turkish': 'başarmak', 'wrongTr': ['başarısız olmak', 'denemek', 'vazgeçmek'], 'wrongEn': ['fail', 'try', 'give up']},
-      {'english': 'ancient', 'turkish': 'antik', 'wrongTr': ['modern', 'yeni', 'güncel'], 'wrongEn': ['modern', 'new', 'current']},
-      {'english': 'beautiful', 'turkish': 'güzel', 'wrongTr': ['çirkin', 'normal', 'sıradan'], 'wrongEn': ['ugly', 'normal', 'ordinary']},
-      {'english': 'celebrate', 'turkish': 'kutlamak', 'wrongTr': ['ağlamak', 'üzülmek', 'kızmak'], 'wrongEn': ['cry', 'grieve', 'angry']},
-      {'english': 'dangerous', 'turkish': 'tehlikeli', 'wrongTr': ['güvenli', 'rahat', 'kolay'], 'wrongEn': ['safe', 'comfortable', 'easy']},
-      {'english': 'eager', 'turkish': 'hevesli', 'wrongTr': ['temkinli', 'tembel', 'kayıtsız'], 'wrongEn': ['cautious', 'lazy', 'indifferent']},
-      {'english': 'famous', 'turkish': 'ünlü', 'wrongTr': ['bilinmeyen', 'gizli', 'sıradan'], 'wrongEn': ['unknown', 'hidden', 'ordinary']},
-      {'english': 'gentle', 'turkish': 'nazik', 'wrongTr': ['sert', 'kaba', 'acımasız'], 'wrongEn': ['harsh', 'rude', 'cruel']},
-      {'english': 'honest', 'turkish': 'dürüst', 'wrongTr': ['yalancı', 'sahtekar', 'güvenilmez'], 'wrongEn': ['liar', 'fake', 'unreliable']},
-      {'english': 'innocent', 'turkish': 'masum', 'wrongTr': ['suçlu', 'kötü', 'zararlı'], 'wrongEn': ['guilty', 'evil', 'harmful']},
-      {'english': 'joyful', 'turkish': 'neşeli', 'wrongTr': ['üzgün', 'sinirli', 'endişeli'], 'wrongEn': ['sad', 'angry', 'anxious']},
-      {'english': 'knowledge', 'turkish': 'bilgi', 'wrongTr': ['cehalet', 'şüphe', 'korku'], 'wrongEn': ['ignorance', 'doubt', 'fear']},
-      {'english': 'lazy', 'turkish': 'tembel', 'wrongTr': ['çalışkan', 'enerjik', 'aktif'], 'wrongEn': ['diligent', 'energetic', 'active']},
-      {'english': 'mysterious', 'turkish': 'gizemli', 'wrongTr': ['açık', 'basit', 'anlaşılır'], 'wrongEn': ['clear', 'simple', 'obvious']},
-      {'english': 'nervous', 'turkish': 'gergin', 'wrongTr': ['sakin', 'rahat', 'mutlu'], 'wrongEn': ['calm', 'relaxed', 'happy']},
-      {'english': 'obvious', 'turkish': 'açık', 'wrongTr': ['gizli', 'belirsiz', 'karmaşık'], 'wrongEn': ['hidden', 'vague', 'complex']},
-      {'english': 'patient', 'turkish': 'sabırlı', 'wrongTr': ['aceleci', 'sinirli', 'tahammülsüz'], 'wrongEn': ['impatient', 'nervous', 'intolerant']},
-      {'english': 'quiet', 'turkish': 'sessiz', 'wrongTr': ['gürültülü', 'şamatalı', 'patırtılı'], 'wrongEn': ['noisy', 'loud', 'rowdy']},
-      {'english': 'reliable', 'turkish': 'güvenilir', 'wrongTr': ['güvenilmez', 'şüpheli', 'riskli'], 'wrongEn': ['unreliable', 'suspicious', 'risky']},
-      {'english': 'serious', 'turkish': 'ciddi', 'wrongTr': ['komik', 'şakacı', 'eğlenceli'], 'wrongEn': ['funny', 'joking', 'amusing']},
+      {'english': 'abandon', 'turkish': 'terk etmek', 'wrongTr': ['kabul etmek', 'başarmak', 'reddetmek'], 'wrongEn': ['accept', 'achieve', 'refuse'], 'synonyms': ['leave', 'desert', 'forsake'], 'wrongSynonyms': ['keep', 'stay', 'remain']},
+      {'english': 'brilliant', 'turkish': 'parlak', 'wrongTr': ['karanlık', 'yavaş', 'sakin'], 'wrongEn': ['dark', 'slow', 'calm'], 'synonyms': ['bright', 'shining', 'radiant'], 'wrongSynonyms': ['dull', 'dim', 'dark']},
+      {'english': 'courage', 'turkish': 'cesaret', 'wrongTr': ['korku', 'şüphe', 'utanç'], 'wrongEn': ['fear', 'doubt', 'shame'], 'synonyms': ['bravery', 'valor', 'boldness'], 'wrongSynonyms': ['fear', 'cowardice', 'timidity']},
+      {'english': 'diligent', 'turkish': 'çalışkan', 'wrongTr': ['tembel', 'yorgun', 'kızgın'], 'wrongEn': ['lazy', 'tired', 'angry'], 'synonyms': ['hardworking', 'industrious', 'dedicated'], 'wrongSynonyms': ['lazy', 'idle', 'careless']},
+      {'english': 'enormous', 'turkish': 'devasa', 'wrongTr': ['küçücük', 'orta', 'dar'], 'wrongEn': ['tiny', 'medium', 'narrow'], 'synonyms': ['huge', 'massive', 'immense'], 'wrongSynonyms': ['tiny', 'small', 'little']},
+      {'english': 'fierce', 'turkish': 'azgın', 'wrongTr': ['nazik', 'sakin', 'yavaş'], 'wrongEn': ['gentle', 'calm', 'slow'], 'synonyms': ['ferocious', 'savage', 'violent'], 'wrongSynonyms': ['gentle', 'mild', 'peaceful']},
+      {'english': 'generous', 'turkish': 'cömert', 'wrongTr': ['cimri', 'zalim', 'korkak'], 'wrongEn': ['stingy', 'cruel', 'coward'], 'synonyms': ['giving', 'charitable', 'liberal'], 'wrongSynonyms': ['stingy', 'greedy', 'selfish']},
+      {'english': 'hesitate', 'turkish': 'tereddüt etmek', 'wrongTr': ['acele etmek', 'karar vermek', 'emin olmak'], 'wrongEn': ['hurry', 'decide', 'be sure'], 'synonyms': ['pause', 'waver', 'delay'], 'wrongSynonyms': ['rush', 'hurry', 'decide']},
+      {'english': 'immense', 'turkish': 'muazzam', 'wrongTr': ['minik', 'dar', 'kısa'], 'wrongEn': ['tiny', 'narrow', 'short'], 'synonyms': ['vast', 'enormous', 'huge'], 'wrongSynonyms': ['tiny', 'small', 'limited']},
+      {'english': 'jealous', 'turkish': 'kıskanç', 'wrongTr': ['mutlu', 'nazik', 'sakin'], 'wrongEn': ['happy', 'kind', 'calm'], 'synonyms': ['envious', 'covetous', 'resentful'], 'wrongSynonyms': ['content', 'happy', 'satisfied']},
+      {'english': 'accomplish', 'turkish': 'başarmak', 'wrongTr': ['başarısız olmak', 'denemek', 'vazgeçmek'], 'wrongEn': ['fail', 'try', 'give up'], 'synonyms': ['achieve', 'complete', 'fulfill'], 'wrongSynonyms': ['fail', 'miss', 'abandon']},
+      {'english': 'ancient', 'turkish': 'antik', 'wrongTr': ['modern', 'yeni', 'güncel'], 'wrongEn': ['modern', 'new', 'current'], 'synonyms': ['old', 'antique', 'aged'], 'wrongSynonyms': ['modern', 'new', 'recent']},
+      {'english': 'beautiful', 'turkish': 'güzel', 'wrongTr': ['çirkin', 'normal', 'sıradan'], 'wrongEn': ['ugly', 'normal', 'ordinary'], 'synonyms': ['pretty', 'lovely', 'attractive'], 'wrongSynonyms': ['ugly', 'plain', 'unattractive']},
+      {'english': 'celebrate', 'turkish': 'kutlamak', 'wrongTr': ['ağlamak', 'üzülmek', 'kızmak'], 'wrongEn': ['cry', 'grieve', 'angry'], 'synonyms': ['honor', 'commemorate', 'observe'], 'wrongSynonyms': ['ignore', 'forget', 'neglect']},
+      {'english': 'dangerous', 'turkish': 'tehlikeli', 'wrongTr': ['güvenli', 'rahat', 'kolay'], 'wrongEn': ['safe', 'comfortable', 'easy'], 'synonyms': ['hazardous', 'risky', 'perilous'], 'wrongSynonyms': ['safe', 'secure', 'harmless']},
+      {'english': 'eager', 'turkish': 'hevesli', 'wrongTr': ['temkinli', 'tembel', 'kayıtsız'], 'wrongEn': ['cautious', 'lazy', 'indifferent'], 'synonyms': ['keen', 'enthusiastic', 'anxious'], 'wrongSynonyms': ['reluctant', 'unwilling', 'indifferent']},
+      {'english': 'famous', 'turkish': 'ünlü', 'wrongTr': ['bilinmeyen', 'gizli', 'sıradan'], 'wrongEn': ['unknown', 'hidden', 'ordinary'], 'synonyms': ['renowned', 'celebrated', 'notable'], 'wrongSynonyms': ['unknown', 'obscure', 'anonymous']},
+      {'english': 'gentle', 'turkish': 'nazik', 'wrongTr': ['sert', 'kaba', 'acımasız'], 'wrongEn': ['harsh', 'rude', 'cruel'], 'synonyms': ['kind', 'tender', 'soft'], 'wrongSynonyms': ['harsh', 'rough', 'violent']},
+      {'english': 'honest', 'turkish': 'dürüst', 'wrongTr': ['yalancı', 'sahtekar', 'güvenilmez'], 'wrongEn': ['liar', 'fake', 'unreliable'], 'synonyms': ['truthful', 'sincere', 'frank'], 'wrongSynonyms': ['dishonest', 'deceitful', 'lying']},
+      {'english': 'innocent', 'turkish': 'masum', 'wrongTr': ['suçlu', 'kötü', 'zararlı'], 'wrongEn': ['guilty', 'evil', 'harmful'], 'synonyms': ['pure', 'blameless', 'guiltless'], 'wrongSynonyms': ['guilty', 'sinful', 'corrupt']},
+      {'english': 'joyful', 'turkish': 'neşeli', 'wrongTr': ['üzgün', 'sinirli', 'endişeli'], 'wrongEn': ['sad', 'angry', 'anxious'], 'synonyms': ['happy', 'cheerful', 'delighted'], 'wrongSynonyms': ['sad', 'miserable', 'gloomy']},
+      {'english': 'knowledge', 'turkish': 'bilgi', 'wrongTr': ['cehalet', 'şüphe', 'korku'], 'wrongEn': ['ignorance', 'doubt', 'fear'], 'synonyms': ['wisdom', 'learning', 'understanding'], 'wrongSynonyms': ['ignorance', 'stupidity', 'confusion']},
+      {'english': 'lazy', 'turkish': 'tembel', 'wrongTr': ['çalışkan', 'enerjik', 'aktif'], 'wrongEn': ['diligent', 'energetic', 'active'], 'synonyms': ['idle', 'sluggish', 'inactive'], 'wrongSynonyms': ['active', 'busy', 'energetic']},
+      {'english': 'mysterious', 'turkish': 'gizemli', 'wrongTr': ['açık', 'basit', 'anlaşılır'], 'wrongEn': ['clear', 'simple', 'obvious'], 'synonyms': ['enigmatic', 'puzzling', 'obscure'], 'wrongSynonyms': ['clear', 'obvious', 'plain']},
+      {'english': 'nervous', 'turkish': 'gergin', 'wrongTr': ['sakin', 'rahat', 'mutlu'], 'wrongEn': ['calm', 'relaxed', 'happy'], 'synonyms': ['anxious', 'tense', 'worried'], 'wrongSynonyms': ['calm', 'relaxed', 'composed']},
+      {'english': 'obvious', 'turkish': 'açık', 'wrongTr': ['gizli', 'belirsiz', 'karmaşık'], 'wrongEn': ['hidden', 'vague', 'complex'], 'synonyms': ['clear', 'evident', 'apparent'], 'wrongSynonyms': ['hidden', 'unclear', 'vague']},
+      {'english': 'patient', 'turkish': 'sabırlı', 'wrongTr': ['aceleci', 'sinirli', 'tahammülsüz'], 'wrongEn': ['impatient', 'nervous', 'intolerant'], 'synonyms': ['tolerant', 'calm', 'composed'], 'wrongSynonyms': ['impatient', 'restless', 'hasty']},
+      {'english': 'quiet', 'turkish': 'sessiz', 'wrongTr': ['gürültülü', 'şamatalı', 'patırtılı'], 'wrongEn': ['noisy', 'loud', 'rowdy'], 'synonyms': ['silent', 'still', 'peaceful'], 'wrongSynonyms': ['noisy', 'loud', 'rowdy']},
+      {'english': 'reliable', 'turkish': 'güvenilir', 'wrongTr': ['güvenilmez', 'şüpheli', 'riskli'], 'wrongEn': ['unreliable', 'suspicious', 'risky'], 'synonyms': ['dependable', 'trustworthy', 'steady'], 'wrongSynonyms': ['unreliable', 'untrustworthy', 'fickle']},
+      {'english': 'serious', 'turkish': 'ciddi', 'wrongTr': ['komik', 'şakacı', 'eğlenceli'], 'wrongEn': ['funny', 'joking', 'amusing'], 'synonyms': ['grave', 'solemn', 'earnest'], 'wrongSynonyms': ['funny', 'playful', 'lighthearted']},
     ];
 
-    // Soruları karıştır ve 10 tanesini seç
-    allQuestions.shuffle();
-    final selectedQuestions = allQuestions.take(10).toList();
+    // Kelimeleri kullanım sayısına göre ağırlıklı rastgele seç
+    // Az kullanılan kelimeler daha yüksek olasılıkla seçilir
+    final selectedQuestions = WordUsageService.instance.weightedRandomSelect<Map<String, dynamic>>(
+      allQuestions,
+      (q) => q['english'] as String,
+      10,
+    );
     
-    // Modları tanımla (enToTr ve trToEn karışık)
-    final modes = [QuestionMode.enToTr, QuestionMode.trToEn];
+    // Seçilen kelimeleri kullanıldı olarak işaretle
+    WordUsageService.instance.markWordsUsed(
+      selectedQuestions.map((q) => q['english'] as String).toList(),
+    );
+    
+    // Modları tanımla (enToTr, trToEn ve engToEng karışık)
+    final modes = [QuestionMode.enToTr, QuestionMode.trToEn, QuestionMode.engToEng];
     
     final questions = <OnlineDuelQuestion>[];
     for (int i = 0; i < selectedQuestions.length; i++) {
@@ -579,7 +590,7 @@ class OnlineDuelService {
         options = [data['turkish'] as String, ...wrongOptions.take(3)];
         options.shuffle();
         correctIndex = options.indexOf(data['turkish'] as String);
-      } else {
+      } else if (mode == QuestionMode.trToEn) {
         // Türkçe kelime, İngilizce şıklar
         prompt = data['turkish'] as String;
         final wrongOptions = List<String>.from(data['wrongEn'] as List);
@@ -587,6 +598,29 @@ class OnlineDuelService {
         options = [data['english'] as String, ...wrongOptions.take(3)];
         options.shuffle();
         correctIndex = options.indexOf(data['english'] as String);
+      } else {
+        // engToEng: İngilizce kelime, İngilizce eş anlamlı şıklar
+        // Synonym verileri yoksa enToTr moduna düş
+        final synonyms = data['synonyms'] as List<dynamic>?;
+        final wrongSynonyms = data['wrongSynonyms'] as List<dynamic>?;
+        
+        if (synonyms != null && synonyms.isNotEmpty && wrongSynonyms != null && wrongSynonyms.length >= 3) {
+          prompt = data['english'] as String;
+          final correctAnswer = synonyms.first as String;
+          final wrongOptions = List<String>.from(wrongSynonyms);
+          wrongOptions.shuffle();
+          options = [correctAnswer, ...wrongOptions.take(3)];
+          options.shuffle();
+          correctIndex = options.indexOf(correctAnswer);
+        } else {
+          // Synonym yoksa enToTr kullan
+          prompt = data['english'] as String;
+          final wrongOptions = List<String>.from(data['wrongTr'] as List);
+          wrongOptions.shuffle();
+          options = [data['turkish'] as String, ...wrongOptions.take(3)];
+          options.shuffle();
+          correctIndex = options.indexOf(data['turkish'] as String);
+        }
       }
       
       questions.add(OnlineDuelQuestion(

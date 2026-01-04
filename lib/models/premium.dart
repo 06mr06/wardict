@@ -1,29 +1,39 @@
 /// Premium üyelik durumu
 enum PremiumTier {
   free('Ücretsiz', 0),
-  premium('Premium', 4.99),
-  vip('VIP', 9.99);
+  premium('Premium', 4.99);
 
   final String name;
   final double monthlyPriceUSD;
 
   const PremiumTier(this.name, this.monthlyPriceUSD);
+  
+  /// VIP'ten premium'a geçiş için uyumluluk
+  /// Eski VIP kullanıcıları premium olarak kabul edilir
+  static PremiumTier fromLegacy(String name) {
+    if (name == 'vip') return premium;
+    return values.firstWhere(
+      (t) => t.name == name,
+      orElse: () => free,
+    );
+  }
 }
 
 /// Premium özellikleri
 class PremiumFeatures {
   /// Ücretsiz kullanıcılarda bu özellikler kilitli
+  /// Artık tüm özellikler Premium'da açık
   static const Map<String, PremiumTier> featureRequirements = {
     'profile_photo': PremiumTier.premium,      // Profil fotoğrafı yükleme
     'custom_avatar': PremiumTier.premium,       // Özel avatar seçimi
     'unlimited_duels': PremiumTier.premium,     // Sınırsız duel
     'ad_free': PremiumTier.premium,             // Reklamsız deneyim
-    'exclusive_powerups': PremiumTier.vip,      // VIP özel powerup'lar
+    'exclusive_powerups': PremiumTier.premium,  // Özel powerup'lar
     'leaderboard_badge': PremiumTier.premium,   // Liderlik tablosu rozeti
-    'custom_themes': PremiumTier.vip,           // Özel temalar
-    'priority_matching': PremiumTier.vip,       // Öncelikli eşleşme
+    'custom_themes': PremiumTier.premium,       // Özel temalar
+    'priority_matching': PremiumTier.premium,   // Öncelikli eşleşme
     'stats_export': PremiumTier.premium,        // İstatistik dışa aktarma
-    'offline_mode': PremiumTier.vip,            // Çevrimdışı mod
+    'offline_mode': PremiumTier.premium,        // Çevrimdışı mod
   };
 
   /// Kullanıcının bir özelliğe erişimi var mı?
@@ -76,10 +86,7 @@ class PremiumSubscription {
 
   factory PremiumSubscription.fromJson(Map<String, dynamic> json) {
     return PremiumSubscription(
-      tier: PremiumTier.values.firstWhere(
-        (t) => t.name == json['tier'],
-        orElse: () => PremiumTier.free,
-      ),
+      tier: PremiumTier.fromLegacy(json['tier'] ?? 'free'),
       expiresAt: json['expiresAt'] != null 
           ? DateTime.parse(json['expiresAt']) 
           : null,

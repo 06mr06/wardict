@@ -7,6 +7,7 @@ import '../../providers/practice_provider.dart';
 import '../../services/word_pool_service.dart';
 import '../../services/achievement_service.dart';
 import '../../widgets/game/achievement_celebration.dart';
+import '../../widgets/common/ad_banner_widget.dart';
 
 class PracticeResultsScreen extends StatefulWidget {
   final PracticeSessionResult result;
@@ -101,6 +102,9 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
                 Expanded(
                   child: _buildAnswerHistory(),
                 ),
+                
+                // Reklam banner
+                const AdBannerWidget(),
                 
                 const SizedBox(height: 16),
                 
@@ -629,8 +633,14 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${result.answerHistory.length} kelime havuza eklendi'),
-            backgroundColor: Colors.green,
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('${result.answerHistory.length} kelime havuza eklendi'),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2E5A8C),
             duration: const Duration(seconds: 1),
           ),
         );

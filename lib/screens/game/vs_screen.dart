@@ -25,7 +25,31 @@ class _VsScreenState extends State<VsScreen> with TickerProviderStateMixin {
   late Animation<double> _slideInLeft;
   late Animation<double> _slideInRight;
   late Animation<double> _scaleVs;
+  // ignore: unused_field - Shake animasyonu gelecekte kullanılacak
   late Animation<double> _shakeVs;
+
+  Widget _buildAvatarContent(String avatarUrl) {
+    // Network URL (http/https)
+    if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) {
+      return ClipOval(
+        child: Image.network(
+          avatarUrl,
+          width: 120,
+          height: 120,
+          fit: BoxFit.cover,
+          errorBuilder: (c, e, s) => const Icon(Icons.person, size: 60, color: Colors.grey),
+        ),
+      );
+    }
+    // Asset image
+    if (avatarUrl.startsWith('assets')) {
+      return ClipOval(
+        child: Image.asset(avatarUrl, width: 120, height: 120, fit: BoxFit.cover),
+      );
+    }
+    // Emoji or text
+    return Text(avatarUrl, style: const TextStyle(fontSize: 48));
+  }
 
   @override
   void initState() {
@@ -106,9 +130,7 @@ class _VsScreenState extends State<VsScreen> with TickerProviderStateMixin {
                           CircleAvatar(
                             radius: 60,
                             backgroundColor: Colors.white,
-                            child: widget.userAvatarUrl.startsWith('assets')
-                                ? ClipOval(child: Image.asset(widget.userAvatarUrl, width: 120, height: 120, fit: BoxFit.cover))
-                                : Text(widget.userAvatarUrl, style: const TextStyle(fontSize: 48)),
+                            child: _buildAvatarContent(widget.userAvatarUrl),
                           ),
                           const SizedBox(height: 20),
                           Padding(
@@ -161,9 +183,7 @@ class _VsScreenState extends State<VsScreen> with TickerProviderStateMixin {
                           CircleAvatar(
                             radius: 60,
                             backgroundColor: Colors.white,
-                            child: widget.botAvatarUrl.startsWith('assets')
-                                ? ClipOval(child: Image.asset(widget.botAvatarUrl, width: 120, height: 120, fit: BoxFit.cover))
-                                : Text(widget.botAvatarUrl, style: const TextStyle(fontSize: 48)),
+                            child: _buildAvatarContent(widget.botAvatarUrl),
                           ),
                           const SizedBox(height: 20),
                           Padding(
