@@ -29,28 +29,16 @@ class SoundService {
   /// Coin kazanma/harcama sesi
   Future<void> playCoinSound() async {
     if (!_soundEnabled) return;
-    try {
-      await _coinPlayer.setSource(AssetSource('sounds/coin.mp3'));
-      await _coinPlayer.resume();
-    } catch (e) {
-      // Ses dosyası yoksa system sound çal
-      _playSystemSound();
-      debugPrint('Coin sound error: $e');
-    }
+    // Yerel dosya hatalarını önlemek için şu aşamada sadece sistem sesi ve titreşim kullanıyoruz
+    _playSystemSound();
     vibrate(HapticFeedbackType.medium);
   }
 
   /// Davet bildirim sesi
   Future<void> playInviteSound() async {
     if (!_soundEnabled) return;
-    try {
-      await _notificationPlayer.setSource(AssetSource('sounds/notification.mp3'));
-      await _notificationPlayer.resume();
-    } catch (e) {
-      // Ses dosyası yoksa system sound çal
-      _playSystemSound();
-      debugPrint('Notification sound error: $e');
-    }
+    // Yerel dosya hatalarını önlemek için şu aşamada sadece sistem sesi ve titreşim kullanıyoruz
+    _playSystemSound();
     vibrate(HapticFeedbackType.heavy);
   }
 

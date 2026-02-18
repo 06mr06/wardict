@@ -1,8 +1,10 @@
 /// Practice oturum durumunu temsil eder
-/// Yeni kurgu:
+/// Yeni seviye tespit sistemi:
 /// - A2 seviyeden başlanır
-/// - 10 soruda %70+ başarı (7+) üst üste 2 kez = seviye atlama
-/// - 10 soruda %30- başarısızlık (3-) üst üste 2 kez = seviye düşme
+/// - 7+ doğru: B1'e çıkar (seviye tespit tamam)
+/// - 3- yanlış: bir seviye aşağı düşer
+/// - 5 oyun oynayacak, gerçek seviye tespit edilecek
+/// - 5 oyun sonra duel modu açılır
 class PracticeSession {
   final int sessionNumber; // Oturum numarası (1, 2, 3, ...)
   final int correctInSession; // Bu oturumdaki doğru sayısı
@@ -12,6 +14,8 @@ class PracticeSession {
   final String currentLevel; // Şuanki seviye (A1, A2, B1, B2, C1, C2)
   final int totalSessionsCompleted; // Tamamlanan toplam oturum sayısı
   final int levelStreak; // Aynı seviyede üst üste tamamlanan oturum sayısı
+  final int sessionsInRow; // 5'lik blokta kaç oturum oynandı
+  final bool duelUnlocked; // Duel modu açıldı mı
   final String? lastLevel; // Bir önceki oturumun seviyesi
   
   /// Son iki oturumun doğru sayıları (seviye değişimi kontrolü için)
@@ -36,10 +40,12 @@ class PracticeSession {
     this.lastTwoSessionsCorrectCount = const [],
     this.consecutiveHighSuccess = 0,
     this.consecutiveLowSuccess = 0,
+    this.sessionsInRow = 0,
+    this.duelUnlocked = false,
   });
 
   /// Yeni bir oturum başlat
-  PracticeSession startNewSession() {
+  PracticeSession startNewSession({bool levelChanged = false}) {
     return PracticeSession(
       sessionNumber: sessionNumber + 1,
       correctInSession: 0,
@@ -53,6 +59,8 @@ class PracticeSession {
       lastTwoSessionsCorrectCount: lastTwoSessionsCorrectCount,
       consecutiveHighSuccess: consecutiveHighSuccess,
       consecutiveLowSuccess: consecutiveLowSuccess,
+      sessionsInRow: !duelUnlocked ? sessionsInRow : (levelChanged ? 1 : sessionsInRow),
+      duelUnlocked: duelUnlocked,
     );
   }
 
@@ -71,6 +79,8 @@ class PracticeSession {
       lastTwoSessionsCorrectCount: lastTwoSessionsCorrectCount,
       consecutiveHighSuccess: consecutiveHighSuccess,
       consecutiveLowSuccess: consecutiveLowSuccess,
+      sessionsInRow: sessionsInRow,
+      duelUnlocked: duelUnlocked,
     );
   }
 
@@ -89,11 +99,14 @@ class PracticeSession {
       lastTwoSessionsCorrectCount: lastTwoSessionsCorrectCount,
       consecutiveHighSuccess: consecutiveHighSuccess,
       consecutiveLowSuccess: consecutiveLowSuccess,
+      sessionsInRow: sessionsInRow,
+      duelUnlocked: duelUnlocked,
     );
   }
 
   /// Seviye değişikliği ile güncelle
   PracticeSession withLevel(String newLevel) {
+    // Seviye tespit aşamasında (ilk 5 oyun) sayaç asla sıfırlanmaz, kaldığı yerden devam eder.
     return PracticeSession(
       sessionNumber: sessionNumber,
       correctInSession: correctInSession,
@@ -105,46 +118,31 @@ class PracticeSession {
       levelStreak: levelStreak,
       lastLevel: lastLevel,
       lastTwoSessionsCorrectCount: lastTwoSessionsCorrectCount,
-      consecutiveHighSuccess: 0, // Seviye değişince sıfırla
+      consecutiveHighSuccess: 0, 
       consecutiveLowSuccess: 0,
+      sessionsInRow: sessionsInRow, // LEVEL TEST boyunca 1, 2, 3, 4, 5 diye gider
+      duelUnlocked: duelUnlocked,
     );
   }
 
-  /// Oturum tamamlandığında güncelle
-  /// Yeni kurgu: %70+ başarı = highSuccess++, %30- başarısızlık = lowSuccess++
+  /// Oturum tamamlandığında güncelle (seviye tespit sistemi)
   PracticeSession completeSession() {
-    // Son iki oturumun doğru sayılarını güncelle
     List<int> updatedLastTwo = List.from(lastTwoSessionsCorrectCount);
     updatedLastTwo.add(correctInSession);
     if (updatedLastTwo.length > 2) {
       updatedLastTwo.removeAt(0);
     }
 
-    // Seviye serisi kontrolü
-    int newStreak = levelStreak;
-    if (lastLevel == currentLevel) {
-      newStreak++;
-    } else {
-      newStreak = 1; // Yeni seriye başla
-    }
+    int newTotalSessionsCompleted = totalSessionsCompleted + 1;
+    int newSessionsInRow = newTotalSessionsCompleted <= 5 ? newTotalSessionsCompleted : (sessionsInRow % 5) + 1;
     
-    // Başarı kontrolü: %70+ = 7/10 doğru, %30- = 3/10 veya altı
-    int newHighSuccess = consecutiveHighSuccess;
-    int newLowSuccess = consecutiveLowSuccess;
-    
-    if (correctInSession >= 7) {
-      // %70+ başarı
-      newHighSuccess++;
-      newLowSuccess = 0; // Düşük başarı serisini sıfırla
-    } else if (correctInSession <= 3) {
-      // %30- başarısızlık
-      newLowSuccess++;
-      newHighSuccess = 0; // Yüksek başarı serisini sıfırla
-    } else {
-      // %30-%70 arası - serileri sıfırla
-      newHighSuccess = 0;
-      newLowSuccess = 0;
-    }
+    // Duel modu SADECE 5. oturum bittiğinde açılır
+    bool unlocked = duelUnlocked || newTotalSessionsCompleted >= 5;
+
+    int newStreak = (lastLevel == currentLevel) ? levelStreak + 1 : 1;
+
+    int newHighStreak = (correctInSession >= 7) ? consecutiveHighSuccess + 1 : 0;
+    int newLowStreak = (correctInSession <= 3) ? consecutiveLowSuccess + 1 : 0;
 
     return PracticeSession(
       sessionNumber: sessionNumber,
@@ -153,24 +151,26 @@ class PracticeSession {
       consecutiveCorrect: consecutiveCorrect,
       consecutiveWrong: consecutiveWrong,
       currentLevel: currentLevel,
-      totalSessionsCompleted: totalSessionsCompleted + 1,
+      totalSessionsCompleted: newTotalSessionsCompleted,
       levelStreak: newStreak,
       lastLevel: currentLevel,
       lastTwoSessionsCorrectCount: updatedLastTwo,
-      consecutiveHighSuccess: newHighSuccess,
-      consecutiveLowSuccess: newLowSuccess,
+      consecutiveHighSuccess: newHighStreak,
+      consecutiveLowSuccess: newLowStreak,
+      sessionsInRow: newSessionsInRow > 5 ? 5 : newSessionsInRow,
+      duelUnlocked: unlocked,
     );
   }
 
-  /// Üst seviyeye çıkılabilir mi? (2 üst üste %70+ başarı)
-  bool get canLevelUp => consecutiveHighSuccess >= 2;
+  /// Bu oturumda %70+ başarı var mı?
+  bool get canLevelUp => correctInSession >= 7;
 
-  /// Alt seviyeye düşülmeli mi? (2 üst üste %30- başarısızlık)
-  bool get shouldLevelDown => consecutiveLowSuccess >= 2;
+  /// Bu oturumda %30- başarısızlık var mı?
+  bool get shouldLevelDown => correctInSession <= 3;
 
   /// Bu oturumda %70+ başarı var mı?
   bool get hasHighSuccess => correctInSession >= 7;
-  
+
   /// Bu oturumda %30- başarısızlık var mı?
   bool get hasLowSuccess => correctInSession <= 3;
 
@@ -188,6 +188,8 @@ class PracticeSession {
       'lastTwoSessionsCorrectCount': lastTwoSessionsCorrectCount,
       'consecutiveHighSuccess': consecutiveHighSuccess,
       'consecutiveLowSuccess': consecutiveLowSuccess,
+      'sessionsInRow': sessionsInRow,
+      'duelUnlocked': duelUnlocked,
     };
   }
 
@@ -205,6 +207,8 @@ class PracticeSession {
       lastTwoSessionsCorrectCount: List<int>.from(json['lastTwoSessionsCorrectCount'] ?? []),
       consecutiveHighSuccess: json['consecutiveHighSuccess'] ?? 0,
       consecutiveLowSuccess: json['consecutiveLowSuccess'] ?? 0,
+      sessionsInRow: json['sessionsInRow'] ?? 0,
+      duelUnlocked: json['duelUnlocked'] ?? false,
     );
   }
 }

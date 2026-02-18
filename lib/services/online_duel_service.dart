@@ -1,10 +1,13 @@
+
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/friend.dart';
 import '../models/question_mode.dart';
 import 'user_profile_service.dart';
-import 'word_usage_service.dart';
+import 'word_pool_service.dart';
+import '../models/user_level.dart';
+import 'firebase/auth_service.dart';
 
 /// Online düello durumu
 enum OnlineDuelStatus {
@@ -24,6 +27,7 @@ class OnlineDuelQuestion {
   final int correctIndex;
   final String? hint;
   final QuestionMode mode;
+  final String level;
 
   const OnlineDuelQuestion({
     required this.id,
@@ -32,6 +36,7 @@ class OnlineDuelQuestion {
     required this.correctIndex,
     this.hint,
     this.mode = QuestionMode.enToTr,
+    this.level = 'A1',
   });
 
   Map<String, dynamic> toJson() => {
@@ -41,6 +46,7 @@ class OnlineDuelQuestion {
     'correctIndex': correctIndex,
     'hint': hint,
     'mode': mode.name,
+    'level': level,
   };
 
   factory OnlineDuelQuestion.fromJson(Map<String, dynamic> json) {
@@ -58,6 +64,7 @@ class OnlineDuelQuestion {
       correctIndex: json['correctIndex'] ?? 0,
       hint: json['hint'],
       mode: mode,
+      level: json['level'] ?? 'A1',
     );
   }
 }
@@ -146,6 +153,7 @@ class OnlineDuelMatch {
   bool get isFinished => status == OnlineDuelStatus.finished;
 
   String? get opponentUsername => isHost ? guestUsername : hostUsername;
+  String? get opponentId => isHost ? guestUserId : hostUserId;
   int get myScore => isHost ? hostScore : guestScore;
   int get opponentScore => isHost ? guestScore : hostScore;
 
@@ -251,6 +259,8 @@ class OnlineDuelService {
   Stream<OnlineDuelMatch?> get matchStream => _matchController.stream;
   OnlineDuelMatch? _currentMatch;
   OnlineDuelMatch? get currentMatch => _currentMatch;
+  StreamSubscription? _invitationSubscription; // Davetleri dinlemek için
+  
 
   /// Mevcut kullanıcı ID'si
   String? _currentUserId;
@@ -258,9 +268,25 @@ class OnlineDuelService {
 
   Future<void> initialize() async {
     final profile = await UserProfileService.instance.loadProfile();
-    // UserProfile'da username benzersiz id olarak kullanılıyor
-    _currentUserId = profile.username;
-    _currentUsername = profile.username;
+    
+    // Auth ID varsa onu kullan (Firestore'daki ID ile eşleşmesi için)
+    final authUserId = AuthService.instance.userId;
+    if (authUserId != null) {
+      _currentUserId = authUserId;
+      _currentUsername = profile.username.isNotEmpty ? profile.username : 'Player';
+    } else {
+      // Fallback: Username veya geçici ID kullan
+      _currentUserId = profile.username.isNotEmpty ? profile.username : 'Player';
+      _currentUsername = _currentUserId;
+      
+      // Yerel testlerde çakışmayı önlemek için 'Player' ise rastgele suffix ekle
+      if (_currentUserId == 'Player') {
+        final randomSuffix = (100 + (DateTime.now().millisecond % 900)).toString();
+        _currentUserId = 'Player_$randomSuffix';
+        _currentUsername = 'Player_$randomSuffix';
+      }
+    }
+
     if (_currentUserId != null) {
       OnlineDuelMatch.setCurrentUserId(_currentUserId!);
     }
@@ -268,8 +294,12 @@ class OnlineDuelService {
 
   /// Rastgele eşleşme ara
   Future<OnlineDuelMatch?> findRandomMatch(String leagueCode) async {
-    if (_currentUserId == null) await initialize();
-    if (_currentUserId == null) return null;
+    if (_currentUserId == null) {
+      await initialize();
+    }
+    if (_currentUserId == null) {
+      return null;
+    }
 
     try {
       // Önce bekleyen bir maç var mı kontrol et
@@ -284,7 +314,7 @@ class OnlineDuelService {
       if (waitingMatches.docs.isNotEmpty) {
         // Bekleyen maça katıl
         final matchDoc = waitingMatches.docs.first;
-        return await _joinMatch(matchDoc.id);
+        return await joinMatch(matchDoc.id);
       } else {
         // Yeni maç oluştur
         return await _createMatch(leagueCode);
@@ -292,38 +322,84 @@ class OnlineDuelService {
     } catch (e) {
       debugPrint('Error finding match: $e');
       // Fallback: Demo maç oluştur
-      return _createDemoMatch(leagueCode);
+      return await _createDemoMatch(leagueCode);
     }
   }
 
   /// Arkadaşa düello daveti gönder
   Future<OnlineDuelMatch?> inviteFriend(Friend friend, String leagueCode) async {
-    if (_currentUserId == null) await initialize();
-    if (_currentUserId == null) return null;
+    if (_currentUserId == null) {
+      await initialize();
+    }
+    if (_currentUserId == null) {
+      return null;
+    }
 
     try {
+      debugPrint('📤 Sending invitation from $_currentUserId to ${friend.oderId} (${friend.username})');
       final match = await _createMatch(leagueCode, invitedUserId: friend.oderId);
-      
-      // Arkadaşa bildirim gönder (FCM ile)
-      // TODO: FCM notification gönder
-      
+      debugPrint('✅ Invitation created: Match ID ${match?.matchId}');
       return match;
     } catch (e) {
-      debugPrint('Error inviting friend: $e');
-      return _createDemoMatch(leagueCode);
+      debugPrint('❌ Error inviting friend: $e');
+      return null;
     }
+  }
+
+  /// Rövanş (Tekrar Oyna) daveti gönder
+  Future<OnlineDuelMatch?> inviteRematch(String opponentId, String leagueCode) async {
+    if (_currentUserId == null) {
+      await initialize();
+    }
+    if (_currentUserId == null) {
+      return null;
+    }
+
+    try {
+      final match = await _createMatch(leagueCode, invitedUserId: opponentId);
+      return match;
+    } catch (e) {
+      debugPrint('Error inviting rematch: $e');
+      return null;
+    }
+  }
+
+  /// Davetleri dinle
+  void listenForInvitations(Function(OnlineDuelMatch) onInvitation) {
+    if (_currentUserId == null) {
+      return;
+    }
+    
+    debugPrint('👂 Listening for invitations for user: $_currentUserId');
+    
+    _invitationSubscription?.cancel();
+    _invitationSubscription = _firestore.collection(_matchesCollection)
+      .where('guestUserId', isEqualTo: _currentUserId)
+      .where('status', isEqualTo: OnlineDuelStatus.waiting.name)
+      .snapshots()
+      .listen((snapshot) {
+        debugPrint('📬 Invitation query result: ${snapshot.docs.length} matches');
+        for (var change in snapshot.docChanges) {
+          if (change.type == DocumentChangeType.added) {
+            final match = OnlineDuelMatch.fromJson(change.doc.data()!);
+            debugPrint('🔔 New invitation received! From: ${match.hostUsername}, Match: ${match.matchId}');
+            onInvitation(match);
+          }
+        }
+      });
   }
 
   /// Maç oluştur
   Future<OnlineDuelMatch?> _createMatch(String leagueCode, {String? invitedUserId}) async {
     final matchId = 'match_${DateTime.now().millisecondsSinceEpoch}_$_currentUserId';
     
-    final questions = _generateQuestions(leagueCode);
+    final questions = await _generateQuestions(leagueCode);
     
     final match = OnlineDuelMatch(
       matchId: matchId,
       hostUserId: _currentUserId!,
       hostUsername: _currentUsername ?? 'Player',
+      guestUserId: invitedUserId, // Davet edilen kullanıcıyı burada set ediyoruz
       leagueCode: leagueCode,
       status: OnlineDuelStatus.waiting,
       questions: questions,
@@ -343,22 +419,32 @@ class OnlineDuelService {
   }
 
   /// Maça katıl
-  Future<OnlineDuelMatch?> _joinMatch(String matchId) async {
+  Future<OnlineDuelMatch?> joinMatch(String matchId) async {
+    debugPrint('🎮 Attempting to join match: $matchId');
+    debugPrint('   Current user: $_currentUserId ($_currentUsername)');
+    
     try {
+      debugPrint('   Updating match with guest info...');
       await _firestore.collection(_matchesCollection).doc(matchId).update({
         'guestUserId': _currentUserId,
         'guestUsername': _currentUsername,
         'status': OnlineDuelStatus.ready.name,
       });
+      debugPrint('   ✅ Match updated successfully');
 
+      debugPrint('   Fetching updated match data...');
       final doc = await _firestore.collection(_matchesCollection).doc(matchId).get();
       if (doc.exists) {
+        debugPrint('   ✅ Match data retrieved');
         _currentMatch = OnlineDuelMatch.fromJson(doc.data()!);
         _listenToMatch(matchId);
+        debugPrint('   🎉 Successfully joined match! Host: ${_currentMatch!.hostUsername}, Guest: ${_currentMatch!.guestUsername}');
         return _currentMatch;
+      } else {
+        debugPrint('   ❌ Match document does not exist');
       }
     } catch (e) {
-      debugPrint('Error joining match: $e');
+      debugPrint('❌ Error joining match: $e');
     }
     return null;
   }
@@ -385,7 +471,9 @@ class OnlineDuelService {
 
   /// Cevap gönder
   Future<void> submitAnswer(int questionIndex, int selectedOption, int timeMs) async {
-    if (_currentMatch == null || _currentUserId == null) return;
+    if (_currentMatch == null || _currentUserId == null) {
+      return;
+    }
 
     final question = _currentMatch!.questions[questionIndex];
     final isCorrect = selectedOption == question.correctIndex;
@@ -405,12 +493,27 @@ class OnlineDuelService {
       
       await _firestore.runTransaction((transaction) async {
         final snapshot = await transaction.get(matchRef);
-        if (!snapshot.exists) return;
+        if (!snapshot.exists) {
+          return;
+        }
 
         final data = snapshot.data()!;
         final playerAnswers = Map<String, dynamic>.from(data['playerAnswers'] ?? {});
         
         final answers = List<Map<String, dynamic>>.from(playerAnswers[_currentUserId] ?? []);
+        
+        // Calculate Streak (before adding current answer)
+        int currentStreak = 0;
+        if (answers.isNotEmpty) {
+           for (int i = answers.length - 1; i >= 0; i--) {
+              if (answers[i]['isCorrect'] == true) {
+                 currentStreak++;
+              } else {
+                 break;
+              }
+           }
+        }
+
         answers.add(answer.toJson());
         playerAnswers[_currentUserId!] = answers;
 
@@ -419,10 +522,35 @@ class OnlineDuelService {
         int guestScore = data['guestScore'] ?? 0;
         
         if (isCorrect) {
+          // Puanlama Mantığı
+          int baseScore = 10;
+          
+          // 1. Seviye Bonusu
+          int levelMult = 1;
+          if (question.level.startsWith('B')) {
+            levelMult = 2;
+          }
+          if (question.level.startsWith('C')) {
+            levelMult = 3;
+          }
+          
+          // 2. Hız Bonusu
+          double speedMult = 1.0;
+          if (timeMs < 2000) {
+            speedMult = 1.5;
+          } else if (timeMs < 5000) {
+            speedMult = 1.2;
+          }
+          
+          // 3. Seri Bonusu
+          int streakBonus = (currentStreak + 1) * 2;
+          
+          int points = (baseScore * levelMult * speedMult).round() + streakBonus;
+
           if (_currentUserId == data['hostUserId']) {
-            hostScore++;
+            hostScore += points;
           } else {
-            guestScore++;
+            guestScore += points;
           }
         }
 
@@ -440,7 +568,9 @@ class OnlineDuelService {
   }
 
   void _updateLocalScore(bool isCorrect) {
-    if (_currentMatch == null || !isCorrect) return;
+    if (_currentMatch == null || !isCorrect) {
+      return;
+    }
     
     final isHost = _currentMatch!.hostUserId == _currentUserId;
     _currentMatch = _currentMatch!.copyWith(
@@ -452,7 +582,9 @@ class OnlineDuelService {
 
   /// Oyunu başlat
   Future<void> startGame() async {
-    if (_currentMatch == null) return;
+    if (_currentMatch == null) {
+      return;
+    }
 
     try {
       await _firestore.collection(_matchesCollection).doc(_currentMatch!.matchId).update({
@@ -466,7 +598,9 @@ class OnlineDuelService {
 
   /// Oyunu bitir
   Future<void> finishGame() async {
-    if (_currentMatch == null) return;
+    if (_currentMatch == null) {
+      return;
+    }
 
     try {
       await _firestore.collection(_matchesCollection).doc(_currentMatch!.matchId).update({
@@ -480,7 +614,9 @@ class OnlineDuelService {
 
   /// Maçı iptal et
   Future<void> cancelMatch() async {
-    if (_currentMatch == null) return;
+    if (_currentMatch == null) {
+      return;
+    }
 
     try {
       await _firestore.collection(_matchesCollection).doc(_currentMatch!.matchId).update({
@@ -502,9 +638,9 @@ class OnlineDuelService {
   }
 
   /// Demo maç oluştur (offline mod için)
-  OnlineDuelMatch _createDemoMatch(String leagueCode) {
+  Future<OnlineDuelMatch> _createDemoMatch(String leagueCode) async {
     final matchId = 'demo_${DateTime.now().millisecondsSinceEpoch}';
-    final questions = _generateQuestions(leagueCode);
+    final questions = await _generateQuestions(leagueCode);
     
     return OnlineDuelMatch(
       matchId: matchId,
@@ -520,119 +656,50 @@ class OnlineDuelService {
     );
   }
 
-  /// Sorular oluştur
-  List<OnlineDuelQuestion> _generateQuestions(String leagueCode) {
-    // Demo sorular - gerçek uygulamada Firestore'dan çekilir
-    // Her soru için hem İngilizce hem Türkçe veriler
-    final allQuestions = <Map<String, dynamic>>[
-      {'english': 'abandon', 'turkish': 'terk etmek', 'wrongTr': ['kabul etmek', 'başarmak', 'reddetmek'], 'wrongEn': ['accept', 'achieve', 'refuse'], 'synonyms': ['leave', 'desert', 'forsake'], 'wrongSynonyms': ['keep', 'stay', 'remain']},
-      {'english': 'brilliant', 'turkish': 'parlak', 'wrongTr': ['karanlık', 'yavaş', 'sakin'], 'wrongEn': ['dark', 'slow', 'calm'], 'synonyms': ['bright', 'shining', 'radiant'], 'wrongSynonyms': ['dull', 'dim', 'dark']},
-      {'english': 'courage', 'turkish': 'cesaret', 'wrongTr': ['korku', 'şüphe', 'utanç'], 'wrongEn': ['fear', 'doubt', 'shame'], 'synonyms': ['bravery', 'valor', 'boldness'], 'wrongSynonyms': ['fear', 'cowardice', 'timidity']},
-      {'english': 'diligent', 'turkish': 'çalışkan', 'wrongTr': ['tembel', 'yorgun', 'kızgın'], 'wrongEn': ['lazy', 'tired', 'angry'], 'synonyms': ['hardworking', 'industrious', 'dedicated'], 'wrongSynonyms': ['lazy', 'idle', 'careless']},
-      {'english': 'enormous', 'turkish': 'devasa', 'wrongTr': ['küçücük', 'orta', 'dar'], 'wrongEn': ['tiny', 'medium', 'narrow'], 'synonyms': ['huge', 'massive', 'immense'], 'wrongSynonyms': ['tiny', 'small', 'little']},
-      {'english': 'fierce', 'turkish': 'azgın', 'wrongTr': ['nazik', 'sakin', 'yavaş'], 'wrongEn': ['gentle', 'calm', 'slow'], 'synonyms': ['ferocious', 'savage', 'violent'], 'wrongSynonyms': ['gentle', 'mild', 'peaceful']},
-      {'english': 'generous', 'turkish': 'cömert', 'wrongTr': ['cimri', 'zalim', 'korkak'], 'wrongEn': ['stingy', 'cruel', 'coward'], 'synonyms': ['giving', 'charitable', 'liberal'], 'wrongSynonyms': ['stingy', 'greedy', 'selfish']},
-      {'english': 'hesitate', 'turkish': 'tereddüt etmek', 'wrongTr': ['acele etmek', 'karar vermek', 'emin olmak'], 'wrongEn': ['hurry', 'decide', 'be sure'], 'synonyms': ['pause', 'waver', 'delay'], 'wrongSynonyms': ['rush', 'hurry', 'decide']},
-      {'english': 'immense', 'turkish': 'muazzam', 'wrongTr': ['minik', 'dar', 'kısa'], 'wrongEn': ['tiny', 'narrow', 'short'], 'synonyms': ['vast', 'enormous', 'huge'], 'wrongSynonyms': ['tiny', 'small', 'limited']},
-      {'english': 'jealous', 'turkish': 'kıskanç', 'wrongTr': ['mutlu', 'nazik', 'sakin'], 'wrongEn': ['happy', 'kind', 'calm'], 'synonyms': ['envious', 'covetous', 'resentful'], 'wrongSynonyms': ['content', 'happy', 'satisfied']},
-      {'english': 'accomplish', 'turkish': 'başarmak', 'wrongTr': ['başarısız olmak', 'denemek', 'vazgeçmek'], 'wrongEn': ['fail', 'try', 'give up'], 'synonyms': ['achieve', 'complete', 'fulfill'], 'wrongSynonyms': ['fail', 'miss', 'abandon']},
-      {'english': 'ancient', 'turkish': 'antik', 'wrongTr': ['modern', 'yeni', 'güncel'], 'wrongEn': ['modern', 'new', 'current'], 'synonyms': ['old', 'antique', 'aged'], 'wrongSynonyms': ['modern', 'new', 'recent']},
-      {'english': 'beautiful', 'turkish': 'güzel', 'wrongTr': ['çirkin', 'normal', 'sıradan'], 'wrongEn': ['ugly', 'normal', 'ordinary'], 'synonyms': ['pretty', 'lovely', 'attractive'], 'wrongSynonyms': ['ugly', 'plain', 'unattractive']},
-      {'english': 'celebrate', 'turkish': 'kutlamak', 'wrongTr': ['ağlamak', 'üzülmek', 'kızmak'], 'wrongEn': ['cry', 'grieve', 'angry'], 'synonyms': ['honor', 'commemorate', 'observe'], 'wrongSynonyms': ['ignore', 'forget', 'neglect']},
-      {'english': 'dangerous', 'turkish': 'tehlikeli', 'wrongTr': ['güvenli', 'rahat', 'kolay'], 'wrongEn': ['safe', 'comfortable', 'easy'], 'synonyms': ['hazardous', 'risky', 'perilous'], 'wrongSynonyms': ['safe', 'secure', 'harmless']},
-      {'english': 'eager', 'turkish': 'hevesli', 'wrongTr': ['temkinli', 'tembel', 'kayıtsız'], 'wrongEn': ['cautious', 'lazy', 'indifferent'], 'synonyms': ['keen', 'enthusiastic', 'anxious'], 'wrongSynonyms': ['reluctant', 'unwilling', 'indifferent']},
-      {'english': 'famous', 'turkish': 'ünlü', 'wrongTr': ['bilinmeyen', 'gizli', 'sıradan'], 'wrongEn': ['unknown', 'hidden', 'ordinary'], 'synonyms': ['renowned', 'celebrated', 'notable'], 'wrongSynonyms': ['unknown', 'obscure', 'anonymous']},
-      {'english': 'gentle', 'turkish': 'nazik', 'wrongTr': ['sert', 'kaba', 'acımasız'], 'wrongEn': ['harsh', 'rude', 'cruel'], 'synonyms': ['kind', 'tender', 'soft'], 'wrongSynonyms': ['harsh', 'rough', 'violent']},
-      {'english': 'honest', 'turkish': 'dürüst', 'wrongTr': ['yalancı', 'sahtekar', 'güvenilmez'], 'wrongEn': ['liar', 'fake', 'unreliable'], 'synonyms': ['truthful', 'sincere', 'frank'], 'wrongSynonyms': ['dishonest', 'deceitful', 'lying']},
-      {'english': 'innocent', 'turkish': 'masum', 'wrongTr': ['suçlu', 'kötü', 'zararlı'], 'wrongEn': ['guilty', 'evil', 'harmful'], 'synonyms': ['pure', 'blameless', 'guiltless'], 'wrongSynonyms': ['guilty', 'sinful', 'corrupt']},
-      {'english': 'joyful', 'turkish': 'neşeli', 'wrongTr': ['üzgün', 'sinirli', 'endişeli'], 'wrongEn': ['sad', 'angry', 'anxious'], 'synonyms': ['happy', 'cheerful', 'delighted'], 'wrongSynonyms': ['sad', 'miserable', 'gloomy']},
-      {'english': 'knowledge', 'turkish': 'bilgi', 'wrongTr': ['cehalet', 'şüphe', 'korku'], 'wrongEn': ['ignorance', 'doubt', 'fear'], 'synonyms': ['wisdom', 'learning', 'understanding'], 'wrongSynonyms': ['ignorance', 'stupidity', 'confusion']},
-      {'english': 'lazy', 'turkish': 'tembel', 'wrongTr': ['çalışkan', 'enerjik', 'aktif'], 'wrongEn': ['diligent', 'energetic', 'active'], 'synonyms': ['idle', 'sluggish', 'inactive'], 'wrongSynonyms': ['active', 'busy', 'energetic']},
-      {'english': 'mysterious', 'turkish': 'gizemli', 'wrongTr': ['açık', 'basit', 'anlaşılır'], 'wrongEn': ['clear', 'simple', 'obvious'], 'synonyms': ['enigmatic', 'puzzling', 'obscure'], 'wrongSynonyms': ['clear', 'obvious', 'plain']},
-      {'english': 'nervous', 'turkish': 'gergin', 'wrongTr': ['sakin', 'rahat', 'mutlu'], 'wrongEn': ['calm', 'relaxed', 'happy'], 'synonyms': ['anxious', 'tense', 'worried'], 'wrongSynonyms': ['calm', 'relaxed', 'composed']},
-      {'english': 'obvious', 'turkish': 'açık', 'wrongTr': ['gizli', 'belirsiz', 'karmaşık'], 'wrongEn': ['hidden', 'vague', 'complex'], 'synonyms': ['clear', 'evident', 'apparent'], 'wrongSynonyms': ['hidden', 'unclear', 'vague']},
-      {'english': 'patient', 'turkish': 'sabırlı', 'wrongTr': ['aceleci', 'sinirli', 'tahammülsüz'], 'wrongEn': ['impatient', 'nervous', 'intolerant'], 'synonyms': ['tolerant', 'calm', 'composed'], 'wrongSynonyms': ['impatient', 'restless', 'hasty']},
-      {'english': 'quiet', 'turkish': 'sessiz', 'wrongTr': ['gürültülü', 'şamatalı', 'patırtılı'], 'wrongEn': ['noisy', 'loud', 'rowdy'], 'synonyms': ['silent', 'still', 'peaceful'], 'wrongSynonyms': ['noisy', 'loud', 'rowdy']},
-      {'english': 'reliable', 'turkish': 'güvenilir', 'wrongTr': ['güvenilmez', 'şüpheli', 'riskli'], 'wrongEn': ['unreliable', 'suspicious', 'risky'], 'synonyms': ['dependable', 'trustworthy', 'steady'], 'wrongSynonyms': ['unreliable', 'untrustworthy', 'fickle']},
-      {'english': 'serious', 'turkish': 'ciddi', 'wrongTr': ['komik', 'şakacı', 'eğlenceli'], 'wrongEn': ['funny', 'joking', 'amusing'], 'synonyms': ['grave', 'solemn', 'earnest'], 'wrongSynonyms': ['funny', 'playful', 'lighthearted']},
-    ];
-
-    // Kelimeleri kullanım sayısına göre ağırlıklı rastgele seç
-    // Az kullanılan kelimeler daha yüksek olasılıkla seçilir
-    final selectedQuestions = WordUsageService.instance.weightedRandomSelect<Map<String, dynamic>>(
-      allQuestions,
-      (q) => q['english'] as String,
-      10,
+  /// Sorular oluştur (Gerçek veri ile)
+  Future<List<OnlineDuelQuestion>> _generateQuestions(String leagueCode) async {
+    // Profil ve kelime havuzunu yükle
+    await WordPoolService.instance.loadWordPool();
+    final profile = await UserProfileService.instance.loadProfile();
+    
+    // Convert leagueCode (which is UserLevel code) to UserLevel
+    final level = UserLevel.fromCode(leagueCode);
+    
+    // Generate questions with ELO consideration
+    final generatedQs = WordPoolService.instance.generateQuestions(
+      level, 
+      elo: profile.eloRating
     );
     
-    // Seçilen kelimeleri kullanıldı olarak işaretle
-    WordUsageService.instance.markWordsUsed(
-      selectedQuestions.map((q) => q['english'] as String).toList(),
-    );
-    
-    // Modları tanımla (enToTr, trToEn ve engToEng karışık)
-    final modes = [QuestionMode.enToTr, QuestionMode.trToEn, QuestionMode.engToEng];
-    
-    final questions = <OnlineDuelQuestion>[];
-    for (int i = 0; i < selectedQuestions.length; i++) {
-      final data = selectedQuestions[i];
-      final mode = modes[i % modes.length]; // Her soruya dönüşümlü mod ata
+    // Convert to OnlineDuelQuestion
+    return generatedQs.asMap().entries.map((entry) {
+      final index = entry.key;
+      final gq = entry.value;
       
-      String prompt;
-      List<String> options;
-      int correctIndex;
-      
-      if (mode == QuestionMode.enToTr) {
-        // İngilizce kelime, Türkçe şıklar
-        prompt = data['english'] as String;
-        final wrongOptions = List<String>.from(data['wrongTr'] as List);
-        wrongOptions.shuffle();
-        options = [data['turkish'] as String, ...wrongOptions.take(3)];
-        options.shuffle();
-        correctIndex = options.indexOf(data['turkish'] as String);
-      } else if (mode == QuestionMode.trToEn) {
-        // Türkçe kelime, İngilizce şıklar
-        prompt = data['turkish'] as String;
-        final wrongOptions = List<String>.from(data['wrongEn'] as List);
-        wrongOptions.shuffle();
-        options = [data['english'] as String, ...wrongOptions.take(3)];
-        options.shuffle();
-        correctIndex = options.indexOf(data['english'] as String);
-      } else {
-        // engToEng: İngilizce kelime, İngilizce eş anlamlı şıklar
-        // Synonym verileri yoksa enToTr moduna düş
-        final synonyms = data['synonyms'] as List<dynamic>?;
-        final wrongSynonyms = data['wrongSynonyms'] as List<dynamic>?;
-        
-        if (synonyms != null && synonyms.isNotEmpty && wrongSynonyms != null && wrongSynonyms.length >= 3) {
-          prompt = data['english'] as String;
-          final correctAnswer = synonyms.first as String;
-          final wrongOptions = List<String>.from(wrongSynonyms);
-          wrongOptions.shuffle();
-          options = [correctAnswer, ...wrongOptions.take(3)];
-          options.shuffle();
-          correctIndex = options.indexOf(correctAnswer);
-        } else {
-          // Synonym yoksa enToTr kullan
-          prompt = data['english'] as String;
-          final wrongOptions = List<String>.from(data['wrongTr'] as List);
-          wrongOptions.shuffle();
-          options = [data['turkish'] as String, ...wrongOptions.take(3)];
-          options.shuffle();
-          correctIndex = options.indexOf(data['turkish'] as String);
-        }
+      QuestionMode mode = QuestionMode.enToTr;
+      switch (gq.mode) {
+        case QuestionType.enToTr:
+          mode = QuestionMode.enToTr;
+          break;
+        case QuestionType.trToEn:
+          mode = QuestionMode.trToEn;
+          break;
+        case QuestionType.synonym:
+        case QuestionType.antonym:
+        case QuestionType.relation:
+          mode = QuestionMode.engToEng;
+          break;
       }
-      
-      questions.add(OnlineDuelQuestion(
-        id: 'q_$i',
-        prompt: prompt,
-        options: options,
-        correctIndex: correctIndex,
-        mode: mode,
-      ));
-    }
 
-    return questions;
+      return OnlineDuelQuestion(
+        id: 'q_$index',
+        prompt: gq.prompt,
+        options: gq.options,
+        correctIndex: gq.correctIndex,
+        mode: mode,
+        level: gq.level,
+      );
+    }).toList();
   }
   
   /// Demo sorular - MaxiGame için public erişim

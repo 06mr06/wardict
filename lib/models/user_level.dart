@@ -17,6 +17,42 @@ enum UserLevel {
 
   const UserLevel(this.code, this.turkishName, this.order);
 
+  /// Seviyeye özel ana renk
+  dynamic get color {
+    switch (this) {
+      case UserLevel.a1: return 0xFFCD7F32; // Bronze
+      case UserLevel.a2: return 0xFFB0C4DE; // Silver Blue
+      case UserLevel.b1: return 0xFFFFD700; // Gold
+      case UserLevel.b2: return 0xFFFFA500; // Orange/Gold
+      case UserLevel.c1: return 0xFF9370DB; // Purple/Elite
+      case UserLevel.c2: return 0xFF00CED1; // Diamond
+    }
+  }
+
+  /// Seviyeye özel gradyan renkleri
+  List<dynamic> get gradientColors {
+    switch (this) {
+      case UserLevel.a1: return [0xFF8B4513, 0xFFCD7F32];
+      case UserLevel.a2: return [0xFF4682B4, 0xFFB0C4DE];
+      case UserLevel.b1: return [0xFFB8860B, 0xFFFFD700];
+      case UserLevel.b2: return [0xFFFF8C00, 0xFFFFA500];
+      case UserLevel.c1: return [0xFF4B0082, 0xFF9370DB];
+      case UserLevel.c2: return [0xFF20B2AA, 0xFF00CED1];
+    }
+  }
+
+  /// Seviyeye özel ikon (IconData olarak kullanılacak)
+  int get iconCode {
+    switch (this) {
+      case UserLevel.a1: return 0xe5da; // school
+      case UserLevel.a2: return 0xf0204; // workspace_premium
+      case UserLevel.b1: return 0xe3e0; // military_tech
+      case UserLevel.b2: return 0xe23b; // emoji_events
+      case UserLevel.c1: return 0xe89e; // diamond
+      case UserLevel.c2: return 0xe07f; // auto_awesome
+    }
+  }
+
   /// Seviye kodundan UserLevel döndürür
   static UserLevel fromCode(String code) {
     return UserLevel.values.firstWhere(
@@ -43,6 +79,7 @@ enum UserLevel {
   }
 }
 
+
 /// Kullanıcı profili - tüm bilgileri tutar
 class UserProfile {
   final UserLevel level;
@@ -56,13 +93,15 @@ class UserProfile {
   final String? email;
   final String? profileImagePath;
   final String? avatarId; // For selected avatar icon/emoji
-  final List<String> awards; 
-  final LeagueScores leagueScores; 
-  final int practiceScore; 
-  final PracticeSession practiceSession; 
+  final List<String> awards;
+  final int eloRating; // TEK PUAN SİSTEMİ - Duel için kullanılacak
+  final LeagueScores leagueScores;
+  final int practiceScore; // Pratik modu skoru
+  final PracticeSession practiceSession;
   final List<MatchHistoryItem> matchHistory;
   final DateTime? createdAt; // Kayıt tarihi
   final int dailyStreak; // Günlük seri
+  final int practiceGamesPlayed; // İlk 5 oyun takibi için
 
   UserProfile({
     this.level = UserLevel.a1,
@@ -74,14 +113,29 @@ class UserProfile {
     this.profileImagePath,
     this.avatarId,
     this.awards = const [],
-    this.leagueScores = const LeagueScores(),
-    this.practiceScore = 0,
+    this.eloRating = 0, // TEK PUAN SİSTEMİ - Duel için kullanılacak
+    this.leagueScores = const LeagueScores(), // Lig puanları
+    this.practiceScore = 0, // Pratik skoru
     this.practiceSession = const PracticeSession(),
     this.matchHistory = const [],
     this.hasCompletedPlacementTest = false,
     this.createdAt,
     this.dailyStreak = 0,
+    this.practiceGamesPlayed = 0,
   });
+
+  /// Seviyeye göre başlangıç puanı
+  static int getInitialEloForLevel(UserLevel level) {
+    switch (level) {
+      case UserLevel.a1: return 1000;
+      case UserLevel.a2: return 1250;
+      case UserLevel.b1: return 1500;
+      case UserLevel.b2: return 1750;
+      case UserLevel.c1: return 2000;
+      case UserLevel.c2: return 2250;
+    }
+  }
+
 
   UserProfile copyWith({
     UserLevel? level,
@@ -94,12 +148,14 @@ class UserProfile {
     String? avatarId,
     bool clearAvatarId = false,
     List<String>? awards,
+    int? eloRating,
     LeagueScores? leagueScores,
     int? practiceScore,
     PracticeSession? practiceSession,
     List<MatchHistoryItem>? matchHistory,
     DateTime? createdAt,
     int? dailyStreak,
+    int? practiceGamesPlayed,
     bool? hasCompletedPlacementTest,
   }) {
     return UserProfile(
@@ -112,6 +168,7 @@ class UserProfile {
       profileImagePath: profileImagePath ?? this.profileImagePath,
       avatarId: clearAvatarId ? null : (avatarId ?? this.avatarId),
       awards: awards ?? this.awards,
+      eloRating: eloRating ?? this.eloRating,
       leagueScores: leagueScores ?? this.leagueScores,
       practiceScore: practiceScore ?? this.practiceScore,
       practiceSession: practiceSession ?? this.practiceSession,
@@ -119,6 +176,7 @@ class UserProfile {
       hasCompletedPlacementTest: hasCompletedPlacementTest ?? this.hasCompletedPlacementTest,
       createdAt: createdAt ?? this.createdAt,
       dailyStreak: dailyStreak ?? this.dailyStreak,
+      practiceGamesPlayed: practiceGamesPlayed ?? this.practiceGamesPlayed,
     );
   }
 
@@ -133,6 +191,7 @@ class UserProfile {
       'profileImagePath': profileImagePath,
       'avatarId': avatarId,
       'awards': awards,
+      'eloRating': eloRating,
       'leagueScores': leagueScores.toJson(),
       'practiceScore': practiceScore,
       'practiceSession': practiceSession.toJson(),
@@ -140,6 +199,7 @@ class UserProfile {
       'hasCompletedPlacementTest': hasCompletedPlacementTest,
       'createdAt': createdAt?.toIso8601String(),
       'dailyStreak': dailyStreak,
+      'practiceGamesPlayed': practiceGamesPlayed,
     };
   }
 
@@ -156,6 +216,7 @@ class UserProfile {
       profileImagePath: json['profileImagePath'],
       avatarId: json['avatarId'],
       awards: List<String>.from(json['awards'] ?? []),
+      eloRating: json['eloRating'] ?? 0,
       leagueScores: json['leagueScores'] != null
           ? LeagueScores.fromJson(json['leagueScores'])
           : const LeagueScores(),
@@ -171,6 +232,7 @@ class UserProfile {
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
       dailyStreak: json['dailyStreak'] ?? 0,
+      practiceGamesPlayed: json['practiceGamesPlayed'] ?? 0,
     );
   }
 }

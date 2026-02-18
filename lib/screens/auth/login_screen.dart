@@ -1,6 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../services/firebase/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../onboarding/tutorial_screen.dart';
 import '../../services/firebase/firestore_service.dart';
 import '../../services/user_profile_service.dart';
 import '../home/welcome_screen.dart';
@@ -40,8 +41,8 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       if (_isLogin) {
         // Giriş yap
-        final credential = await AuthService.instance.signInWithEmail(
-          email: _emailController.text.trim(),
+        final credential = await AuthService.instance.signInWithEmailOrUsername(
+          identifier: _emailController.text.trim(),
           password: _passwordController.text,
         );
 
@@ -73,6 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
             await FirestoreService.instance.createUserProfile(
               odlevel: credential.user!.uid,
               username: username,
+              email: _emailController.text.trim(),
             );
             
             // Lokal profili cloud'a senkronize et
@@ -229,10 +231,19 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _navigateToHome() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-    );
+  void _navigateToHome() async {
+    // Tutorial tamamlanmadıysa önce tutorial'a yönlendir
+    final prefs = await SharedPreferences.getInstance();
+    final showTutorial = !(prefs.getBool('tutorial_completed') ?? false);
+    if (showTutorial) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const TutorialScreen()),
+      );
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+      );
+    }
   }
 
   void _showError(String message) {
@@ -392,7 +403,7 @@ class _LoginScreenState extends State<LoginScreen> {
             colors: [Color(0xFF6C27FF), Color(0xFF2AA7FF)],
           ).createShader(bounds),
           child: const Text(
-            'WARDICT',
+            'LUGORENA',
             style: TextStyle(
               fontSize: 36,
               fontWeight: FontWeight.bold,
@@ -462,18 +473,26 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 12),
             ],
 
-            // Email
+            // Email veya Kullanıcı Adı
             _buildTextField(
               controller: _emailController,
-              label: 'Email',
+              label: 'Email veya Kullanıcı Adı',
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Email gerekli';
+                  return 'Email veya kullanıcı adı gerekli';
                 }
-                if (!value.contains('@')) {
-                  return 'Geçerli bir email girin';
+                // Eğer @ içeriyorsa email olarak doğrula
+                if (value.contains('@')) {
+                  if (!value.contains('@') || !value.contains('.')) {
+                    return 'Geçerli bir email girin';
+                  }
+                } else {
+                  // Kullanıcı adı ise minimum uzunluk kontrolü
+                  if (value.length < 3) {
+                    return 'Kullanıcı adı en az 3 karakter olmalı';
+                  }
                 }
                 return null;
               },
@@ -734,10 +753,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
               ),
               child: Text(
-                'Gizlilik Politikası',
+                'Gizlilik',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.6),
-                  fontSize: 12,
+                  fontSize: 11,
                   decoration: TextDecoration.underline,
                 ),
               ),
@@ -755,7 +774,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 'Kullanım Şartları',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.6),
-                  fontSize: 12,
+                  fontSize: 11,
                   decoration: TextDecoration.underline,
                 ),
               ),

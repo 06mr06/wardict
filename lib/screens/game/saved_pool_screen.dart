@@ -43,16 +43,16 @@ class SavedPoolScreen extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.bookmark_border, size: 80, color: Colors.white.withOpacity(0.3)),
+                      Icon(Icons.bookmark_border, size: 80, color: Colors.white.withValues(alpha: 0.3)),
                       const SizedBox(height: 16),
                       Text(
                         'Havuz boş',
-                        style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Sonuçlardan + ile kelime ekleyin',
-                        style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14),
                       ),
                     ],
                   ),
@@ -65,10 +65,10 @@ class SavedPoolScreen extends StatelessWidget {
                     return Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
+                          colors: [Colors.white.withValues(alpha: 0.1), Colors.white.withValues(alpha: 0.05)],
                         ),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withOpacity(0.2)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                       ),
                       child: ListTile(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -83,7 +83,7 @@ class SavedPoolScreen extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 e.correctText,
-                                style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                               ),
                             ),
                           ],
@@ -106,9 +106,9 @@ class SavedPoolScreen extends StatelessWidget {
                             width: 32,
                             height: 32,
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.2),
+                              color: Colors.red.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.red.withOpacity(0.5)),
+                              border: Border.all(color: Colors.red.withValues(alpha: 0.5)),
                             ),
                             child: const Icon(Icons.remove, color: Colors.red, size: 20),
                           ),

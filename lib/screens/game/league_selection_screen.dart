@@ -125,11 +125,11 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                 padding: const EdgeInsets.all(30),
                 child: Column(
                   children: [
-                    Icon(Icons.games_outlined, size: 60, color: Colors.white.withOpacity(0.3)),
+                    Icon(Icons.games_outlined, size: 60, color: Colors.white.withValues(alpha: 0.3)),
                     const SizedBox(height: 12),
                     Text(
                       'Devam eden oyun yok',
-                      style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 16),
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 16),
                     ),
                   ],
                 ),
@@ -143,7 +143,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                     child: Text(game['opponent'][0]),
                   ),
                   title: Text(game['opponent'], style: const TextStyle(color: Colors.white)),
-                  subtitle: Text(game['league'], style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                  subtitle: Text(game['league'], style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
                   trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
                   onTap: () {
                     Navigator.pop(context);
@@ -199,9 +199,9 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                           icon: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.white.withOpacity(0.2)),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                             ),
                             child: const Icon(Icons.inbox, color: Colors.white, size: 20),
                           ),
@@ -230,7 +230,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                 Text(
                   'Seviye seç ve rakibini bul!',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 16,
                   ),
                 ),
@@ -281,12 +281,12 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color.withOpacity(0.25), color.withOpacity(0.1)],
+          colors: [color.withValues(alpha: 0.25), color.withValues(alpha: 0.1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.5), width: 2),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,7 +298,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.3),
+                  color: color.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: color, size: 28),
@@ -320,7 +320,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.3),
+                        color: color.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -339,9 +339,9 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
+                  color: color.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: color.withOpacity(0.5)),
+                  border: Border.all(color: color.withValues(alpha: 0.5)),
                 ),
                 child: Column(
                   children: [
@@ -356,7 +356,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                     Text(
                       'WP',
                       style: TextStyle(
-                        color: color.withOpacity(0.7),
+                        color: color.withValues(alpha: 0.7),
                         fontSize: 10,
                       ),
                     ),
@@ -369,7 +369,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
           Text(
             description,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
               fontSize: 13,
             ),
           ),

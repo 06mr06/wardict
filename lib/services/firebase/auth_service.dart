@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'firestore_service.dart';
 
 /// Kimlik doğrulama durumu
 enum AuthStatus {
@@ -93,6 +94,40 @@ class AuthService extends ChangeNotifier {
       _status = AuthStatus.error;
       notifyListeners();
       debugPrint('❌ Giriş hatası: ${e.code}');
+      return null;
+    }
+  }
+
+  /// Email veya Kullanıcı Adı ile giriş
+  Future<UserCredential?> signInWithEmailOrUsername({
+    required String identifier, // email veya username
+    required String password,
+  }) async {
+    try {
+      _errorMessage = null;
+      
+      // Önce email olarak dene
+      if (identifier.contains('@')) {
+        return await signInWithEmail(email: identifier, password: password);
+      }
+      
+      // Kullanıcı adı ise, email'i Firestore'dan getir
+      final firestoreService = FirestoreService.instance;
+      final email = await firestoreService.getEmailByUsername(identifier);
+      
+      if (email == null) {
+        _errorMessage = 'Kullanıcı adı bulunamadı';
+        _status = AuthStatus.error;
+        notifyListeners();
+        return null;
+      }
+      
+      return await signInWithEmail(email: email, password: password);
+    } catch (e) {
+      _errorMessage = 'Giriş yapılırken hata oluştu';
+      _status = AuthStatus.error;
+      notifyListeners();
+      debugPrint('❌ Email/Username giriş hatası: $e');
       return null;
     }
   }

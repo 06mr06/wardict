@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/practice_provider.dart';
 import 'dart:async';
 import '../../models/user_level.dart';
 import '../../models/premium.dart';
@@ -6,7 +8,7 @@ import '../../services/user_profile_service.dart';
 import '../../services/word_pool_service.dart';
 import '../../services/shop_service.dart';
 import '../../services/firebase/auth_service.dart';
-import '../../services/sound_service.dart';
+// import '../../services/sound_service.dart';
 import '../game/saved_pool_screen.dart';
 import '../game/level_selection_screen.dart';
 import '../profile/profile_screen_new.dart';
@@ -15,11 +17,13 @@ import '../../services/friend_service.dart';
 import '../../models/cosmetic_item.dart';
 import '../friends/friends_screen.dart';
 import '../shop/shop_screen.dart';
+import '../../widgets/common/daily_reward_dialog.dart'; // Added import
 
 import '../game/daily_123_intro_screen.dart';
 import '../game/matchmaking_screen.dart';
-import '../game/maxi_game_screen.dart';
 import '../onboarding/tutorial_screen.dart';
+import '../../services/online_duel_service.dart';
+import '../game/online_duel_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -52,6 +56,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DailyRewardDialog.show(context);
+    });
     WidgetsBinding.instance.addObserver(this);
     _pulseController = AnimationController(
       vsync: this,
@@ -84,8 +91,18 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       TweenSequenceItem(tween: Tween(begin: -0.1, end: 0.0), weight: 20),
     ]).animate(CurvedAnimation(parent: _bellAnimController, curve: Curves.easeInOut));
     
-    _loadUserData();
+    _loadUserData().then((_) {
+      // Real-time davetleri dinle
+      OnlineDuelService.instance.listenForInvitations((match) {
+        if (mounted) {
+          _showInvitationDialog(match);
+        }
+      });
+    });
     _invitationTimer = Timer.periodic(const Duration(seconds: 30), (_) => _checkInvitations());
+    
+    // Profili Firestore ile senkronize et
+    // _loadUserData içinde yapılıyor
   }
   
   @override
@@ -115,13 +132,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   /// Coin animasyonu ve sesi
   void _playCoinAnimation() {
     _coinAnimController.forward(from: 0);
-    SoundService.instance.playCoinSound();
+    // SoundService.instance.playCoinSound();
   }
   
   /// Davet animasyonu ve sesi
   void _playInviteAnimation() {
     _bellAnimController.forward(from: 0);
-    SoundService.instance.playInviteSound();
+    // SoundService.instance.playInviteSound();
   }
 
   Future<void> _checkInvitations() async {
@@ -138,35 +155,97 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     }
   }
 
+  void _showInvitationDialog(OnlineDuelMatch match) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2E5A8C),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Düello Daveti!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Text(
+          '${match.hostUsername} seni düelloya davet ediyor! (Lig: ${match.leagueCode})',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Reddet', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // Context'i kaydet (dialog kapanmadan önce)
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              
+              // Dialog'u kapat
+              navigator.pop();
+              
+              // Maça katıl
+              final joinedMatch = await OnlineDuelService.instance.joinMatch(match.matchId);
+              
+              if (joinedMatch != null && mounted) {
+                // Root navigator kullan (daha güvenli)
+                Navigator.of(this.context).push(
+                  MaterialPageRoute(
+                    builder: (context) => OnlineDuelScreen(match: joinedMatch),
+                  ),
+                );
+              } else if (mounted) {
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(content: Text('Maça katılamadı. Maç dolmuş veya silinmiş olabilir.')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Kabul Et', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _loadUserData() async {
+    // Otomatik anonim giriş
+    if (!AuthService.instance.isAuthenticated) {
+      await AuthService.instance.signInAnonymously();
+    }
+
     // TEST GOLD REMOVED
 
     await WordPoolService.instance.loadWordPool();
+    await OnlineDuelService.instance.initialize(); // Eklendi
     var profile = await UserProfileService.instance.loadProfile();
     final canPlayDaily = await Daily123Service.instance.canPlayToday();
     
     // Firebase'den kullanıcı bilgilerini al ve lokal profili güncelle
     final authUser = AuthService.instance.user;
-    if (authUser != null && profile.username == 'Player') {
-      final newUsername = authUser.displayName ?? authUser.email?.split('@').first ?? 'Player';
-      final newEmail = authUser.email;
-      if (newUsername != 'Player' || (newEmail != null && newEmail.isNotEmpty)) {
-        profile = profile.copyWith(
-          username: newUsername != 'Player' ? newUsername : profile.username,
-          email: newEmail ?? profile.email,
-        );
-        await UserProfileService.instance.saveProfile(profile);
+    if (authUser != null) {
+      // Eğer username Player ise ve authUser'da bilgi varsa güncelle
+      if (profile.username == 'Player') {
+        final newUsername = authUser.displayName ?? authUser.email?.split('@').first ?? 'Player';
+        final newEmail = authUser.email;
+        if (newUsername != 'Player' || (newEmail != null && newEmail.isNotEmpty)) {
+          profile = profile.copyWith(
+            username: newUsername != 'Player' ? newUsername : profile.username,
+            email: newEmail ?? profile.email,
+          );
+          await UserProfileService.instance.saveProfile(profile);
+        }
       }
     }
     
-    // Yeni kullanıcıysa A1 set et (başarım practice sonunda verilecek)
+    // Yeni kullanıcıysa A2 set et (Seviye tespit süreci A2'den başlar)
     if (!profile.hasCompletedPlacementTest) {
-      await UserProfileService.instance.markPlacementTestCompleted();
-      await UserProfileService.instance.updateLevel(UserLevel.a1);
-      // Başarım ilk oyunda değil, 3 oyun sonra verilecek
+      if (profile.level != UserLevel.a2) {
+        await UserProfileService.instance.updateLevel(UserLevel.a2);
+        profile = await UserProfileService.instance.loadProfile();
+      }
     }
-    
-    // Check for welcome gift
+
     // Hoşgeldin hediyesi kontrolü
     final isNewUser = await ShopService.instance.checkAndGiveWelcomeGift();
     
@@ -182,6 +261,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     
     // Seçili çerçeveyi yükle
     final selectedFrame = await ShopService.instance.getSelectedCosmetic(CosmeticType.frame);
+    
+    // Practice provider'ı profile'dan güncelle
+    final practiceProvider = Provider.of<PracticeProvider>(context, listen: false);
+    await practiceProvider.loadSessionFromProfile();
     
     if (mounted) {
       setState(() {
@@ -199,20 +282,35 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       if (shouldShowTutorial && mounted) {
         await Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => TutorialScreen(
-              onComplete: () => Navigator.of(context).pop(),
+            builder: (context) => TutorialScreen(
+              onComplete: () async {
+                Navigator.of(context).pop();
+                // Tutorial bitince hoşgeldin hediyesi dialog'unu göster
+                if (isNewUser) {
+                  _showWelcomeGiftDialog();
+                } else if (dailyResult['coins'] as int > 0) {
+                  _showDailyBonusDialog(dailyResult);
+                }
+                // Sonra practice'e yönlendir
+                if (mounted) {
+                  Navigator.of(context).pushReplacementNamed('/7030');
+                }
+              },
             ),
           ),
         );
-      }
-      
-      // Show welcome gift dialog
-      if (isNewUser) {
-        _showWelcomeGiftDialog();
-      } else if (dailyResult['coins'] as int > 0) {
-        _showDailyBonusDialog(dailyResult);
+      } else {
+        // Tutorial gösterilmediyse normal şekilde dialog'ları göster
+        if (isNewUser) {
+          _showWelcomeGiftDialog();
+        } else if (dailyResult['coins'] as int > 0) {
+          _showDailyBonusDialog(dailyResult);
+        }
       }
     }
+    
+    // Her şey yüklendikten sonra profili sync et (artık Auth ID var)
+    await UserProfileService.instance.syncProfileToFirestore();
   }
 
   void _showWelcomeGiftDialog() {
@@ -235,12 +333,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [const Color(0xFFFFD700).withOpacity(0.3), const Color(0xFFFF8C00).withOpacity(0.2)],
+                  colors: [const Color(0xFFFFD700).withValues(alpha: 0.3), const Color(0xFFFF8C00).withValues(alpha: 0.2)],
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
-                'WARDICT\'e hoşgeldin! 🎉\n\n💰 100 Altın\n🃏 Tüm jokerlerden 2\'şer adet\n\nHediyeleriniz hesabınıza eklendi!',
+                'LUGORENA\'ya hoşgeldin! 🎉\n\n💰 100 Altın\n🃏 Tüm jokerlerden 2\'şer adet\n\nHediyeleriniz hesabınıza eklendi!',
                 style: TextStyle(color: Colors.white, fontSize: 16, height: 1.5),
                 textAlign: TextAlign.center,
               ),
@@ -261,12 +359,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     );
   }
 
-  void _showDailyBonusDialog(Map<String, dynamic> result) {
+  Future<void> _showDailyBonusDialog(Map<String, dynamic> result) async {
     final coins = result['coins'] as int;
     final streak = result['streak'] as int;
     final rewards = result['rewards'] as List<String>;
     
-    showDialog(
+    await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2E5A8C),
@@ -285,7 +383,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [const Color(0xFF00F5A0).withOpacity(0.3), const Color(0xFF00D9F5).withOpacity(0.2)],
+                  colors: [const Color(0xFF00F5A0).withValues(alpha: 0.3), const Color(0xFF00D9F5).withValues(alpha: 0.2)],
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -328,6 +426,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     if (mounted) {
       setState(() {
         _userProfile = profile;
+        // sessionsInRow ve diğer state güncelleniyor
       });
     }
   }
@@ -362,23 +461,21 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
             children: [
               _buildInfoSection('🎯 Nasıl Oynanır?',
                 'Rakibinle 1v1 kelime yarışması! '
-                'Bot veya arkadaşlarınla oynayabilirsin.'),
+                'Bot, online rakip veya arkadaşlarınla 10 soruluk maçlarda yarış. '
+                'En yüksek skoru alan kazanır!'),
               const SizedBox(height: 16),
-              _buildInfoSection('📊 Puanlama Sistemi',
-                '• Doğru cevap: Seviyeye göre puan\n'
-                '• A seviyesi: Temel puanlar\n'
-                '• B seviyesi: Orta puanlar\n'
-                '• C seviyesi: Yüksek puanlar\n'
-                '• Hızlı cevap bonusu: 8+ saniye = %50 ekstra'),
-              const SizedBox(height: 16),
-              _buildInfoSection('🏆 Lig Sistemi',
-                '• Kazanılan maçlar WP puanını artırır\n'
-                '• Kaybedilen maçlar WP puanını düşürür\n'
-                '• A, B, C ligleri ayrı WP puanlarına sahip'),
+              _buildInfoSection('📊 ELO Puanlama Sistemi',
+                '• Standart ELO formülü kullanılır (Chess, Lichess gibi)\n'
+                '• Galibiyet: +5 ile +50 puan arası\n'
+                '• Mağlubiyet: -5 ile -50 puan arası\n'
+                '• Beraberlik: Beklenen sonuca göre değişir\n'
+                '• Güçlü rakibi yenmek: YÜKSEK kazanç (+25~+40)\n'
+                '• Zayıf rakibe kaybetmek: YÜKSEK kayıp (-25~-40)'),
               const SizedBox(height: 16),
               _buildInfoSection('🤖 Mod Seçenekleri',
-                '• Bot: Yapay zekaya karşı pratik yap\n'
-                '• Arkadaş: Gerçek oyunculara meydan oku'),
+                '• Online Rakip: Rastgele bir oyuncuyla eşleş\n'
+                '• Bot: AI rakibe karşı pratik yap (ELO: 1500)\n'
+                '• Arkadaş: Arkadaş listenden birini davet et'),
             ],
           ),
         ),
@@ -403,7 +500,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
           children: [
             Text('📚', style: TextStyle(fontSize: 28)),
             SizedBox(width: 10),
-            Text('Practice Modu', style: TextStyle(color: Colors.white, fontSize: 20)),
+            Text('Practice (70/30)', style: TextStyle(color: Colors.white, fontSize: 20)),
           ],
         ),
         content: SingleChildScrollView(
@@ -417,9 +514,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
               const SizedBox(height: 16),
               _buildInfoSection('📊 Seviye Sistemi',
                 '• A2 seviyesinden başlarsınız\n'
-                '• %70+ başarı (7+ doğru): Üst seviyeye geçiş\n'
-                '• %30 altı başarı (3- doğru): Alt seviyeye düşüş\n'
-                '• ⚠️ İki kere üst üste başarılı/başarısız olunca seviye değişir!\n'
+                '• %70+ başarı (7-10 doğru): Derhal üst seviyeye geçiş\n'
+                '• %30- başarı (0-3 doğru): Derhal alt seviyeye düşüş\n'
+                '• 4, 5 veya 6 doğru yaparsan aynı seviyede kalırsın.\n'
                 '• Seviyeler: A1 → A2 → B1 → B2 → C1 → C2'),
               const SizedBox(height: 16),
               _buildInfoSection('💰 Puanlama',
@@ -509,7 +606,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
         Text(
           content,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.85),
+            color: Colors.white.withValues(alpha: 0.85),
             fontSize: 13,
             height: 1.4,
           ),
@@ -518,274 +615,55 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     );
   }
 
-  void _startPractice() {
-    // Yeni practice sistemine git
-    Navigator.pushNamed(context, '/practice');
+  void _startPractice({required bool hasCompletedPlacement}) {
+    // Artık her iki durumda da (/7030) SeventyThirtyScreen'e gidiyoruz.
+    // Tasarım birliği için PlacementTestScreen (Adaptif) kullanımı kaldırıldı.
+    Navigator.pushNamed(context, '/7030');
   }
 
   void _startDuel() {
-    // Düello modu seçim dialogu göster
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-        decoration: const BoxDecoration(
-          color: Color(0xFF2E5A8C),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white30,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Düello Modu Seç',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Nasıl oynamak istersin?',
-              style: TextStyle(color: Colors.white60, fontSize: 14),
-            ),
-            const SizedBox(height: 20),
-            
-            // MaxiGame (Premium) - TEST MODE: temporarily unlocked
-            _DuelModeButton(
-              emoji: '👑',
-              title: 'MaxiGame',
-              subtitle: '3-4 kişilik multiplayer!',
-              color: const Color(0xFFFFD700),
-              isPremium: true,
-              isLocked: false, // TEST: Premium check disabled for testing
-              onTap: () {
-                Navigator.pop(ctx);
-                _showMaxiGameOptions();
-              },
-            ),
-            const SizedBox(height: 10),
-            
-            // Online Düello
-            _DuelModeButton(
-              emoji: '🌐',
-              title: 'Online Düello',
-              subtitle: 'Rastgele bir rakiple yarış',
-              color: const Color(0xFF4CAF50),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showLeagueSelectionForDuel(isBot: false);
-              },
-            ),
-            const SizedBox(height: 10),
-            
-            // Arkadaşla Düello
-            _DuelModeButton(
-              emoji: '👥',
-              title: 'Arkadaşla Düello',
-              subtitle: 'Arkadaşını davet et',
-              color: const Color(0xFFFF9800),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const FriendsScreen()));
-              },
-            ),
-            const SizedBox(height: 10),
-            
-            // Bot ile Düello
-            _DuelModeButton(
-              emoji: '🤖',
-              title: 'Bot ile Düello',
-              subtitle: 'Yapay zeka ile pratik yap',
-              color: const Color(0xFF2196F3),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showLeagueSelectionForDuel(isBot: true);
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
+    // Kullanıcı ELO'su ile eşleşme başlat
+    final userProfile = _userProfile;
+    if (userProfile == null) return;
+    int userElo = 1000;
+    // Lig skorlarından uygun olanı seç
+    if (userProfile.level == UserLevel.a1 || userProfile.level == UserLevel.a2) {
+      userElo = userProfile.leagueScores.beginnerElo;
+    } else if (userProfile.level == UserLevel.b1 || userProfile.level == UserLevel.b2) {
+      userElo = userProfile.leagueScores.intermediateElo;
+    } else if (userProfile.level == UserLevel.c1 || userProfile.level == UserLevel.c2) {
+      userElo = userProfile.leagueScores.advancedElo;
+    }
+    // Online Düello
+    Navigator.push(context, MaterialPageRoute(
+      builder: (context) => MatchmakingScreen(
+        leagueCode: userProfile.level.code ?? 'A1', 
+        isBot: false,
       ),
-    );
+    ));
   }
-  
-  void _showMaxiGameOptions() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF6C27FF), Color(0xFF2E5A8C)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white30,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('👑', style: TextStyle(fontSize: 28)),
-                SizedBox(width: 10),
-                Text(
-                  'MaxiGame',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              '3-4 kişilik heyecanlı yarışma!',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-            const SizedBox(height: 24),
-            
-            // Hızlı Eşleşme
-            _MaxiGameOption(
-              icon: Icons.flash_on,
-              title: 'Hızlı Eşleşme',
-              subtitle: 'Rastgele 3-4 oyuncuyla eşleş',
-              color: const Color(0xFF4CAF50),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => const MaxiGameScreen(mode: MaxiGameMode.quickMatch),
-                ));
-              },
-            ),
-            const SizedBox(height: 12),
-            
-            // Oda Oluştur
-            _MaxiGameOption(
-              icon: Icons.add_circle_outline,
-              title: 'Oda Oluştur',
-              subtitle: 'Arkadaşlarını davet et',
-              color: const Color(0xFFFF9800),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => const MaxiGameScreen(mode: MaxiGameMode.createRoom),
-                ));
-              },
-            ),
-            const SizedBox(height: 12),
-            
-            // Odaya Katıl
-            _MaxiGameOption(
-              icon: Icons.login,
-              title: 'Odaya Katıl',
-              subtitle: 'Oda koduyla katıl',
-              color: const Color(0xFF2196F3),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showJoinRoomDialog();
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
+
+  void startBotDuel() {
+    // Kullanıcı seviyesine/ELO'suna göre lig kodunu otomatik belirle
+    final userProfile = _userProfile;
+    if (userProfile == null) return;
+
+    int userElo = 1000;
+    if (userProfile.level == UserLevel.a1 || userProfile.level == UserLevel.a2) {
+      userElo = userProfile.leagueScores.beginnerElo;
+    } else if (userProfile.level == UserLevel.b1 || userProfile.level == UserLevel.b2) {
+      userElo = userProfile.leagueScores.intermediateElo;
+    } else if (userProfile.level == UserLevel.c1 || userProfile.level == UserLevel.c2) {
+      userElo = userProfile.leagueScores.advancedElo;
+    }
+    Navigator.push(context, MaterialPageRoute(
+      builder: (context) => MatchmakingScreen(
+        leagueCode: userProfile.level.code ?? 'A1', 
+        isBot: true,
       ),
-    );
+    ));
   }
-  
-  void _showJoinRoomDialog() {
-    final codeController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF2E5A8C),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Odaya Katıl', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Arkadaşının paylaştığı oda kodunu gir:',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: codeController,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 8,
-              ),
-              decoration: InputDecoration(
-                hintText: '- - - - - -',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.1),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              textCapitalization: TextCapitalization.characters,
-              maxLength: 6,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('İptal', style: TextStyle(color: Colors.white54)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final code = codeController.text.trim().toUpperCase();
-              if (code.length == 6) {
-                Navigator.pop(ctx);
-                Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => MaxiGameScreen(
-                    mode: MaxiGameMode.joinRoom,
-                    roomCode: code,
-                  ),
-                ));
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6C27FF),
-            ),
-            child: const Text('Katıl'),
-          ),
-        ],
-      ),
-    );
-  }
-  
+
   // ignore: unused_element - Premium dialog için saklanıyor
   void _showPremiumRequiredDialog() {
     showDialog(
@@ -812,7 +690,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Column(
@@ -849,60 +727,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     );
   }
 
-  void _showLeagueSelectionForDuel({required bool isBot}) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF2E5A8C),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          isBot ? 'Bot Seviyesi Seç' : 'Lig Seç',
-          style: const TextStyle(color: Colors.white),
-          textAlign: TextAlign.center,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _LeagueOption(
-              icon: '🌱',
-              title: 'Beginner (A1-A2)',
-              subtitle: 'Temel kelimeler',
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => MatchmakingScreen(leagueCode: 'A1', isBot: isBot),
-                ));
-              },
-            ),
-            const SizedBox(height: 12),
-            _LeagueOption(
-              icon: '⚡',
-              title: 'Intermediate (B1-B2)',
-              subtitle: 'Orta seviye kelimeler',
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => MatchmakingScreen(leagueCode: 'B1', isBot: isBot),
-                ));
-              },
-            ),
-            const SizedBox(height: 12),
-            _LeagueOption(
-              icon: '🔥',
-              title: 'Advanced (C1-C2)',
-              subtitle: 'İleri seviye kelimeler',
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => MatchmakingScreen(leagueCode: 'C1', isBot: isBot),
-                ));
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildMenuCard({
     required String title,
@@ -945,11 +770,32 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       );
     }
 
-    return _buildMainScreen();
+    return ChangeNotifierProvider(
+      create: (_) => PracticeProvider()..startSession(),
+      child: _buildMainScreen(),
+    );
   }
 
 
   Widget _buildMainScreen() {
+    final practiceProvider = Provider.of<PracticeProvider>(context, listen: true);
+    final duelUnlocked = practiceProvider.duelUnlocked;
+    final sessionsInRow = practiceProvider.sessionsInRow;
+    final hasCompletedPlacement = duelUnlocked || sessionsInRow >= 5;
+    final progressText = hasCompletedPlacement
+      ? 'Seviyene Göre Çalışmaya Devam Et'
+      : 'Seviye Tespiti: $sessionsInRow / 5';
+      
+    // Duel butonu için kalan yarış metni
+    String duelSubtitle;
+    if (hasCompletedPlacement) {
+      duelSubtitle = 'Arkadaşlarınla veya bota karşı yarış';
+    } else {
+      final kalan = 5 - sessionsInRow;
+      duelSubtitle = 'Seviye Tespiti: $sessionsInRow / 5';
+    }
+    // Motivasyon mesajı seçimi
+    // Motivasyon mesajı kaldırıldı
     return Scaffold(
       backgroundColor: const Color(0xFF1A3A5C),
       body: Stack(
@@ -985,15 +831,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                         const SizedBox(height: 24),
                         
                         // Karşılama Metni
-                        const Text(
-                          'Go Wardict Go! 💪',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
+                        const SizedBox(height: 24),
                         const Text(
                           'Master a new word every day!',
                           style: TextStyle(
@@ -1012,19 +850,27 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                           shrinkWrap: true,
                           children: [
                             _buildMenuCard(
-                              title: 'Practice',
-                              subtitle: 'Kelimeleri pekiştir ve öğren',
+                              title: hasCompletedPlacement ? 'Practice (70/30)' : 'LEVEL TEST',
+                              subtitle: hasCompletedPlacement ? 'Seviyene Göre Çalışmaya Devam Et' : progressText,
                               icon: 'assets/images/menu_practice.jpg',
                               color: const Color(0xFF26A69A), // Ocean Teal
-                              onTap: _startPractice,
+                              onTap: () => _startPractice(hasCompletedPlacement: hasCompletedPlacement),
                               onInfoTap: _showPracticeInfo,
                             ),
                             _buildMenuCard(
                               title: 'Duel',
-                              subtitle: 'Arkadaşlarınla veya bota karşı yarış',
+                              subtitle: duelSubtitle,
                               icon: 'assets/images/menu_duel.jpg',
                               color: const Color(0xFF8FB6D9), // Soft Sky Blue
-                              onTap: _startDuel,
+                              onTap: duelUnlocked ? _startDuel : () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Duel modunu açmak için önce 5 adet Practice (70/30) oturumu tamamlamalısın.'),
+                                    duration: Duration(seconds: 3),
+                                  ),
+                                );
+                              },
+                              isLocked: !duelUnlocked,
                               onInfoTap: _showDuelInfo,
                               useGradient: false, // Gradyan kaldırıldı
                             ),
@@ -1037,7 +883,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                                 if (_canPlayDaily123) {
                                    await Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (_) => const Daily123IntroScreen()),
+                                    MaterialPageRoute(builder: (context) => const Daily123IntroScreen()),
                                   );
                                   _loadUserData();
                                 }
@@ -1061,7 +907,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                                 label: 'My Words',
                                 color: const Color(0xFF4FC3F7), // Daha açık ve canlı bir mavi
                                 textColor: Colors.black87,
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SavedPoolScreen())),
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedPoolScreen())),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -1147,7 +993,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
         Flexible(
           child: GestureDetector(
             onTap: () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreenNew()));
+              await Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreenNew()));
               _refreshProfile();
               // Çerçeveyi de yeniden yükle
               final frame = await ShopService.instance.getSelectedCosmetic(CosmeticType.frame);
@@ -1158,7 +1004,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(30),
               ),
               child: Row(
@@ -1195,7 +1041,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                   setState(() {
                     _pendingInvitationsCount = 0;
                   });
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const FriendsScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const FriendsScreen()));
                 },
                 icon: const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 28),
               ),
@@ -1231,9 +1077,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFD700).withOpacity(0.15),
+              color: const Color(0xFFFFD700).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.3)),
+              border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
@@ -1248,7 +1094,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                 GestureDetector(
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const ShopScreen(initialTabIndex: 2)),
+                    MaterialPageRoute(builder: (context) => const ShopScreen(initialTabIndex: 2)),
                   ).then((_) => _refreshCoins(animate: true)),
                   child: const Icon(Icons.add_circle_outline, color: Color(0xFFFFD700), size: 20),
                 ),
@@ -1274,19 +1120,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [color, color.withOpacity(0.8)],
+            colors: [color, color.withValues(alpha: 0.8)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.4),
+              color: color.withValues(alpha: 0.4),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 5,
               offset: const Offset(0, 4),
             ),
@@ -1373,7 +1219,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1404,7 +1250,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                   if (mounted) {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (_) => const LevelSelectionScreen()),
+                      MaterialPageRoute(builder: (context) => const LevelSelectionScreen()),
                     );
                   }
                 },
@@ -1435,8 +1281,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isCurrentLevel 
-            ? _getLevelColor(level).withOpacity(0.2)
-            : Colors.white.withOpacity(0.05),
+            ? _getLevelColor(level).withValues(alpha: 0.2)
+            : Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: isCurrentLevel
             ? Border.all(color: _getLevelColor(level), width: 2)
@@ -1474,7 +1320,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
           Text(
             description,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
               fontSize: 14,
             ),
           ),
@@ -1562,20 +1408,20 @@ class _MenuCardState extends State<_MenuCard> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color.alphaBlend(Colors.white.withOpacity(0.15), widget.color),
+                    Color.alphaBlend(Colors.white.withValues(alpha: 0.15), widget.color),
                     widget.color,
                   ],
                 ),
             color: widget.isLocked ? Colors.grey.shade900 : (widget.useGradient ? null : widget.color),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               width: 1,
             ),
             boxShadow: [
               // 3D Gölge Efekti
               BoxShadow(
-                color: (widget.isLocked ? Colors.black : widget.color).withOpacity(0.35),
+                color: (widget.isLocked ? Colors.black : widget.color).withValues(alpha: 0.35),
                 offset: const Offset(0, 8),
                 blurRadius: 16,
                 spreadRadius: -4,
@@ -1618,7 +1464,7 @@ class _MenuCardState extends State<_MenuCard> {
           width: 60,
           height: 60,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(18),
           ),
           alignment: Alignment.center,
@@ -1644,7 +1490,7 @@ class _MenuCardState extends State<_MenuCard> {
               const SizedBox(height: 4),
               Text(
                 widget.subtitle,
-                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13),
               ),
             ],
           ),
@@ -1655,7 +1501,7 @@ class _MenuCardState extends State<_MenuCard> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.info_outline, color: Colors.white70, size: 20),
@@ -1678,252 +1524,6 @@ class _MenuCardState extends State<_MenuCard> {
           style: TextStyle(color: widget.textColor, fontSize: 15, fontWeight: FontWeight.w800),
         ),
       ],
-    );
-  }
-}
-
-// Düello Modu Seçenek Widget'ı
-class _DuelModeButton extends StatelessWidget {
-  final String emoji;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-  final bool isPremium;
-  final bool isLocked;
-
-  const _DuelModeButton({
-    required this.emoji,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-    this.isPremium = false,
-    this.isLocked = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: isLocked ? Colors.grey.shade700 : color,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: isPremium && !isLocked
-              ? BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFFFD700), width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFFD700).withOpacity(0.3),
-                      blurRadius: 8,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                )
-              : null,
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Center(
-                  child: Text(emoji, style: const TextStyle(fontSize: 22)),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            color: isLocked ? Colors.white54 : Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        if (isPremium) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFD700),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'PREMIUM',
-                              style: TextStyle(
-                                color: Colors.black87,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: isLocked ? Colors.white38 : Colors.white.withOpacity(0.8),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                isLocked ? Icons.lock : Icons.chevron_right,
-                color: isLocked ? Colors.white38 : Colors.white70,
-                size: 22,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// MaxiGame Seçenek Widget'ı  
-class _MaxiGameOption extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _MaxiGameOption({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withOpacity(0.1),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: Colors.white, size: 28),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 18),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Lig Seçenek Widget'ı
-class _LeagueOption extends StatelessWidget {
-  final String icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _LeagueOption({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white24),
-          ),
-          child: Row(
-            children: [
-              Text(icon, style: const TextStyle(fontSize: 24)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: Colors.white60,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, color: Colors.white54),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

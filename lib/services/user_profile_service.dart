@@ -1,12 +1,23 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart'; // and debugPrint
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_level.dart';
 import '../models/league.dart';
 import '../models/practice_session.dart';
 import '../models/match_history_item.dart';
+import 'firebase/auth_service.dart'; // Added import
 
 /// Kullanıcı profili yönetimi servisi
 class UserProfileService {
+    /// Seviyeye göre uygun başlangıç ELO'su atar
+    /// İlk 5 oyun sonrası veya seviye belirleme sonrası çağrılmalı
+    Future<void> assignInitialEloByLevel(UserLevel level) async {
+      final profile = await loadProfile();
+      final initialElo = UserProfile.getInitialEloForLevel(level);
+      final updatedProfile = profile.copyWith(eloRating: initialElo);
+      await saveProfile(updatedProfile);
+    }
   static UserProfileService? _instance;
   static UserProfileService get instance => _instance ??= UserProfileService._();
 
@@ -50,6 +61,8 @@ class UserProfileService {
     final profile = await loadProfile();
     final updatedProfile = profile.copyWith(level: newLevel);
     await saveProfile(updatedProfile);
+    // Seviye güncellendiğinde uygun lig ELO'su ata
+    await assignInitialEloByLevel(newLevel);
   }
 
   /// Oyun sonrası profili günceller
@@ -67,13 +80,7 @@ class UserProfileService {
     await saveProfile(updatedProfile);
   }
 
-  /// Practice puanı günceller
-  Future<void> updatePracticeScore(int scoreChange) async {
-    final profile = await loadProfile();
-    final newScore = (profile.practiceScore + scoreChange).clamp(0, 999999);
-    final updatedProfile = profile.copyWith(practiceScore: newScore);
-    await saveProfile(updatedProfile);
-  }
+
 
   /// Practice oturumunu günceller
   Future<void> updatePracticeSession(PracticeSession session) async {
@@ -82,14 +89,40 @@ class UserProfileService {
     await saveProfile(updatedProfile);
   }
 
-  /// Lig puanını günceller (duel sonrası)
+  /// ELO puanını günceller (duel sonrası)
+  Future<void> updateEloRating(int eloChange) async {
+    final profile = await loadProfile();
+    final newElo = (profile.eloRating + eloChange).clamp(100, 3000); // Min 100, Max 3000
+    final updatedProfile = profile.copyWith(eloRating: newElo);
+    await saveProfile(updatedProfile);
+  }
+
+  /// Lig puanını günceller
   Future<void> updateLeagueScore(League league, int eloChange) async {
     final profile = await loadProfile();
     final currentScore = profile.leagueScores.getScore(league);
-    final newScore = (currentScore + eloChange).clamp(100, 3000); // Min 100, Max 3000
+    final newScore = (currentScore + eloChange).clamp(0, 3000); 
     final updatedScores = profile.leagueScores.updateScore(league, newScore);
     final updatedProfile = profile.copyWith(leagueScores: updatedScores);
     await saveProfile(updatedProfile);
+  }
+
+  /// Pratik skorunu günceller
+  Future<void> updatePracticeScore(int scoreChange) async {
+    final profile = await loadProfile();
+    final newScore = (profile.practiceScore + scoreChange).clamp(0, 999999);
+    final updatedProfile = profile.copyWith(practiceScore: newScore);
+    await saveProfile(updatedProfile);
+  }
+
+  /// Kullanıcı adını günceller ve Firestore'a senkronize eder
+  Future<void> updateUsername(String newUsername) async {
+    final profile = await loadProfile();
+    final updatedProfile = profile.copyWith(username: newUsername);
+    await saveProfile(updatedProfile);
+    // Hemen Firestore'a senkronize et
+    await syncProfileToFirestore();
+    debugPrint('🔄 Username updated to: $newUsername');
   }
 
   /// Seviye belirleme testinin tamamlanıp tamamlanmadığını kontrol eder
@@ -156,10 +189,30 @@ class UserProfileService {
     await saveProfile(updatedProfile);
   }
   
-  /// Kullanıcı adını günceller
-  Future<void> updateUsername(String newUsername) async {
+  static const String _usersCollection = 'users';
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  /// Profili Firestore ile senkronize eder
+  Future<void> syncProfileToFirestore() async {
     final profile = await loadProfile();
-    final updatedProfile = profile.copyWith(username: newUsername);
-    await saveProfile(updatedProfile);
+    
+    // Auth ID al
+    final userId = AuthService.instance.userId;
+    if (userId == null) {
+      debugPrint('⚠️ Sync failed: No authenticated user');
+      return;
+    }
+
+    try {
+      // Document ID olarak userId kullan
+      await _firestore.collection(_usersCollection).doc(userId).set({
+        ...profile.toJson(),
+        'lastOnline': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      
+      debugPrint('✅ Profile synced to Firestore: $userId (${profile.username})');
+    } catch (e) {
+      debugPrint('❌ Error syncing profile to Firestore: $e');
+    }
   }
 }

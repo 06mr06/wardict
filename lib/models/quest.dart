@@ -5,7 +5,13 @@ enum QuestType {
   answerQuestions,
   earnPoints,
   playPractice,
-  streakCount
+  streakCount,
+  speedAnswer,      // Hızlı cevap verme
+  perfectPractice,  // Hatasız pratik
+  daily123Play,     // Günlük 123 oynama
+  addWord,          // Kelime ekleme
+  buyItem,          // Marketten ürün alma
+  usePowerup        // Güçlendirici kullanma
 }
 
 class Quest {
@@ -34,12 +40,13 @@ class Quest {
   double get progressPercentage => (currentProgress / goal).clamp(0.0, 1.0);
 
   Quest copyWith({
+    String? id,
     int? currentProgress,
     bool? isCompleted,
     DateTime? lastUpdated,
   }) {
     return Quest(
-      id: id,
+      id: id ?? this.id,
       title: title,
       description: description,
       type: type,

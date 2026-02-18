@@ -7,7 +7,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:wardict_skeleton/app.dart';
+import 'package:lugorena/app.dart';
 
 void main() {
   testWidgets('WARDICT app test', (WidgetTester tester) async {

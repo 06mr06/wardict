@@ -13,7 +13,7 @@ abstract class BaseGameScreenState<T extends BaseGameScreen> extends State<T>
   bool showPreScreen = true;
   bool showCountdown = true;
   int countdown = 3;
-  int timeLeft = 5;
+  int timeLeft = 7;
   Timer? timer;
   
   // Animation Controllers
@@ -74,7 +74,7 @@ abstract class BaseGameScreenState<T extends BaseGameScreen> extends State<T>
 
   void startTimer() {
     timer?.cancel();
-    setState(() => timeLeft = 5);
+    setState(() => timeLeft = 7);
     timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (timeLeft == 0) {
         t.cancel();
@@ -164,7 +164,7 @@ abstract class BaseGameScreenState<T extends BaseGameScreen> extends State<T>
                             : countdown == 2
                                 ? Colors.orange
                                 : Colors.red)
-                        .withOpacity(0.5),
+                        .withValues(alpha: 0.5),
                     blurRadius: 30,
                     spreadRadius: 5,
                   ),

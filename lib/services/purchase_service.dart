@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 
 /// Satın alınabilir ürün türleri
 enum ProductType {
@@ -93,11 +94,10 @@ class PurchaseService {
       // Önceki satın almaları yükle
       await _loadPurchaseState();
       
-      // in_app_purchase paketi eklendiğinde:
-      /*
       final bool available = await InAppPurchase.instance.isAvailable();
       if (!available) {
         debugPrint('In-app purchases not available');
+        _loadDemoProducts();
         return;
       }
 
@@ -120,17 +120,21 @@ class PurchaseService {
       }
 
       _products.clear();
-      for (final product in response.productDetails) {
-        _products.add(ProductInfo(
-          id: product.id,
-          title: product.title,
-          description: product.description,
-          price: product.price,
-          priceValue: product.rawPrice,
-          currencyCode: product.currencyCode,
-          type: _getProductType(product.id),
-          coinAmount: _getCoinAmount(product.id),
-        ));
+      if (response.productDetails.isEmpty) {
+         _loadDemoProducts();
+      } else {
+        for (final product in response.productDetails) {
+          _products.add(ProductInfo(
+            id: product.id,
+            title: product.title,
+            description: product.description,
+            price: product.price,
+            priceValue: product.rawPrice,
+            currencyCode: product.currencyCode,
+            type: _getProductType(product.id),
+            coinAmount: _getCoinAmount(product.id),
+          ));
+        }
       }
 
       // Satın alma akışını dinle
@@ -138,15 +142,12 @@ class PurchaseService {
       
       // Önceki satın almaları doğrula
       await InAppPurchase.instance.restorePurchases();
-      */
-
-      // Demo ürünler (gerçek entegrasyonda store'dan yüklenir)
-      _loadDemoProducts();
 
       _isInitialized = true;
       debugPrint('PurchaseService initialized');
     } catch (e) {
       debugPrint('PurchaseService initialization error: $e');
+      _loadDemoProducts();
     }
   }
 
@@ -288,8 +289,15 @@ class PurchaseService {
     try {
       _isPurchasing = true;
 
-      // in_app_purchase paketi eklendiğinde:
-      /*
+      final bool available = await InAppPurchase.instance.isAvailable();
+      if (!available) {
+        // Fallback to demo mode for simulator testing if needed, or error
+        debugPrint('In-app purchases not available, using demo fallback');
+        await Future.delayed(const Duration(seconds: 1));
+        await _handleSuccessfulPurchase(product);
+        return PurchaseResult(success: true, product: product);
+      }
+
       final ProductDetails? productDetails = 
           (await InAppPurchase.instance.queryProductDetails({productId}))
               .productDetails
@@ -313,21 +321,8 @@ class PurchaseService {
         await InAppPurchase.instance.buyNonConsumable(purchaseParam: purchaseParam);
       }
       
-      // Sonuç purchaseStream'den gelecek
+      // Sonuç purchaseStream'den gelecek, biz şimdilik true dönüyoruz
       return const PurchaseResult(success: true);
-      */
-
-      // Demo mod - simüle edilmiş satın alma
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // Demo'da her zaman başarılı
-      await _handleSuccessfulPurchase(product);
-      
-      return PurchaseResult(
-        success: true,
-        transactionId: 'demo_${DateTime.now().millisecondsSinceEpoch}',
-        product: product,
-      );
     } catch (e) {
       debugPrint('Purchase error: $e');
       return PurchaseResult(
@@ -335,7 +330,8 @@ class PurchaseService {
         errorMessage: e.toString(),
       );
     } finally {
-      _isPurchasing = false;
+      // _isPurchasing stream listener içinde kapatılacak ama burada emniyet için
+      Future.delayed(const Duration(seconds: 30), () => _isPurchasing = false);
     }
   }
 
@@ -384,26 +380,27 @@ class PurchaseService {
   }
 
   /// Satın alma işlemi bittiğinde (stream listener)
-  // ignore: unused_element - in_app_purchase paketi eklenince implement edilecek
-  void _onPurchaseUpdated(List<dynamic> purchaseDetailsList) {
-    // in_app_purchase paketi eklendiğinde implement edilecek
-    /*
+  void _onPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) {
     for (final PurchaseDetails purchase in purchaseDetailsList) {
       if (purchase.status == PurchaseStatus.pending) {
-        // Bekleniyor
+        _isPurchasing = true;
       } else if (purchase.status == PurchaseStatus.error) {
-        // Hata
+        _isPurchasing = false;
+        debugPrint('Purchase error: ${purchase.error}');
       } else if (purchase.status == PurchaseStatus.purchased ||
                  purchase.status == PurchaseStatus.restored) {
-        // Başarılı - ürünü ver ve onayla
-        _deliverProduct(purchase);
+        // Başarılı - ürünü ver
+        final product = getProduct(purchase.productID);
+        if (product != null) {
+          _handleSuccessfulPurchase(product);
+        }
+        _isPurchasing = false;
       }
       
       if (purchase.pendingCompletePurchase) {
         InAppPurchase.instance.completePurchase(purchase);
       }
     }
-    */
   }
 
   /// Coin paketi ürünlerini al

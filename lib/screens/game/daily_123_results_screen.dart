@@ -6,6 +6,8 @@ import '../../models/question_mode.dart';
 import '../../services/daily_123_service.dart';
 import '../../providers/daily_123_provider.dart';
 import '../../providers/game_provider.dart';
+import '../../services/ranking_service.dart';
+import '../../services/user_profile_service.dart';
 
 class Daily123ResultsScreen extends StatefulWidget {
   final int finalScore;
@@ -120,7 +122,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.green.withOpacity(0.3), Colors.green.withOpacity(0.1)],
+                  colors: [Colors.green.withValues(alpha: 0.3), Colors.green.withValues(alpha: 0.1)],
                 ),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.green, width: 2),
@@ -146,7 +148,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.red.withOpacity(0.3), Colors.red.withOpacity(0.1)],
+                  colors: [Colors.red.withValues(alpha: 0.3), Colors.red.withValues(alpha: 0.1)],
                 ),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.red, width: 2),
@@ -181,7 +183,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.white24),
             ),
@@ -204,7 +206,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.white24),
             ),
@@ -230,7 +232,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.green.withOpacity(0.3), Colors.green.withOpacity(0.1)],
+                  colors: [Colors.green.withValues(alpha: 0.3), Colors.green.withValues(alpha: 0.1)],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.green, width: 2),
@@ -258,7 +260,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.red.withOpacity(0.3), Colors.red.withOpacity(0.1)],
+                  colors: [Colors.red.withValues(alpha: 0.3), Colors.red.withValues(alpha: 0.1)],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.red, width: 2),
@@ -330,7 +332,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.amber.withOpacity(0.4),
+              color: Colors.amber.withValues(alpha: 0.4),
               blurRadius: 15,
               spreadRadius: 3,
             ),
@@ -360,7 +362,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.green.withOpacity(0.3), Colors.green.withOpacity(0.1)],
+                  colors: [Colors.green.withValues(alpha: 0.3), Colors.green.withValues(alpha: 0.1)],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.green, width: 2),
@@ -387,7 +389,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.red.withOpacity(0.3), Colors.red.withOpacity(0.1)],
+                  colors: [Colors.red.withValues(alpha: 0.3), Colors.red.withValues(alpha: 0.1)],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.red, width: 2),
@@ -440,7 +442,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: (widget.isWin ? Colors.green : Colors.red).withOpacity(0.3),
+            color: (widget.isWin ? Colors.green : Colors.red).withValues(alpha: 0.3),
             blurRadius: 15,
             spreadRadius: 3,
           ),
@@ -497,14 +499,14 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(label, style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+          Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12)),
           const SizedBox(height: 4),
           Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
         ],
@@ -544,9 +546,9 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: accentColor.withOpacity(0.2)),
+        border: Border.all(color: accentColor.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -568,7 +570,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
   Widget _rankInfo(String label, String value) {
     return Column(
       children: [
-        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
+        Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11)),
         const SizedBox(height: 4),
         Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
       ],
@@ -799,13 +801,13 @@ class _AnswerListSheetState extends State<_AnswerListSheet> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: isSelected 
-                                ? widget.color.withOpacity(0.3) 
-                                : widget.color.withOpacity(0.1),
+                                ? widget.color.withValues(alpha: 0.3) 
+                                : widget.color.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isSelected 
                                   ? widget.color 
-                                  : widget.color.withOpacity(0.3),
+                                  : widget.color.withValues(alpha: 0.3),
                               width: isSelected ? 2 : 1,
                             ),
                           ),
@@ -847,7 +849,7 @@ class _AnswerListSheetState extends State<_AnswerListSheet> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.2),
+                                    color: Colors.blue.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Row(

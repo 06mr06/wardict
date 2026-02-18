@@ -1,3 +1,5 @@
+import 'dart:math';
+
 /// Lig türlerini temsil eder
 enum League {
   beginner('A', 'Beginner', 'A1-A2'),
@@ -21,10 +23,11 @@ enum League {
   /// Lig için başlangıç Elo puanı
   static const int startingElo = 1500;
 
-  /// Lichess benzeri Elo değişimi hesaplar
+  /// Standart Elo değişimi hesaplar (FIDE/Lichess sistemi)
   /// - Zayıf oyuncu güçlü rakibi yenerse: YÜKSEK kazanç (+25 ile +40)
   /// - Güçlü oyuncu zayıf rakibe kaybederse: YÜKSEK kayıp (-25 ile -40)
   /// - Eşit rakipler: Normal değişim (±12 ile ±16)
+  /// - Beraberlik: Puanlar beklenen sonuca göre değişir
   /// 
   /// K-Factor: Oyun sayısına göre dinamik
   /// - Az oyun (0-15): K=40 (hızlı yerleşim)
@@ -33,7 +36,7 @@ enum League {
   static int calculateEloChange({
     required int currentElo,
     required int opponentElo,
-    required bool won,
+    required double result, // 1.0 = kazandı, 0.5 = berabere, 0.0 = kaybetti
     int gamesPlayed = 30, // Oyun sayısı
   }) {
     // Dinamik K-Factor (Lichess benzeri)
@@ -46,19 +49,21 @@ enum League {
       kFactor = 24.0; // Deneyimli oyuncu - yavaş değişim
     }
 
-    // Beklenen skor hesaplaması (Lichess formülü)
+    // Beklenen skor hesaplaması (Standart ELO formülü)
+    // NOT: pow(10, x) kullanılmalı, 10*x değil!
     final eloDiff = opponentElo - currentElo;
-    final expectedScore = 1.0 / (1.0 + (10.0 * (eloDiff / 400.0)));
+    final expectedScore = 1.0 / (1.0 + pow(10, eloDiff / 400.0));
     
-    // Gerçek skor
-    final actualScore = won ? 1.0 : 0.0;
+    // Gerçek skor (1.0 = galibiyet, 0.5 = beraberlik, 0.0 = mağlubiyet)
+    final actualScore = result;
     
     // Ham değişim
     int change = (kFactor * (actualScore - expectedScore)).round();
     
-    // Minimum değişim garantisi (en az ±5 puan)
-    if (won && change < 5) change = 5;
-    if (!won && change > -5) change = -5;
+    // Minimum değişim garantisi (sadece kesin galibiyet/mağlubiyetlerde)
+    // Beraberlikte doğal değişimi kullan
+    if (result == 1.0 && change < 5) change = 5;
+    if (result == 0.0 && change > -5) change = -5;
     
     // Maksimum sınır (±50 puan)
     change = change.clamp(-50, 50);
@@ -76,13 +81,19 @@ enum League {
       'win': calculateEloChange(
         currentElo: currentElo,
         opponentElo: opponentElo,
-        won: true,
+        result: 1.0,
+        gamesPlayed: gamesPlayed,
+      ),
+      'draw': calculateEloChange(
+        currentElo: currentElo,
+        opponentElo: opponentElo,
+        result: 0.5,
         gamesPlayed: gamesPlayed,
       ),
       'loss': calculateEloChange(
         currentElo: currentElo,
         opponentElo: opponentElo,
-        won: false,
+        result: 0.0,
         gamesPlayed: gamesPlayed,
       ),
     };

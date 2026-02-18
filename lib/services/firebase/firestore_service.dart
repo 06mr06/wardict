@@ -17,6 +17,7 @@ class CloudUserProfile {
   final Map<String, int> leagueScores;
   final List<String> achievements;
   final List<String> friends;
+  final int weeklyGained;
   final DateTime createdAt;
   final DateTime lastPlayedAt;
   final String? avatarId;
@@ -35,6 +36,7 @@ class CloudUserProfile {
     this.leagueScores = const {},
     this.achievements = const [],
     this.friends = const [],
+    this.weeklyGained = 0,
     DateTime? createdAt,
     DateTime? lastPlayedAt,
     this.avatarId,
@@ -57,6 +59,7 @@ class CloudUserProfile {
       leagueScores: Map<String, int>.from(data['leagueScores'] ?? {}),
       achievements: List<String>.from(data['achievements'] ?? []),
       friends: List<String>.from(data['friends'] ?? []),
+      weeklyGained: data['weeklyGained'] ?? 0,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       lastPlayedAt: (data['lastPlayedAt'] as Timestamp?)?.toDate(),
       avatarId: data['avatarId'],
@@ -77,6 +80,7 @@ class CloudUserProfile {
       'leagueScores': leagueScores,
       'achievements': achievements,
       'friends': friends,
+      'weeklyGained': weeklyGained,
       'createdAt': Timestamp.fromDate(createdAt),
       'lastPlayedAt': Timestamp.fromDate(lastPlayedAt),
       'avatarId': avatarId,
@@ -95,6 +99,7 @@ class CloudUserProfile {
     Map<String, int>? leagueScores,
     List<String>? achievements,
     List<String>? friends,
+    int? weeklyGained,
     DateTime? lastPlayedAt,
     String? avatarId,
     String? photoURL,
@@ -111,6 +116,7 @@ class CloudUserProfile {
       leagueScores: leagueScores ?? this.leagueScores,
       achievements: achievements ?? this.achievements,
       friends: friends ?? this.friends,
+      weeklyGained: weeklyGained ?? this.weeklyGained,
       createdAt: createdAt,
       lastPlayedAt: lastPlayedAt ?? this.lastPlayedAt,
       avatarId: avatarId ?? this.avatarId,
@@ -207,6 +213,21 @@ class FirestoreService {
       // Firestore izin hatası durumunda kullanıcıya izin ver
       // Firebase kuralları düzenlendikten sonra bu kontrol düzgün çalışacak
       return true;
+    }
+  }
+
+  /// Kullanıcı adına göre email adresini getir
+  Future<String?> getEmailByUsername(String username) async {
+    try {
+      final query = await _usersCollection.where('username', isEqualTo: username).get();
+      if (query.docs.isNotEmpty) {
+        final data = query.docs.first.data();
+        return data['email'];
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Username email getirme hatası: $e');
+      return null;
     }
   }
   
@@ -347,6 +368,64 @@ class FirestoreService {
     } catch (e) {
       debugPrint('❌ Sıralama hatası: $e');
       return null;
+    }
+  }
+
+  /// Haftalık liderlik tablosunu getir
+  Future<List<CloudUserProfile>> getWeeklyLeaderboard({
+    int limit = 50,
+  }) async {
+    try {
+      final snapshot = await _usersCollection
+          .orderBy('weeklyGained', descending: true)
+          .where('weeklyGained', isGreaterThan: 0)
+          .limit(limit)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => CloudUserProfile.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      debugPrint('❌ Haftalık liderlik tablosu hatası: $e');
+      return [];
+    }
+  }
+
+  /// Kullanıcının haftalık sıralamasını getir
+  Future<int?> getUserWeeklyRank(String odlevel) async {
+    try {
+      final userDoc = await _usersCollection.doc(odlevel).get();
+      if (!userDoc.exists) return null;
+
+      final userWeeklyScore = (userDoc.data()?['weeklyGained'] ?? 0) as int;
+      if (userWeeklyScore <= 0) return null;
+
+      final higherScores = await _usersCollection
+          .where('weeklyGained', isGreaterThan: userWeeklyScore)
+          .count()
+          .get();
+
+      return (higherScores.count ?? 0) + 1;
+    } catch (e) {
+      debugPrint('❌ Haftalık sıralama hatası: $e');
+      return null;
+    }
+  }
+
+  /// Tüm haftalık skorları sıfırla
+  Future<void> resetWeeklyScores() async {
+    try {
+      final snapshot = await _usersCollection.where('weeklyGained', isGreaterThan: 0).get();
+      final batch = _db.batch();
+      
+      for (final doc in snapshot.docs) {
+        batch.update(doc.reference, {'weeklyGained': 0});
+      }
+      
+      await batch.commit();
+      debugPrint('✅ Haftalık skorlar sıfırlandı');
+    } catch (e) {
+      debugPrint('❌ Haftalık skor sıfırlama hatası: $e');
     }
   }
 

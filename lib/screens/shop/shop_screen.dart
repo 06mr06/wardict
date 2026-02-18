@@ -80,7 +80,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: TabBar(
@@ -157,7 +157,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFFD700).withOpacity(0.3),
+                  color: const Color(0xFFFFD700).withValues(alpha: 0.3),
                   blurRadius: 10,
                 ),
               ],
@@ -205,9 +205,9 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -265,12 +265,12 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isActive
-                  ? [const Color(0xFF4CAF50).withOpacity(0.3), const Color(0xFF2E7D32).withOpacity(0.2)]
-                  : [const Color(0xFFFF9800).withOpacity(0.2), const Color(0xFFF57C00).withOpacity(0.1)],
+                  ? [const Color(0xFF4CAF50).withValues(alpha: 0.3), const Color(0xFF2E7D32).withValues(alpha: 0.2)]
+                  : [const Color(0xFFFF9800).withValues(alpha: 0.2), const Color(0xFFF57C00).withValues(alpha: 0.1)],
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isActive ? const Color(0xFF4CAF50).withOpacity(0.5) : const Color(0xFFFF9800).withOpacity(0.5),
+              color: isActive ? const Color(0xFF4CAF50).withValues(alpha: 0.5) : const Color(0xFFFF9800).withValues(alpha: 0.5),
             ),
           ),
           child: Row(
@@ -280,8 +280,8 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                 height: 50,
                 decoration: BoxDecoration(
                   color: isActive 
-                      ? const Color(0xFF4CAF50).withOpacity(0.3) 
-                      : const Color(0xFFFF9800).withOpacity(0.3),
+                      ? const Color(0xFF4CAF50).withValues(alpha: 0.3) 
+                      : const Color(0xFFFF9800).withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Center(
@@ -344,7 +344,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withOpacity(0.3),
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
@@ -451,12 +451,12 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF4CAF50).withOpacity(0.2),
-            const Color(0xFF8BC34A).withOpacity(0.1),
+            const Color(0xFF4CAF50).withValues(alpha: 0.2),
+            const Color(0xFF8BC34A).withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.5)),
+        border: Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
@@ -464,7 +464,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: const Color(0xFF4CAF50).withOpacity(0.3),
+              color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Center(
@@ -614,7 +614,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -707,12 +707,12 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Colors.white.withValues(alpha: 0.1),
+            Colors.white.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -721,7 +721,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: const Color(0xFF6C27FF).withOpacity(0.2),
+              color: const Color(0xFF6C27FF).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -746,7 +746,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                 Text(
                   powerup.description,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 12,
                   ),
                 ),
@@ -765,7 +765,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                         colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
                       )
                     : null,
-                color: canAfford ? null : Colors.grey.withOpacity(0.3),
+                color: canAfford ? null : Colors.grey.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -803,12 +803,12 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: pkg.isBestValue
-              ? [const Color(0xFFFFD700).withOpacity(0.2), const Color(0xFFFFA000).withOpacity(0.1)]
-              : [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
+              ? [const Color(0xFFFFD700).withValues(alpha: 0.2), const Color(0xFFFFA000).withValues(alpha: 0.1)]
+              : [Colors.white.withValues(alpha: 0.1), Colors.white.withValues(alpha: 0.05)],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: pkg.isBestValue ? const Color(0xFFFFD700) : Colors.white.withOpacity(0.2),
+          color: pkg.isBestValue ? const Color(0xFFFFD700) : Colors.white.withValues(alpha: 0.2),
           width: pkg.isBestValue ? 2 : 1,
         ),
       ),
@@ -877,7 +877,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                 Text(
                   'Coin',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 14,
                   ),
                 ),
@@ -923,8 +923,8 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF6C27FF).withOpacity(0.3),
-                  const Color(0xFF2AA7FF).withOpacity(0.1),
+                  const Color(0xFF6C27FF).withValues(alpha: 0.3),
+                  const Color(0xFF2AA7FF).withValues(alpha: 0.1),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
@@ -949,7 +949,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                       Text(
                         '${_subscription.daysRemaining} gün kaldı',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
+                          color: Colors.white.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -991,12 +991,12 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isHighlighted
-              ? [const Color(0xFFFFD700).withOpacity(0.2), const Color(0xFFFFA000).withOpacity(0.1)]
-              : [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
+              ? [const Color(0xFFFFD700).withValues(alpha: 0.2), const Color(0xFFFFA000).withValues(alpha: 0.1)]
+              : [Colors.white.withValues(alpha: 0.1), Colors.white.withValues(alpha: 0.05)],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isHighlighted ? const Color(0xFFFFD700) : Colors.white.withOpacity(0.2),
+          color: isHighlighted ? const Color(0xFFFFD700) : Colors.white.withValues(alpha: 0.2),
           width: isHighlighted ? 2 : 1,
         ),
       ),
@@ -1025,7 +1025,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                     Text(
                       '\$${tier.monthlyPriceUSD.toStringAsFixed(2)}/ay',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 14,
                       ),
                     ),
@@ -1058,7 +1058,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
             child: Text(
               f,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 fontSize: 14,
               ),
             ),
@@ -1106,7 +1106,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
         Text(
           'Profilini unvanlar ve çerçevelerle süsle',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.6),
+            color: Colors.white.withValues(alpha: 0.6),
             fontSize: 13,
           ),
         ),
@@ -1126,10 +1126,10 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF6C27FF).withOpacity(0.1) : Colors.white.withOpacity(0.05),
+        color: isSelected ? const Color(0xFF6C27FF).withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isSelected ? const Color(0xFF6C27FF) : (isUnlocked ? Colors.green.withOpacity(0.5) : Colors.white.withOpacity(0.1)),
+          color: isSelected ? const Color(0xFF6C27FF) : (isUnlocked ? Colors.green.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.1)),
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -1163,7 +1163,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       gradient: item.type == CosmeticType.frame ? frameGradient : null,
                       border: item.type == CosmeticType.frame && frameColor != null
@@ -1217,7 +1217,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                 Text(
                   item.description,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 12,
                   ),
                 ),
@@ -1249,9 +1249,9 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.2),
+                  color: Colors.orange.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                  border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1279,7 +1279,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                   gradient: canAfford
                       ? const LinearGradient(colors: [Color(0xFFFFD700), Color(0xFFFFA000)])
                       : null,
-                  color: canAfford ? null : Colors.grey.withOpacity(0.2),
+                  color: canAfford ? null : Colors.grey.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -1464,7 +1464,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                 Text(
                   'Toplam: ${pkg.totalCoins} altın',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 12,
                   ),
                 ),

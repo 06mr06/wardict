@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/friend.dart';
 
 /// Arkadaş yönetim servisi
@@ -173,32 +175,77 @@ class FriendService {
     return true;
   }
 
-  /// Kullanıcı ara (simülasyon)
+  /// Kullanıcı ara (Firestore)
   Future<List<Friend>> searchUsers(String query) async {
-    if (query.length < 3) return [];
+    if (query.trim().length < 3) return [];
     
-    // Simülasyon: Arama sonuçları
-    await Future.delayed(const Duration(milliseconds: 300));
-    
-    return [
-      Friend(
-        oderId: 'search_1',
-        username: 'Player_${query}123',
-        status: OnlineStatus.online,
-        friendStatus: FriendStatus.none,
-        eloRating: 1500,
-        currentLeague: 'Beginner',
-      ),
-      Friend(
-        oderId: 'search_2',
-        username: '${query}_Master',
-        status: OnlineStatus.offline,
-        friendStatus: FriendStatus.none,
-        eloRating: 1650,
-        currentLeague: 'Intermediate',
-        lastOnline: DateTime.now().subtract(const Duration(hours: 2)),
-      ),
-    ];
+    try {
+      debugPrint('🔍 Searching for: "$query"');
+      
+      // Küçük harfe çevir (case-insensitive arama için)
+      final lowerQuery = query.toLowerCase();
+      
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('username', isGreaterThanOrEqualTo: query)
+          .where('username', isLessThanOrEqualTo: '$query\uf8ff')
+          .limit(10)
+          .get();
+
+      debugPrint('📦 Raw results: ${snapshot.docs.length} documents');
+      
+      final results = snapshot.docs
+          .where((doc) {
+            final data = doc.data();
+            final username = (data['username'] ?? '').toString();
+            
+            // Eski kayıtları (DocID == username) filtrele
+            final isOld = doc.id == username;
+            if (isOld) {
+              debugPrint('⏭️ Skipping old record: ${doc.id}');
+              return false;
+            }
+            
+            // Case-insensitive karşılaştırma
+            final matches = username.toLowerCase().contains(lowerQuery);
+            if (!matches) {
+              debugPrint('⏭️ Skipping non-matching: $username');
+            }
+            return matches;
+          })
+          .map((doc) {
+        final data = doc.data();
+        debugPrint('✅ Found user: ${data['username']} (ID: ${doc.id})');
+        
+        // Level string veya map olabilir, güvenli şekilde işle
+        String leagueName = 'Beginner';
+        final levelData = data['level'];
+        if (levelData != null) {
+          if (levelData is String) {
+            // String ise direkt kullan (örn: "A2")
+            leagueName = levelData;
+          } else if (levelData is Map) {
+            // Map ise turkishName al
+            leagueName = levelData['turkishName'] ?? 'Beginner';
+          }
+        }
+        
+        return Friend(
+          oderId: doc.id,
+          username: data['username'] ?? 'Unknown',
+          status: OnlineStatus.online,
+          friendStatus: FriendStatus.none,
+          eloRating: (data['eloRating'] as num?)?.toInt() ?? 1000,
+          currentLeague: leagueName,
+        );
+      }).toList();
+      
+      debugPrint('🎯 Returning ${results.length} users');
+      return results;
+    } catch (e) {
+      debugPrint('❌ Search users error: $e');
+      return [];
+    }
   }
 
   /// Bekleyen düello davetlerini getir

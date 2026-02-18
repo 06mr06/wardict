@@ -1,26 +1,29 @@
+import '../../widgets/common/top_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/answered_entry.dart';
 import '../../models/question_mode.dart';
+import '../../models/user_level.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/practice_provider.dart';
 import '../../services/word_pool_service.dart';
 import '../../services/achievement_service.dart';
+import '../../services/user_profile_service.dart';
+import '../../services/sound_service.dart';
 import '../../widgets/game/achievement_celebration.dart';
-import '../../widgets/common/ad_banner_widget.dart';
-
-class PracticeResultsScreen extends StatefulWidget {
+import 'package:confetti/confetti.dart';
+class SeventyThirtyResultsScreen extends StatefulWidget {
   final PracticeSessionResult result;
-  
-  const PracticeResultsScreen({super.key, required this.result});
-  
+  const SeventyThirtyResultsScreen({super.key, required this.result});
+
   @override
-  State<PracticeResultsScreen> createState() => _PracticeResultsScreenState();
+  State<SeventyThirtyResultsScreen> createState() => _SeventyThirtyResultsScreenState();
 }
 
-class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
+class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen> {
   final Set<int> _savedIndices = {};
-  
+  late ConfettiController _confettiController;
+
   PracticeSessionResult get result => widget.result;
 
   bool get allSelected => _savedIndices.length == result.answerHistory.length && result.answerHistory.isNotEmpty;
@@ -28,16 +31,42 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
   @override
   void initState() {
     super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+    
     // Yeni kazanılan ödülleri kontrol et
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndShowNewAchievements();
+      
+      // Eğer başarı oranı yüksekse konfeti patlat
+      if (widget.result.accuracy >= 0.7) {
+        _confettiController.play();
+        // SoundService.instance.playSuccess();
+      }
     });
   }
-  
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final practiceProvider = Provider.of<PracticeProvider>(context, listen: false);
+    if (practiceProvider.duelUnlocked && result.sessionsInRow == 5) {
+      // Sadece ilk kez açıldığında göster
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showDuelUnlockedAnimation(context);
+      });
+    }
+  }
+
   Future<void> _checkAndShowNewAchievements() async {
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
-    
+
     final newAchievements = await AchievementService.instance.getNewlyUnlockedAchievements();
     if (newAchievements.isNotEmpty && mounted) {
       AchievementCelebration.showNewAchievements(context, newAchievements);
@@ -46,6 +75,10 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final practiceProvider = Provider.of<PracticeProvider>(context, listen: false);
+    final isLevelTest = !practiceProvider.duelUnlocked;
+    final sessionProgress = result.sessionsInRow;
+    
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -60,94 +93,190 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                // Header
-                const Text(
-                  'Oturum Tamamlandı!',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                // Confetti Widget
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: ConfettiWidget(
+                    confettiController: _confettiController,
+                    blastDirectionality: BlastDirectionality.explosive,
+                    shouldLoop: false,
+                    colors: const [
+                      Colors.green,
+                      Colors.blue,
+                      Colors.pink,
+                      Colors.orange,
+                      Colors.purple
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                
-                // Level change banner (if any)
-                if (result.leveledUp)
-                  _buildLevelChangeBanner(
-                    isLevelUp: true,
-                    newLevel: result.newLevel!,
-                  )
-                else if (result.leveledDown)
-                  _buildLevelChangeBanner(
-                    isLevelUp: false,
-                    newLevel: result.newLevel!,
-                  ),
-                
-                if (result.leveledUp || result.leveledDown)
-                  const SizedBox(height: 12),
-                
-                // Score card
-                _buildScoreCard(),
-                const SizedBox(height: 12),
-                
-                // Statistics
-                _buildStatisticsRow(),
-                const SizedBox(height: 12),
-                
-                // Current level
-                _buildCurrentLevelCard(),
-                const SizedBox(height: 12),
-                
-                // Answer history
+                // Header with Level Test Progress
                 Expanded(
-                  child: _buildAnswerHistory(),
-                ),
-                
-                // Reklam banner
-                const AdBannerWidget(),
-                
-                const SizedBox(height: 16),
-                
-                // Action buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.1),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      children: [
+                        // Header with Level Test Progress
+                        if (isLevelTest)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF6C27FF), Color(0xFF8E2DE2)],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF6C27FF).withOpacity(0.5),
+                                  blurRadius: 20,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.assignment_turned_in, color: Colors.amber, size: 24),
+                                const SizedBox(width: 12),
+                                Column(
+                                  children: [
+                                    const Text(
+                                      'Seviye Tespiti',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Oturum $sessionProgress / 5',
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        // Header
+                        Text(
+                          isLevelTest ? 'Test Oturumu Tamamlandı!' : 'Oturum Tamamlandı!',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        child: const Text(
-                          'Ana Sayfa',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        const SizedBox(height: 16),
+                        // ELO Assignment Display (only on 5th session)
+                        if (result.isPlacementComplete && sessionProgress == 5)
+                          _buildEloAssignmentCard(),
+                        if (result.isPlacementComplete && sessionProgress == 5)
+                          const SizedBox(height: 12),
+                        // Level change banner (if any)
+                        if (result.leveledUp)
+                          _buildLevelChangeBanner(
+                            isLevelUp: true,
+                            newLevel: result.newLevel!,
+                          )
+                        else if (result.leveledDown)
+                          _buildLevelChangeBanner(
+                            isLevelUp: false,
+                            newLevel: result.newLevel!,
+                          ),
+                        if (result.leveledUp || result.leveledDown)
+                          const SizedBox(height: 12),
+                        // Score card
+                        _buildLeagueProgressBar(),
+                        const SizedBox(height: 16),
+                        _buildScoreCard(),
+                        const SizedBox(height: 12),
+                        // Soru-Cevap Geçmişi Başlığı
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 4, top: 12, bottom: 8),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.menu_book, color: Colors.amber, size: 20),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'GÜNÜN ÖNEMLİ KELİMELERİ',
+                                  style: TextStyle(
+                                    color: Colors.amber,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
+                        SizedBox(
+                          height: 220,
+                          child: _buildAnswerHistory(),
+                        ),
+                        const SizedBox(height: 24),
+                        // Row butonlar
+                        Builder(
+                          builder: (context) {
+                            final practiceProvider = Provider.of<PracticeProvider>(context, listen: false);
+                            final duelJustUnlocked = practiceProvider.duelUnlocked && result.sessionsInRow == 5 && result.isPlacementComplete;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 20),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white.withOpacity(0.1),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                          side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Ana Sayfa',
+                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ),
+                                  if (!duelJustUnlocked) ...[
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pushReplacementNamed('/7030');
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF4CAF50),
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        ),
+                                        child: const Text(
+                                          'Devam Et',
+                                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ),
+                                  ]
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pushReplacementNamed('/practice');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF9800),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        child: const Text(
-                          'Devam Et',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -157,20 +286,48 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
     );
   }
 
+  Widget _buildLevelBadge(UserLevel level, {bool large = false}) {
+    return Container(
+      width: large ? 100 : 50,
+      height: large ? 100 : 50,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: level.gradientColors.map((c) => Color(c as int)).toList(),
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(level.color as int).withOpacity(0.5),
+            blurRadius: large ? 20 : 10,
+            spreadRadius: 2,
+          ),
+        ],
+        border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+      ),
+      child: Icon(
+        IconData(level.iconCode, fontFamily: 'MaterialIcons'),
+        color: Colors.white,
+        size: large ? 48 : 24,
+      ),
+    );
+  }
+
   Widget _buildLevelChangeBanner({required bool isLevelUp, required String newLevel}) {
+    final level = UserLevel.fromCode(newLevel);
+    
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: isLevelUp
-              ? [Colors.green.shade400, Colors.green.shade600]
-              : [Colors.red.shade400, Colors.red.shade600],
+          colors: level.gradientColors.map((c) => Color(c as int)).toList(),
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: (isLevelUp ? Colors.green : Colors.red).withOpacity(0.5),
+            color: Color(level.color as int).withOpacity(0.5),
             blurRadius: 20,
             spreadRadius: 2,
           ),
@@ -179,29 +336,208 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          _buildLevelBadge(level),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isLevelUp ? 'SEVİYE ATLADIN!' : 'SEVİYE DÜŞTÜ',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                Text(
+                  'Yeni Seviye: ${level.turkishName} (${level.code})',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
           Icon(
             isLevelUp ? Icons.arrow_upward : Icons.arrow_downward,
             color: Colors.white,
-            size: 28,
+            size: 32,
           ),
-          const SizedBox(width: 12),
-          Column(
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEloAssignmentCard() {
+    final level = UserLevel.fromCode(result.currentLevel);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'SEVİYE TESPİTİ TAMAMLANDI',
+            style: TextStyle(
+              color: Colors.amber,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _buildLevelBadge(level, large: true),
+          const SizedBox(height: 16),
+          Text(
+            level.turkishName,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 20),
+          FutureBuilder<int>(
+            future: _getEloRating(),
+            builder: (context, snapshot) {
+              final elo = snapshot.data ?? 0;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: level.gradientColors.map((c) => Color(c as int)).toList(),
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(level.color as int).withOpacity(0.3),
+                      blurRadius: 15,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'BAŞLANGIÇ ELO',
+                      style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      elo > 0 ? '$elo' : '...',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 36,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Harika bir başlangıç! Artık Düello modunda gerçek rakiplerle yarışabilirsin.',
+            style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.5),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeagueProgressBar() {
+    final correctCount = result.correctAnswers;
+    final progress = correctCount / 10.0;
+    final level = UserLevel.fromCode(result.currentLevel);
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                isLevelUp ? 'Seviye Atladın!' : 'Seviye Düştü',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+              const Text(
+                'LİG İLERLEMESİ',
+                style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
               ),
               Text(
-                'Yeni Seviye: $newLevel',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
+                '$correctCount / 10 Doğru',
+                style: TextStyle(color: Color(level.color as int), fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              // Background Bar
+              Container(
+                height: 12,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
               ),
+              // Progress Bar
+              AnimatedFractionallySizedBox(
+                duration: const Duration(milliseconds: 1000),
+                widthFactor: progress,
+                child: Container(
+                  height: 12,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: level.gradientColors.map((c) => Color(c as int)).toList(),
+                    ),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+              ),
+              // Level Up Threshold (7. doğru)
+              Positioned(
+                left: MediaQuery.of(context).size.width * 0.58, // Approx 0.7 position
+                child: Column(
+                  children: [
+                    Container(
+                      width: 2,
+                      height: 20,
+                      color: Colors.amber.withOpacity(0.8),
+                    ),
+                    const Icon(Icons.keyboard_double_arrow_up, color: Colors.amber, size: 14),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('A1', style: TextStyle(color: Colors.white30, fontSize: 10)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text('LEVEL UP SINIRI (7)', style: TextStyle(color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold)),
+              ),
+              const Text('C2', style: TextStyle(color: Colors.white30, fontSize: 10)),
             ],
           ),
         ],
@@ -209,19 +545,46 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
     );
   }
 
+  Future<int> _getEloRating() async {
+    final profile = await UserProfileService.instance.loadProfile();
+    return profile.eloRating;
+  }
+
   Widget _buildScoreCard() {
-    final isPositive = result.sessionScore >= 0;
+    final percentage = (result.accuracy * 100).round();
+    final isGood = percentage >= 70;
+    final isMedium = percentage >= 30;
+
+    Color cardColor;
+    Color textColor;
+    String performanceText;
+
+    if (isGood) {
+      cardColor = Colors.green;
+      textColor = Colors.green;
+      performanceText = 'Harika!';
+    } else if (isMedium) {
+      cardColor = const Color(0xFF00CED1); // Turkuaz
+      textColor = const Color(0xFF00CED1);
+      performanceText = 'İyi!';
+    } else {
+      cardColor = Colors.red;
+      textColor = Colors.red;
+      performanceText = 'Çalışmaya Devam!';
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: isPositive
-              ? [Colors.green.shade400.withOpacity(0.3), Colors.green.shade600.withOpacity(0.1)]
-              : [Colors.red.shade400.withOpacity(0.3), Colors.red.shade600.withOpacity(0.1)],
+          colors: [
+            cardColor.withOpacity(0.3),
+            cardColor.withOpacity(0.1)
+          ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isPositive ? Colors.green : Colors.red,
+          color: cardColor,
           width: 2,
         ),
       ),
@@ -229,26 +592,34 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.school,
-            color: isPositive ? Colors.green : Colors.red,
+            isGood ? Icons.star : isMedium ? Icons.thumb_up : Icons.school,
+            color: cardColor,
             size: 26,
           ),
           const SizedBox(width: 12),
           Column(
             children: [
               const Text(
-                'Oturum Puanı',
+                'Başarı Oranı',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 12,
                 ),
               ),
               Text(
-                isPositive ? '+${result.sessionScore}' : '${result.sessionScore}',
+                '%$percentage',
                 style: TextStyle(
-                  color: isPositive ? Colors.green : Colors.red,
+                  color: textColor,
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                performanceText,
+                style: TextStyle(
+                  color: textColor.withOpacity(0.8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
@@ -355,6 +726,66 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDuelProgressBanner() {
+    final practiceProvider = Provider.of<PracticeProvider>(context, listen: false);
+    final remainingGames = 5 - practiceProvider.sessionsInRow;
+    final message = remainingGames == 1
+      ? 'Son oyun kaldı! (4/5) Düello modu açılacak.'
+      : 'Son $remainingGames oyun kaldı! (${practiceProvider.sessionsInRow}/5) Düello modu açılacak.';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6C27FF), Color(0xFF8E2DE2)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6C27FF).withOpacity(0.5),
+            blurRadius: 20,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.flash_on,
+            color: Colors.yellow,
+            size: 28,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              children: [
+                const Text(
+                  'Düello Moduna Doğru!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
         ],
@@ -514,26 +945,6 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
                             ],
                           ),
                         ),
-                        // Puan
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: answer.isCorrect
-                                  ? [Colors.green.shade400, Colors.green.shade600]
-                                  : [Colors.red.shade400, Colors.red.shade600],
-                            ),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            answer.points > 0 ? '+${answer.points}' : '${answer.points}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -580,6 +991,8 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
           mode: questionMode,
         );
         provider.addToPool(entry);
+        SoundService.instance.playCoinSound();
+        SoundService.instance.vibrate(HapticFeedbackType.selection);
       }
     });
   }
@@ -605,13 +1018,8 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
           provider.removeFromPool(entry);
         }
         _savedIndices.clear();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tüm kelimeler havuzdan çıkarıldı'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 1),
-          ),
-        );
+        SoundService.instance.vibrate(HapticFeedbackType.medium);
+        showTopToast(context, 'Tüm kelimeler havuzdan çıkarıldı', isError: true);
       } else {
         // Tümünü seç
         for (int i = 0; i < result.answerHistory.length; i++) {
@@ -631,19 +1039,9 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
             _savedIndices.add(i);
           }
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 8),
-                Text('${result.answerHistory.length} kelime havuza eklendi'),
-              ],
-            ),
-            backgroundColor: const Color(0xFF2E5A8C),
-            duration: const Duration(seconds: 1),
-          ),
-        );
+        SoundService.instance.playCoinSound();
+        SoundService.instance.vibrate(HapticFeedbackType.heavy);
+        showTopToast(context, '${result.answerHistory.length} kelime havuza eklendi');
       }
     });
   }
@@ -660,5 +1058,63 @@ class _PracticeResultsScreenState extends State<PracticeResultsScreen> {
       case QuestionType.relation:
         return QuestionMode.engToEng;
     }
+  }
+
+  void _showDuelUnlockedAnimation(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.deepPurple.withOpacity(0.3),
+                blurRadius: 24,
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.sports_kabaddi, color: Colors.deepPurple, size: 64),
+              const SizedBox(height: 16),
+              const Text(
+                'Düello Modu Açıldı!',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Artık arkadaşlarınla veya bota karşı yarışabilirsin!',
+                style: TextStyle(fontSize: 16, color: Colors.black87),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Harika!'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

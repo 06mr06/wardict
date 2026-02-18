@@ -6,6 +6,8 @@ class VsScreen extends StatefulWidget {
   final String botAvatarUrl;
   final String userName;
   final String botName;
+  final int userScore;
+  final int botScore;
 
   const VsScreen({
     super.key,
@@ -14,6 +16,8 @@ class VsScreen extends StatefulWidget {
     this.botAvatarUrl = 'assets/images/avatar_bot.png',   // Placeholder
     this.userName = 'You',
     this.botName = 'Bot',
+    this.userScore = 0,
+    this.botScore = 0,
   });
 
   @override
@@ -148,6 +152,15 @@ class _VsScreenState extends State<VsScreen> with TickerProviderStateMixin {
                               ),
                             ),
                           ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${widget.userScore}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -201,6 +214,15 @@ class _VsScreenState extends State<VsScreen> with TickerProviderStateMixin {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${widget.botScore}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -226,7 +248,7 @@ class _VsScreenState extends State<VsScreen> with TickerProviderStateMixin {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.white.withOpacity(0.5),
+                            color: Colors.white.withValues(alpha: 0.5),
                             blurRadius: 50,
                             spreadRadius: 10,
                           )

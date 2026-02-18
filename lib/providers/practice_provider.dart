@@ -10,12 +10,17 @@ import 'base_game_provider.dart';
 
 /// Practice modu için özel provider
 class PracticeProvider extends BaseGameProvider {
+    // 5'lik blok ilerlemesi ve duel unlock
+    int get sessionsInRow => _session.sessionsInRow;
+    bool get duelUnlocked => _session.duelUnlocked;
+    int get correctInSession => _session.correctInSession;
+    int get levelStreak => _session.levelStreak;
   PracticeSession _session = const PracticeSession();
   
   // Internal session specific state
-  // ignore: unused_field - Soru listesi için saklanıyor
-  final List<GeneratedQuestion> _questions = [];
+  List<GeneratedQuestion> _questions = [];
   String _currentQuestionLevel = 'A2'; // Soru seviyesi
+  int _currentStreak = 0; // Dinamik zorluk için doğru cevap serisi
   
   // Şuanki soru bilgileri - Base getterlar için
   GeneratedQuestion? _currentQuestion;
@@ -24,6 +29,9 @@ class PracticeProvider extends BaseGameProvider {
   
   // Cevap geçmişi
   final List<PracticeAnswerRecord> _answerHistory = [];
+
+  // Önceki yanlış kelimeleri saklamak için alan
+  List<String> _previousWrongWords = [];
 
   // --- BaseGameProvider Implementation ---
   
@@ -65,47 +73,91 @@ class PracticeProvider extends BaseGameProvider {
   PracticeSession get session => _session;
   int get currentQuestionIndex => index; // Using Base 'index'
   int get sessionScore => score; // Using Base 'score'
+  @override
   String get currentLevel => _session.currentLevel;
-  bool get isSessionComplete => index >= 10;
-  int get questionsRemaining => 10 - index;
+  @override
+  bool get isSessionComplete => _answerHistory.length >= 10;
+  int get questionsRemaining => 10 - _answerHistory.length;
   List<PracticeAnswerRecord> get answerHistory => List.unmodifiable(_answerHistory);
+  int get totalSessionsCompleted => _session.totalSessionsCompleted;
 
   /// Yeni practice oturumu başlat
   @override
   Future<void> startSession() async {
     final profile = await UserProfileService.instance.loadProfile();
     _session = profile.practiceSession;
-    
     // Yeni oturum başlat
     if (_session.totalInSession >= 10) {
-      _session = _session.startNewSession();
+      // Seviye değiştiyse blok baştan başlar
+      bool levelChanged = false;
+      if (_session.lastLevel != null && _session.lastLevel != _session.currentLevel) {
+        levelChanged = true;
+      }
+      _session = _session.startNewSession(levelChanged: levelChanged);
     }
     
+    // Start fresh at A2 for the very first placement test session
+    if (_session.totalSessionsCompleted == 0) {
+      // Ensure we start at A2 if this is the very first time
+      if (_session.currentLevel != 'A2') {
+         _session = PracticeSession(currentLevel: 'A2');
+      }
+    }
+    
+    // Sanity Check: If total sessions < 5, duel CANNOT be unlocked yet.
+    // This fixes issues with dirty data or premature unlocks.
+    if (_session.totalSessionsCompleted < 5 && _session.duelUnlocked) {
+      _session = PracticeSession(
+        sessionNumber: _session.sessionNumber,
+        correctInSession: _session.correctInSession,
+        totalInSession: _session.totalInSession,
+        consecutiveCorrect: _session.consecutiveCorrect,
+        consecutiveWrong: _session.consecutiveWrong,
+        currentLevel: _session.currentLevel,
+        totalSessionsCompleted: _session.totalSessionsCompleted,
+        levelStreak: _session.levelStreak,
+        lastLevel: _session.lastLevel,
+        lastTwoSessionsCorrectCount: _session.lastTwoSessionsCorrectCount,
+        consecutiveHighSuccess: _session.consecutiveHighSuccess,
+        consecutiveLowSuccess: _session.consecutiveLowSuccess,
+        sessionsInRow: _session.sessionsInRow,
+        duelUnlocked: false, // FORCE FALSE
+      );
+    }
+
+    // Yüklenen seanstaki tamamlanan soru sayısına göre indeksi ayarla
     index = _session.totalInSession;
     score = 0;
     _currentQuestionLevel = _session.currentLevel;
     _answerHistory.clear();
     
+    // Kelime havuzunu yükle
+    await WordPoolService.instance.loadWordPool();
+    
+    // 10 benzersiz soru üret
+    _questions = WordPoolService.instance.generateQuestions70_30(
+      UserLevel.fromCode(_currentQuestionLevel),
+      previousWrongWords: _previousWrongWords,
+    );
     // İlk soruyu yükle
+    _currentStreak = 0;
     await _loadNextQuestion();
     notifyListeners();
   }
 
   /// Sonraki soruyu yükle
   Future<void> _loadNextQuestion() async {
-    // Seviyeye göre soru getir
-    final level = UserLevel.fromCode(_currentQuestionLevel);
-    // TODO: We technically only need 1 question at a time if we generate on the fly
-    // or we can pre-generate 10. Current logic generates 1.
-    final questions = WordPoolService.instance.generateQuestionsForLevel(level, 1);
-    
-    if (questions.isNotEmpty) {
-      _currentQuestion = questions.first;
-      
-      // Şıkları karıştır
+    // 10'luk oturumda önceden üretilmiş sorulardan sıradakini al
+    if (index < _questions.length) {
+      _currentQuestion = _questions[index];
       _shuffledOptions = List.from(_currentQuestion!.options);
       _shuffledOptions.shuffle();
       _shuffledCorrectIndex = _shuffledOptions.indexOf(_currentQuestion!.options[_currentQuestion!.correctIndex]);
+      
+      // Soru seviyesini güncelle
+      _currentQuestionLevel = _currentQuestion!.level;
+    } else {
+      _currentQuestion = null;
     }
   }
 
@@ -117,18 +169,8 @@ class PracticeProvider extends BaseGameProvider {
     final isCorrect = selectedIndex == _shuffledCorrectIndex && selectedIndex != -1;
     final questionLevel = _currentQuestionLevel;
     
-    // Puan hesapla
-    int points = 0;
-    if (isCorrect) {
-      points = PracticeScoring.calculateCorrectPoints(questionLevel);
-    } else if (selectedIndex != -1) {
-      points = PracticeScoring.calculateWrongPoints(questionLevel);
-    } else {
-      // Süre doldu, cevap verilmedi
-      points = PracticeScoring.calculateWrongPoints(questionLevel);
-    }
-    
-    score += points;
+    // Puan hesaplanmıyor - sadece doğru/yanlış takip ediliyor
+    const int points = 0;
     
     // Cevap kaydı ekle
     _answerHistory.add(PracticeAnswerRecord(
@@ -144,21 +186,24 @@ class PracticeProvider extends BaseGameProvider {
     // Session güncelle
     if (isCorrect) {
       _session = _session.onCorrectAnswer();
+      _currentStreak++;
     } else {
       _session = _session.onWrongAnswer();
+      _currentStreak = 0; // Hata yapınca seri sıfırlanır
+      // Yanlış cevap verildiğinde kelimeyi önceki yanlışlar listesine ekle
+      _previousWrongWords.add(_currentQuestion!.options[_currentQuestion!.correctIndex]);
     }
     
-    index++;
+    // NOT: index burada artmıyor, _nextQuestionInternal içinde artacak
+    // Böylece yeni soru gelene kadar UI'daki soru numarası sabit kalır.
     
-    // Profili güncelle
-    await UserProfileService.instance.updatePracticeScore(points);
+    // Profili güncelle (puan güncellemesi kaldırıldı)
     await UserProfileService.instance.updatePracticeSession(_session);
     
     // Günlük görev ilerlemesini güncelle
     if (isCorrect) {
       QuestService.instance.updateProgress(QuestType.answerQuestions, 1);
     }
-    QuestService.instance.updateProgress(QuestType.earnPoints, points);
     
     notifyListeners();
   }
@@ -166,43 +211,75 @@ class PracticeProvider extends BaseGameProvider {
   /// Sonraki soruya geç
   Future<void> _nextQuestionInternal() async {
     if (isSessionComplete) return;
+    index++; // İndeksi şimdi artırıyoruz
     await _loadNextQuestion();
     notifyListeners();
   }
 
-  /// Oturumu tamamla
-  /// Yeni kurgu: 2 üst üste %70+ = seviye atla, 2 üst üste %30- = seviye düş
+  /// Oturumu tamamla (seviye tespit sistemi)
   Future<PracticeSessionResult> completeSession() async {
     _session = _session.completeSession();
-    
+
     bool leveledUp = false;
     bool leveledDown = false;
     String? newLevel;
+
+    // Seviye değişimi kontrolü
+    // İlk 5 oturum (Placement Test): Anında seviye atlama/düşme
+    // Normal Practice: 2 kere üst üste %70+ (artış) veya %30- (düşüş)
     
-    // Seviye değerlendirmesi (completeSession sonrası canLevelUp/shouldLevelDown kontrol et)
-    if (_session.canLevelUp && _session.currentLevel != 'C2') {
-      // 2 üst üste %70+ başarı - seviye artır
+    bool shouldLevelUp = false;
+    bool shouldLevelDown = false;
+
+    if (_session.totalSessionsCompleted <= 5) {
+      // Placement Phase: Anında tepki
+      if (_session.correctInSession >= 7) shouldLevelUp = true;
+      if (_session.correctInSession <= 3) shouldLevelDown = true;
+    } else {
+      // Normal Phase: 2'li seri kuralı
+      if (_session.consecutiveHighSuccess >= 2) shouldLevelUp = true;
+      if (_session.consecutiveLowSuccess >= 2) shouldLevelDown = true;
+    }
+
+    if (shouldLevelUp) {
       final nextLevel = PracticeScoring.getNextLevel(_session.currentLevel);
       if (nextLevel != _session.currentLevel) {
         _session = _session.withLevel(nextLevel);
         leveledUp = true;
         newLevel = nextLevel;
+        await UserProfileService.instance.updateLevel(UserLevel.fromCode(nextLevel));
       }
-    } else if (_session.shouldLevelDown && _session.currentLevel != 'A1') {
-      // 2 üst üste %30- başarısızlık - seviye düşür
+    } else if (shouldLevelDown && _session.currentLevel != 'A1') {
       final prevLevel = PracticeScoring.getPreviousLevel(_session.currentLevel);
       if (prevLevel != _session.currentLevel) {
         _session = _session.withLevel(prevLevel);
         leveledDown = true;
         newLevel = prevLevel;
+        await UserProfileService.instance.updateLevel(UserLevel.fromCode(prevLevel));
       }
     }
     
-    // Profili güncelle
+    // 5. Oyun sonu: Placement Test bitişi ve ELO ataması
+    if (_session.totalSessionsCompleted == 5) {
+      // Seviyeye göre başlangıç ELO'sunu ata
+      await UserProfileService.instance.assignInitialEloByLevel(
+        UserLevel.fromCode(_session.currentLevel)
+      );
+      
+      // Testin tamamlandığını işaretle
+      await UserProfileService.instance.markPlacementTestCompleted();
+    }
+
+    // Profili güncelle (her durumda session güncel)
     await UserProfileService.instance.updatePracticeSession(_session);
     
     // Günlük görev ilerlemesini güncelle (Alıştırma tamamlama)
     QuestService.instance.updateProgress(QuestType.playPractice, 1);
+    
+    // Görev: Kusursuz (10/10)
+    if (_session.correctInSession == 10) {
+      QuestService.instance.updateProgress(QuestType.perfectPractice, 1);
+    }
     
     // Seviye serisi başarımı kontrol et (7 maç kuralı)
     if (_session.levelStreak >= 7) {
@@ -213,17 +290,25 @@ class PracticeProvider extends BaseGameProvider {
     // Cache'i temizle (profil güncellemesi için)
     UserProfileService.instance.clearCache();
     
+    // Oturum sonunda yanlış yapılan kelimeleri kaydet
+    _previousWrongWords = _answerHistory
+        .where((a) => !a.isCorrect && a.selectedAnswer != null)
+        .map((a) => a.correctAnswer)
+        .toList();
+    
     return PracticeSessionResult(
       totalQuestions: 10,
       correctAnswers: _session.correctInSession,
-      sessionScore: score,
+      sessionScore: 0, // Puan hesaplanmıyor
       leveledUp: leveledUp,
       leveledDown: leveledDown,
       newLevel: newLevel,
       currentLevel: _session.currentLevel,
       answerHistory: _answerHistory,
-      consecutiveHighSuccess: _session.consecutiveHighSuccess,
-      consecutiveLowSuccess: _session.consecutiveLowSuccess,
+      consecutiveHighSuccess: 0,
+      consecutiveLowSuccess: 0,
+      sessionsInRow: _session.sessionsInRow,
+      isPlacementComplete: _session.duelUnlocked && _session.totalSessionsCompleted == 5,
     );
   }
 
@@ -238,6 +323,13 @@ class PracticeProvider extends BaseGameProvider {
     
     await UserProfileService.instance.updatePracticeSession(_session);
     await _loadNextQuestion();
+    notifyListeners();
+  }
+
+  /// Profile'dan session durumunu yükle (ana sayfada göstermek için)
+  Future<void> loadSessionFromProfile() async {
+    final profile = await UserProfileService.instance.reloadProfile();
+    _session = profile.practiceSession;
     notifyListeners();
   }
 }
@@ -274,6 +366,8 @@ class PracticeSessionResult {
   final List<PracticeAnswerRecord> answerHistory;
   final int consecutiveHighSuccess; // Üst üste yüksek başarı sayısı
   final int consecutiveLowSuccess;  // Üst üste düşük başarı sayısı
+  final int sessionsInRow; // Seviye tespitinde kaç oturum oynandı
+  final bool isPlacementComplete;
 
   const PracticeSessionResult({
     required this.totalQuestions,
@@ -286,6 +380,8 @@ class PracticeSessionResult {
     required this.answerHistory,
     this.consecutiveHighSuccess = 0,
     this.consecutiveLowSuccess = 0,
+    required this.sessionsInRow,
+    this.isPlacementComplete = false,
   });
 
   double get accuracy => totalQuestions > 0 ? correctAnswers / totalQuestions : 0;

@@ -8,6 +8,7 @@ import '../../models/league.dart';
 import '../../widgets/common/top_toast.dart';
 import '../../widgets/game/game_confetti.dart';
 import '../../widgets/game/achievement_celebration.dart';
+import 'bonus_breakdown_widget.dart';
 import '../../widgets/common/ad_banner_widget.dart';
 import 'package:confetti/confetti.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,6 +41,39 @@ class DuelResultsScreen extends StatefulWidget {
 }
 
 class _DuelResultsScreenState extends State<DuelResultsScreen> {
+    // Bonus breakdown calculation
+    Map<String, int> _calculateBonuses() {
+      int streakBonus = 0;
+      int speedBonus = 0;
+      int upperLevelBonus = 0;
+      int maxStreak = 0;
+      int fastAnswers = 0;
+      for (final e in items) {
+        if (e.selectedIndex == e.correctIndex && e.selectedIndex != -1) {
+          // Streak: count max streak
+          maxStreak++;
+          // Speed: if earnedPoints was with high multiplier (assume >1.2x means fast)
+          if (e.earnedPoints >= (e.mode == QuestionMode.engToEng ? 18 : 15)) {
+            fastAnswers++;
+          }
+          // Upper level: if mode is engToEng (assume upper level)
+          if (e.mode == QuestionMode.engToEng) {
+            upperLevelBonus += 5; // Example: 5 points per upper level correct
+          }
+        } else {
+          if (maxStreak > streakBonus) streakBonus = maxStreak;
+          maxStreak = 0;
+        }
+      }
+      if (maxStreak > streakBonus) streakBonus = maxStreak;
+      streakBonus = streakBonus > 1 ? streakBonus * 2 : 0; // Example: 2 points per streak
+      speedBonus = fastAnswers * 3; // Example: 3 points per fast answer
+      return {
+        'Streak Bonus': streakBonus,
+        'Speed Bonus': speedBonus,
+        'Upper Level Bonus': upperLevelBonus,
+      };
+    }
   final Set<int> _selectedIndices = {};
 
   int get userScore => widget.userScore;
@@ -215,309 +249,210 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
   Widget build(BuildContext context) {
     final isWin = userScore > botScore;
     final isDraw = userScore == botScore;
+    final bonuses = _calculateBonuses();
+    
     return Scaffold(
       body: Stack(
         children: [
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
+                colors: [Color(0xFF1A3A5C), Color(0xFF0D1B2A)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
             ),
             child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _vibrantScoreboard(userScore, botScore, userElo, botElo, eloChange),
-                const SizedBox(height: 8),
-                // Elo Change Display with League Icon
-                if (league != null && eloChange != 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: eloChange > 0 
-                          ? Colors.green.withOpacity(0.2)
-                          : Colors.red.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: eloChange > 0 ? Colors.green : Colors.red,
-                        width: 1,
-                      ),
-                    ),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _leagueIcon(league!),
-                          const SizedBox(width: 8),
-                          Icon(
-                            eloChange > 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                            color: eloChange > 0 ? Colors.green : Colors.red,
-                            size: 18,
-                          ),
-                          Text(
-                            '${eloChange > 0 ? '+' : ''}$eloChange WP',
-                            style: TextStyle(
-                              color: eloChange > 0 ? Colors.green : Colors.red,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 12),
-                // Result Banner
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isDraw
-                          ? [Colors.purple.shade400, Colors.purple.shade600]
-                          : isWin
-                              ? [Colors.green.shade400, Colors.green.shade600]
-                              : [Colors.red.shade400, Colors.red.shade600],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (isDraw ? Colors.purple : isWin ? Colors.green : Colors.red).withOpacity(0.5),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    isDraw ? '🤝 Berabere!' : (isWin ? '🏆 Kazandın!' : '😢 Kaybettin'),
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // Tümünü Seç / Tümünü Kaldır header
-                if (items.isNotEmpty)
+              child: Column(
+                children: [
+                  // Header
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.all(16.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Kelimeler',
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white70),
+                          onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false),
+                        ),
+                        Text(
+                          isDraw ? 'BERABERE' : (isWin ? 'ZAFER!' : 'MAĞLUBİYET'),
                           style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            color: isDraw ? Colors.amber : (isWin ? Colors.greenAccent : Colors.redAccent),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 2,
                           ),
                         ),
-                        GestureDetector(
-                          onTap: _toggleAll,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: allSelected 
-                                  ? Colors.orange.withOpacity(0.3)
-                                  : const Color(0xFF6C27FF).withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: allSelected ? Colors.orange : const Color(0xFF6C27FF),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  allSelected ? Icons.remove_circle : Icons.add_circle,
-                                  color: allSelected ? Colors.orange : const Color(0xFF6C27FF),
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  allSelected ? 'Tümünü Kaldır' : 'Tümünü Seç',
-                                  style: TextStyle(
-                                    color: allSelected ? Colors.orange : const Color(0xFF6C27FF),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.share, color: Colors.white70),
+                          onPressed: () => _shareResult(context),
                         ),
                       ],
                     ),
                   ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: items.isEmpty
-                      ? const Center(child: Text('Kayıt bulunamadı', style: TextStyle(color: Colors.white70)))
-                      : ListView.separated(
-                          itemCount: items.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
-                          itemBuilder: (context, i) {
-                            final e = items[i];
-                            final isCorrect = e.selectedIndex == e.correctIndex && e.selectedIndex != -1;
-                            final isSaved = _selectedIndices.contains(i);
-                            final op = _modeOperator(e.mode);
-                            final answerLine = '$op ${e.correctText}';
-                            return GestureDetector(
-                              onTap: () => _toggleItem(i),
-                              child: Container(
+
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        children: [
+                          // Scoreboard
+                          _vibrantScoreboard(userScore, botScore, userElo, botElo, eloChange),
+                          const SizedBox(height: 24),
+
+                          // Bonus Breakdown
+                          BonusBreakdownWidget(bonuses: bonuses),
+                          const SizedBox(height: 24),
+
+                          // Answer History Header
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Cevap Geçmişi',
+                                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              TextButton.icon(
+                                onPressed: _toggleAll,
+                                icon: Icon(allSelected ? Icons.remove_circle_outline : Icons.add_circle_outline, size: 18, color: Color(0xFF6C27FF)),
+                                label: Text(
+                                  allSelected ? 'Temizle' : 'Tümünü Ekle',
+                                  style: const TextStyle(color: Color(0xFF6C27FF), fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+
+                          // Answer History List
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: items.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final item = items[index];
+                              final isCorrect = item.selectedIndex == item.correctIndex;
+                              final isSaved = _selectedIndices.contains(index);
+                              
+                              return Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: isSaved 
-                                        ? [Colors.green.withOpacity(0.2), Colors.green.withOpacity(0.1)]
-                                        : [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
+                                  color: Colors.white.withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: isSaved 
-                                        ? Colors.green.withOpacity(0.5)
-                                        : Colors.white.withOpacity(0.2),
+                                    color: isSaved ? Colors.green.withOpacity(0.5) : Colors.white.withOpacity(0.1),
                                     width: isSaved ? 2 : 1,
                                   ),
                                 ),
                                 child: Row(
                                   children: [
-                                    // Checkbox style indicator
-                                    Container(
-                                      width: 24,
-                                      height: 24,
-                                      decoration: BoxDecoration(
-                                        color: isSaved ? Colors.green : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                          color: isSaved ? Colors.green : Colors.white54,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      child: isSaved 
-                                          ? const Icon(Icons.check, color: Colors.white, size: 16)
-                                          : null,
-                                    ),
+                                    _modeBadgeWidget(item.mode),
                                     const SizedBox(width: 12),
-                                    // Mode badge
-                                    _modeBadgeWidget(e.mode),
-                                    const SizedBox(width: 8),
-                                    // Content
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            _modeLabel(e.mode),
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.white70,
-                                              fontSize: 12,
-                                            ),
+                                            item.prompt,
+                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                           ),
-                                          const SizedBox(height: 2),
                                           Text(
-                                            '${e.prompt} $answerLine',
-                                            style: const TextStyle(fontSize: 14, color: Colors.white),
+                                            '${_modeOperator(item.mode)} ${item.correctText}',
+                                            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    // Powerups
-                                    if (e.usedPowerups.isNotEmpty) ...[
-                                      const SizedBox(width: 8),
-                                      Row(
-                                          children: e.usedPowerups.map((p) => Padding(
-                                              padding: const EdgeInsets.only(right: 4),
-                                              child: Text(p.emoji, style: const TextStyle(fontSize: 16))
-                                          )).toList(),
-                                      ),
-                                    ],
-                                    // Points
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: isCorrect
-                                              ? [Colors.green.shade400, Colors.green.shade600]
-                                              : [Colors.red.shade400, Colors.red.shade600],
+                                    if (!isCorrect && item.selectedIndex != -1)
+                                      Padding(
+                                        padding: const EdgeInsets.only(right: 8.0),
+                                        child: Text(
+                                          item.selectedText ?? '',
+                                          style: const TextStyle(color: Colors.redAccent, fontSize: 12, decoration: TextDecoration.lineThrough),
                                         ),
-                                        borderRadius: BorderRadius.circular(999),
                                       ),
-                                      child: Text(
-                                        '+${e.earnedPoints}',
-                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                    IconButton(
+                                      icon: Icon(
+                                        isSaved ? Icons.bookmark : Icons.bookmark_border,
+                                        color: isSaved ? Colors.green : Colors.white38,
                                       ),
+                                      onPressed: () => _toggleItem(index),
                                     ),
                                   ],
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-                const SizedBox(height: 12),
-                
-                // Chess.com benzeri büyük reklam banner
-                const AdBannerWidget(isMediumRectangle: true),
-                const SizedBox(height: 12),
-                
-                SizedBox(
-                  width: double.infinity,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF6C27FF),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              );
+                            },
                           ),
-                          onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
-                          child: const Text('Ana Sayfa', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        ),
+                          const SizedBox(height: 100), // Bottom padding for buttons
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      // Rematch Butonu
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF6B6B),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        onPressed: _requestRematch,
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.replay, size: 20),
-                            SizedBox(width: 4),
-                            Text('Rövanş', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2AA7FF),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        onPressed: () => _shareResult(context),
-                        child: const Icon(Icons.share, size: 20),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ),
-      GameConfetti(controller: _confettiController),
+
+          // Bottom Buttons
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _requestRematch,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white24),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: const Text('RÖVANŞ', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6C27FF),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 8,
+                        shadowColor: const Color(0xFF6C27FF).withOpacity(0.5),
+                      ),
+                      child: const Text('DEVAM ET', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Confetti Overlay
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              colors: const [Colors.green, Colors.blue, Colors.pink, Colors.orange, Colors.purple],
+            ),
+          ),
         ],
       ),
     );
@@ -535,7 +470,6 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
   }
 
   Widget _vibrantScoreboard(int left, int right, int leftElo, int rightElo, int eloChange) {
-    final isWin = left > right;
     final userEloChange = eloChange;
     final botEloChange = -eloChange; // Rakip ters puan alır
     
@@ -566,9 +500,9 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                         ),
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
-                          BoxShadow(color: const Color(0xFF2AA7FF).withOpacity(0.5), blurRadius: 20, offset: const Offset(0, 8)),
+                          BoxShadow(color: const Color(0xFF2AA7FF).withValues(alpha: 0.5), blurRadius: 20, offset: const Offset(0, 8)),
                         ],
-                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -582,7 +516,7 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.3),
+                                color: Colors.black.withValues(alpha: 0.3),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Row(
@@ -621,9 +555,9 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                         ),
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
-                          BoxShadow(color: const Color(0xFFFF9800).withOpacity(0.5), blurRadius: 20, offset: const Offset(0, 8)),
+                          BoxShadow(color: const Color(0xFFFF9800).withValues(alpha: 0.5), blurRadius: 20, offset: const Offset(0, 8)),
                         ],
-                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -637,7 +571,7 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.3),
+                                color: Colors.black.withValues(alpha: 0.3),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Row(
@@ -704,7 +638,39 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
     }
   }
 
-  void _shareResult(BuildContext context) {
+  Future<void> _shareResult(BuildContext context) async {
+    // Paylaşılabilirlik sadece VIP (Premium) üyelere olacak
+    final isPremium = await ShopService.instance.hasFeature('share_results');
+    
+    if (!isPremium) {
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF1A3A5C),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.star, color: Colors.amber),
+              SizedBox(width: 8),
+              Text('Premium Özellik', style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: const Text(
+            'Sonuçlarını paylaşma özelliği sadece Premium üyelerimiz içindir. Sen de Premium\'a geçip tüm özelliklerin kilidini açabilirsin!',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('TAMAM', style: TextStyle(color: Colors.amber)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final isWin = userScore > botScore;
     final isDraw = userScore == botScore;
     
@@ -740,7 +706,7 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
     }
     
     String shareText = '''
-$resultEmoji WARDICT Duel Sonucu $resultEmoji
+$resultEmoji LUGORENA Duel Sonucu $resultEmoji
 
 📊 Skor: $userScore - $botScore
 🎯 Başarı: %$accuracy
@@ -748,8 +714,8 @@ $resultText
 
 ${league != null && eloChange != 0 ? '$leagueEmoji ${league!.name}: ${eloChange > 0 ? '+' : ''}$eloChange' : ''}
 
-🎮 Sen de WARDICT ile kelime bilgini test et!
-#WARDICT #VocabularyGame #EnglishLearning
+🎮 Sen de LUGORENA ile kelime bilgini test et!
+#LUGORENA #VocabularyGame #EnglishLearning
 ''';
     
     Share.share(shareText.trim());

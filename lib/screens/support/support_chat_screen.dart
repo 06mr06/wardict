@@ -136,7 +136,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.1),
+        color: Colors.black.withValues(alpha: 0.1),
       ),
       child: Row(
         children: [
@@ -240,12 +240,12 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.white.withOpacity(0.5)),
+          Icon(Icons.error_outline, size: 64, color: Colors.white.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text(
             'Talep bulunamadı',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 18,
             ),
           ),
@@ -308,7 +308,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: isAdmin
-                    ? Colors.white.withOpacity(0.15)
+                    ? Colors.white.withValues(alpha: 0.15)
                     : const Color(0xFF6C27FF),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
@@ -330,7 +330,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
               child: Text(
                 _formatTime(message.createdAt),
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 11,
                 ),
               ),
@@ -361,14 +361,14 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.1),
+        color: Colors.black.withValues(alpha: 0.1),
       ),
       child: Row(
         children: [
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: TextField(
@@ -379,7 +379,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
                 onSubmitted: (_) => _sendMessage(),
                 decoration: InputDecoration(
                   hintText: 'Mesajınızı yazın...',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   border: InputBorder.none,
                 ),

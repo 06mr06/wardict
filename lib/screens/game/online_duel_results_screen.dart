@@ -5,6 +5,8 @@ import '../../models/answered_entry.dart';
 import '../../providers/game_provider.dart';
 import '../../widgets/game/game_confetti.dart';
 import '../../widgets/common/ad_banner_widget.dart';
+import 'online_duel_screen.dart';
+import '../../services/online_duel_service.dart';
 
 class OnlineDuelResultsScreen extends StatefulWidget {
   final bool isWinner;
@@ -17,6 +19,8 @@ class OnlineDuelResultsScreen extends StatefulWidget {
   final List<AnsweredEntry> answeredItems;
   final String? myAvatarEmoji;
   final String? opponentAvatarEmoji;
+  final String? opponentId;
+  final String? leagueCode;
 
   const OnlineDuelResultsScreen({
     super.key,
@@ -30,6 +34,8 @@ class OnlineDuelResultsScreen extends StatefulWidget {
     this.answeredItems = const [],
     this.myAvatarEmoji,
     this.opponentAvatarEmoji,
+    this.opponentId,
+    this.leagueCode,
   });
 
   @override
@@ -255,7 +261,7 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: titleColor.withOpacity(0.2),
+            color: titleColor.withValues(alpha: 0.2),
             border: Border.all(color: titleColor, width: 2),
           ),
           child: Text(emoji, style: const TextStyle(fontSize: 40)),
@@ -278,6 +284,9 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
     final iWon = widget.isWinner && !isDraw;
     final theyWon = !widget.isWinner && !isDraw;
     
+    final myEloChange = iWon ? 25 : (isDraw ? 10 : -25);
+    final opponentEloChange = theyWon ? 25 : (isDraw ? 10 : -25);
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -291,6 +300,7 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
               isWinner: iWon,
               cardColor: iWon ? Colors.green : Colors.blue,
               initial: 'S',
+              eloChange: myEloChange,
             ),
           ),
           
@@ -316,11 +326,13 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
               isWinner: theyWon,
               cardColor: theyWon ? Colors.green : Colors.red.shade700,
               initial: widget.opponentName.isNotEmpty ? widget.opponentName[0].toUpperCase() : 'R',
+              eloChange: opponentEloChange,
             ),
           ),
         ],
       ),
     );
+
   }
 
   Widget _buildCompactPlayerCard({
@@ -330,7 +342,24 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
     required bool isWinner,
     required Color cardColor,
     required String initial,
+    int? eloChange, // New param
   }) {
+    String eloText = '';
+    Color eloColor = Colors.white;
+    
+    if (eloChange != null) {
+      if (eloChange > 0) {
+        eloText = '+$eloChange ELO';
+        eloColor = Colors.greenAccent;
+      } else if (eloChange < 0) {
+        eloText = '$eloChange ELO';
+        eloColor = Colors.redAccent;
+      } else {
+        eloText = '+0 ELO';
+        eloColor = Colors.white70;
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       decoration: BoxDecoration(
@@ -339,12 +368,12 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            cardColor.withOpacity(0.4),
-            cardColor.withOpacity(0.2),
+            cardColor.withValues(alpha: 0.4),
+            cardColor.withValues(alpha: 0.2),
           ],
         ),
         border: Border.all(
-          color: cardColor.withOpacity(0.6),
+          color: cardColor.withValues(alpha: 0.6),
           width: 2,
         ),
       ),
@@ -357,8 +386,8 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
             height: 50,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: cardColor.withOpacity(0.3),
-              border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+              color: cardColor.withValues(alpha: 0.3),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2),
             ),
             child: Center(
               child: avatarEmoji != null && avatarEmoji.isNotEmpty
@@ -397,12 +426,26 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
               color: cardColor,
               shadows: [
                 Shadow(
-                  color: cardColor.withOpacity(0.5),
+                  color: cardColor.withValues(alpha: 0.5),
                   blurRadius: 10,
                 ),
               ],
             ),
           ),
+          
+          // ELO Değişimi
+          if (eloChange != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                eloText,
+                style: TextStyle(
+                  color: eloColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
           
           // Kazanan rozet
           if (isWinner)
@@ -437,7 +480,7 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white24),
         ),
@@ -514,8 +557,8 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
                     color: isCorrect
-                        ? Colors.green.withOpacity(0.2)
-                        : Colors.red.withOpacity(0.2),
+                        ? Colors.green.withValues(alpha: 0.2)
+                        : Colors.red.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: isSelected ? Colors.amber : Colors.transparent,
@@ -530,8 +573,8 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isCorrect
-                            ? Colors.green.withOpacity(0.3)
-                            : Colors.red.withOpacity(0.3),
+                            ? Colors.green.withValues(alpha: 0.3)
+                            : Colors.red.withValues(alpha: 0.3),
                       ),
                       child: Icon(
                         isCorrect ? Icons.check : Icons.close,
@@ -562,7 +605,7 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.deepPurple.withOpacity(0.5),
+                            color: Colors.deepPurple.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -648,10 +691,50 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
           // Tekrar oyna butonu
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () {
-                // Bir önceki ekrana dön (matchmaking veya online duel menü)
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
+              onPressed: () async {
+                if (widget.isDemo || widget.opponentId == null) {
+                  // Bot ise direkt yeni bot maçı başlat
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                  // WelcomeScreen'deki startBotDuel'i taklit etmeliyiz veya oraya yönlendirmeliyiz
+                  // Şimdilik ana sayfaya dönmek en güvenlisi
+                  return;
+                }
+
+                // Show loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(child: CircularProgressIndicator()),
+                );
+
+                final match = await OnlineDuelService.instance.inviteRematch(
+                  widget.opponentId!,
+                  widget.leagueCode ?? 'A1',
+                );
+
+                if (mounted) {
+                  Navigator.pop(context); // Close loading
+                  
+                  if (match != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Rövanş daveti gönderildi! Bekleniyor...')),
+                    );
+                    
+                    // VsScreen'e git (Davet kabul edilene kadar beklenecek)
+                    // Matchmaking'deki gibi bir VsScreen dehlizine girmeli
+                    // Ama basitlik için OnlineDuelScreen'e (waiting) yönlendirebiliriz
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => OnlineDuelScreen(match: match),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Davet gönderilemedi.')),
+                    );
+                  }
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepPurple,
@@ -662,9 +745,9 @@ class _OnlineDuelResultsScreenState extends State<OnlineDuelResultsScreen>
                 ),
               ),
               icon: const Icon(Icons.refresh),
-              label: const Text(
-                'Tekrar Oyna',
-                style: TextStyle(fontWeight: FontWeight.bold),
+               label: Text(
+                widget.isDemo ? 'Tekrar Oyna' : 'Rövanş Yap',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ),

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// Reklam türleri
 enum AdType {
@@ -46,8 +48,7 @@ class AdService {
     if (_isInitialized) return;
 
     try {
-      // google_mobile_ads paketi eklendiğinde:
-      // await MobileAds.instance.initialize();
+      await MobileAds.instance.initialize();
       
       _bannerAdUnitId = bannerAdUnitId;
       _interstitialAdUnitId = interstitialAdUnitId;
@@ -95,13 +96,10 @@ class AdService {
 
   /// Interstitial reklam yükle ve göster
   Future<bool> showInterstitialAd() async {
-    if (_isAdLoading) return false;
+    if (_isAdLoading || _isPremium) return false;
     
     try {
       _isAdLoading = true;
-      
-      // google_mobile_ads paketi eklendiğinde:
-      /*
       final completer = Completer<bool>();
       
       InterstitialAd.load(
@@ -129,12 +127,6 @@ class AdService {
       );
       
       return await completer.future;
-      */
-      
-      // Simülasyon modu
-      await Future.delayed(const Duration(seconds: 1));
-      debugPrint('Interstitial ad shown (simulated)');
-      return true;
     } catch (e) {
       debugPrint('Error showing interstitial ad: $e');
       return false;
@@ -150,9 +142,6 @@ class AdService {
     
     try {
       _isAdLoading = true;
-      
-      // google_mobile_ads paketi eklendiğinde:
-      /*
       final completer = Completer<int>();
       
       RewardedAd.load(
@@ -183,12 +172,6 @@ class AdService {
       );
       
       return await completer.future;
-      */
-      
-      // Simülasyon modu
-      await Future.delayed(const Duration(seconds: 2));
-      debugPrint('Rewarded ad shown (simulated), reward: $defaultReward');
-      return defaultReward;
     } catch (e) {
       debugPrint('Error showing rewarded ad: $e');
       return 0;

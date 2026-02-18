@@ -1,4 +1,4 @@
-import 'package:wardict_skeleton/models/question_mode.dart';
+import 'question_mode.dart';
 import 'powerup.dart';
 
 class AnsweredEntry {

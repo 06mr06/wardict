@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/friend.dart';
 import '../../services/friend_service.dart';
-import '../../services/online_duel_service.dart';
 import '../game/matchmaking_screen.dart';
 
 class FriendsScreen extends StatefulWidget {
@@ -129,78 +128,51 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('${friend.username} ile Düello'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Hangi ligde düello yapmak istersin?'),
-            const SizedBox(height: 16),
-            _LeagueOption(
-              icon: '🌱',
-              title: 'Beginner',
-              subtitle: 'Temel kelimeler',
-              onTap: () => Navigator.pop(ctx, 'A'),
-            ),
-            const SizedBox(height: 8),
-            _LeagueOption(
-              icon: '⚡',
-              title: 'Intermediate',
-              subtitle: 'Orta seviye',
-              onTap: () => Navigator.pop(ctx, 'B'),
-            ),
-            const SizedBox(height: 8),
-            _LeagueOption(
-              icon: '🔥',
-              title: 'Advanced',
-              subtitle: 'İleri seviye',
-              onTap: () => Navigator.pop(ctx, 'C'),
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Hangi ligde düello yapmak istersin?'),
+              const SizedBox(height: 16),
+              _LeagueOption(
+                icon: '🌱',
+                title: 'Beginner',
+                subtitle: 'Temel kelimeler',
+                onTap: () => Navigator.pop(ctx, 'A'), // A1, A2 -> A
+              ),
+              const SizedBox(height: 8),
+              _LeagueOption(
+                icon: '⚡',
+                title: 'Intermediate',
+                subtitle: 'Orta seviye',
+                onTap: () => Navigator.pop(ctx, 'B'), // B1, B2 -> B
+              ),
+              const SizedBox(height: 8),
+              _LeagueOption(
+                icon: '🔥',
+                title: 'Advanced',
+                subtitle: 'İleri seviye',
+                onTap: () => Navigator.pop(ctx, 'C'), // C1, C2 -> C
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
     
     if (leagueCode != null && mounted) {
-      final invitation = await FriendService.instance.sendDuelInvitation(friend, leagueCode);
-      
-      if (invitation != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${friend.username} kullanıcısına düello daveti gönderildi! ⚔️'),
-            backgroundColor: Colors.orange,
+      // Use real MatchmakingScreen which handles the invitation via OnlineDuelService
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MatchmakingScreen(
+            leagueCode: leagueCode, // Simplified league code
+            invitedFriend: friend,
+            isBot: false,
           ),
-        );
-        
-        // Bekleme ekranını göster
-        _showWaitingDialog(friend, invitation);
-      }
+        ),
+      );
     }
-  }
-
-  void _showWaitingDialog(Friend friend, DuelInvitation invitation) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => _WaitingDialog(
-        friend: friend,
-        invitation: invitation,
-        onCancel: () => Navigator.pop(ctx),
-        onAccepted: () {
-          Navigator.pop(ctx);
-          // Online düello matchmaking ekranına git
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MatchmakingScreen(
-                leagueCode: invitation.leagueCode,
-                invitedFriend: friend,
-              ),
-            ),
-          );
-        },
-      ),
-    );
   }
 
   @override
@@ -403,6 +375,7 @@ class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProvider
                         return _SearchResultTile(
                           user: user,
                           onAdd: () => _sendFriendRequest(user),
+                          onDuel: () => _sendDuelInvitation(user), // Direct duel
                         );
                       },
                     ),
@@ -575,10 +548,12 @@ class _RequestTile extends StatelessWidget {
 class _SearchResultTile extends StatelessWidget {
   final Friend user;
   final VoidCallback onAdd;
+  final VoidCallback onDuel;
 
   const _SearchResultTile({
     required this.user,
     required this.onAdd,
+    required this.onDuel,
   });
 
   @override
@@ -597,10 +572,20 @@ class _SearchResultTile extends StatelessWidget {
         subtitle: user.eloRating != null
             ? Text('${user.eloRating} ELO • ${user.currentLeague ?? ""}')
             : null,
-        trailing: ElevatedButton.icon(
-          onPressed: onAdd,
-          icon: const Icon(Icons.person_add),
-          label: const Text('Ekle'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.sports_esports, color: Colors.orange),
+              tooltip: 'Düello Yap',
+              onPressed: onDuel,
+            ),
+            IconButton(
+              icon: const Icon(Icons.person_add, color: Colors.blue),
+              tooltip: 'Arkadaş Ekle',
+              onPressed: onAdd,
+            ),
+          ],
         ),
       ),
     );

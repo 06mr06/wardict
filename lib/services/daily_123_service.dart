@@ -11,6 +11,7 @@ class Daily123Service {
 
   static const String _statsKey = 'daily_123_stats';
   static const String _lastPlayedKey = 'daily_123_last_played';
+  static const String _adResetKey = 'daily_123_ad_reset';
 
   Future<Daily123Stats> getStats() async {
     final prefs = await SharedPreferences.getInstance();
@@ -25,10 +26,12 @@ class Daily123Service {
   }
 
   Future<bool> canPlayToday() async {
-    // TEST MODU: Her zaman true döner
-    return true;
-    /*
     final prefs = await SharedPreferences.getInstance();
+    
+    // Reklam ile reset atılmış mı?
+    final hasAdReset = prefs.getBool(_adResetKey) ?? false;
+    if (hasAdReset) return true;
+
     final lastPlayedStr = prefs.getString(_lastPlayedKey);
     if (lastPlayedStr == null) return true;
 
@@ -37,7 +40,12 @@ class Daily123Service {
     return lastPlayed.day != now.day || 
            lastPlayed.month != now.month || 
            lastPlayed.year != now.year;
-    */
+  }
+
+  /// Reklam izlendiğinde tekrar oynama hakkı verir
+  Future<void> grantAdReplay() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_adResetKey, true);
   }
 
   Future<void> recordGame(Daily123Result result) async {
@@ -75,6 +83,7 @@ class Daily123Service {
     
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_lastPlayedKey, result.date.toIso8601String());
+    await prefs.setBool(_adResetKey, false); // Oynadığı için reklam hakkını harcadı
 
     // Başarım ilerlemesini güncelle (Daily Master)
     if (newStreak > 0) {

@@ -86,7 +86,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen>
                 Text(
                   'İngilizce seviyeni en iyi sen bilirsin!',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 16,
                   ),
                   textAlign: TextAlign.center,
@@ -156,20 +156,20 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen>
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isSelected
-                ? [color.withOpacity(0.4), color.withOpacity(0.2)]
-                : [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
+                ? [color.withValues(alpha: 0.4), color.withValues(alpha: 0.2)]
+                : [Colors.white.withValues(alpha: 0.1), Colors.white.withValues(alpha: 0.05)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? color : Colors.white.withOpacity(0.2),
+            color: isSelected ? color : Colors.white.withValues(alpha: 0.2),
             width: isSelected ? 3 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.3),
+                    color: color.withValues(alpha: 0.3),
                     blurRadius: 12,
                     spreadRadius: 2,
                   ),
@@ -187,7 +187,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: color.withOpacity(0.4),
+                    color: color.withValues(alpha: 0.4),
                     blurRadius: 8,
                   ),
                 ],
@@ -221,7 +221,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen>
                   Text(
                     _getLevelDescription(level),
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 13,
                     ),
                   ),
@@ -237,7 +237,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen>
                 shape: BoxShape.circle,
                 color: isSelected ? color : Colors.transparent,
                 border: Border.all(
-                  color: isSelected ? color : Colors.white.withOpacity(0.3),
+                  color: isSelected ? color : Colors.white.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),

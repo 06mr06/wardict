@@ -15,6 +15,7 @@ import '../../models/quest.dart';
 import '../../models/achievement.dart';
 import '../../models/feed_item.dart';
 import '../../services/shop_service.dart';
+import '../../services/ranking_service.dart';
 import '../../models/cosmetic_item.dart';
 import '../../services/firebase/auth_service.dart';
 import 'base_game_screen.dart';
@@ -233,7 +234,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
           Material(
             color: Colors.transparent,
             child: Container(
-              color: Colors.black.withOpacity(0.85),
+              color: Colors.black.withValues(alpha: 0.85),
               alignment: Alignment.center,
               child: TweenAnimationBuilder<double>(
                 duration: const Duration(milliseconds: 600),
@@ -263,7 +264,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF6C27FF).withOpacity(0.5),
+                                  color: const Color(0xFF6C27FF).withValues(alpha: 0.5),
                                   blurRadius: 40,
                                   spreadRadius: 10,
                                 ),
@@ -300,6 +301,10 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
             onAnimationComplete: _onVsAnimationComplete,
             userAvatarUrl: _myPhotoUrl ?? _selectedAvatarEmoji ?? '👤',
             botAvatarUrl: _botAvatar,
+            userScore: gp.score,
+            botScore: botScore,
+            userName: AuthService.instance.displayName ?? 'You',
+            botName: _botName,
           ),
       ],
     );
@@ -478,15 +483,16 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
         // Oyun sayısını al (dinamik K-Factor için)
         final gamesPlayed = profile.gamesPlayed;
         
-        if (!isDraw) {
-            eloChange = League.calculateEloChange(
-              currentElo: userEloBeforeMatch, 
-              opponentElo: botElo, 
-              won: isWin,
-              gamesPlayed: gamesPlayed,
-            );
-            await UserProfileService.instance.updateLeagueScore(_currentLeague!, eloChange);
-        }
+        // ELO hesaplama (beraberlik dahil)
+        // result: 1.0 = galibiyet, 0.5 = beraberlik, 0.0 = mağlubiyet
+        final double result = isDraw ? 0.5 : (isWin ? 1.0 : 0.0);
+        eloChange = League.calculateEloChange(
+          currentElo: userEloBeforeMatch, 
+          opponentElo: botElo, 
+          result: result,
+          gamesPlayed: gamesPlayed,
+        );
+        await UserProfileService.instance.updateLeagueScore(_currentLeague!, eloChange);
         
         // Update history item with calculated elo change
         await UserProfileService.instance.addMatchHistory(MatchHistoryItem(
@@ -504,6 +510,11 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
            QuestService.instance.updateProgress(QuestType.winDuels, 1);
            AchievementService.instance.updateProgress(AchievementCategory.career, 1);
            FeedService.instance.logUserActivity(FeedType.duelWin, 'Bir düello kazandın! ⚔️');
+           
+           // Haftalık sıralama için puan ekle (Örn: "kullanıcı" yerine gerçek isim gelecek)
+           final profile = await UserProfileService.instance.loadProfile();
+           await RankingService.instance.addScore(profile.username, eloChange);
+           
            await Future.delayed(const Duration(seconds: 2)); 
         }
     } else {
@@ -549,7 +560,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -626,9 +637,9 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
     return Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.5))
+            border: Border.all(color: color.withValues(alpha: 0.5))
         ),
         child: Column(
             children: [
@@ -721,7 +732,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -754,13 +765,13 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: isAvailable 
-                          ? const Color(0xFF6C27FF).withOpacity(0.3)
-                          : Colors.grey.withOpacity(0.2),
+                          ? const Color(0xFF6C27FF).withValues(alpha: 0.3)
+                          : Colors.grey.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isAvailable 
                             ? const Color(0xFF6C27FF)
-                            : Colors.grey.withOpacity(0.3),
+                            : Colors.grey.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Column(
@@ -929,7 +940,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6C27FF).withOpacity(0.3),
+              color: const Color(0xFF6C27FF).withValues(alpha: 0.3),
               blurRadius: 8,
             ),
           ],
@@ -1010,7 +1021,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

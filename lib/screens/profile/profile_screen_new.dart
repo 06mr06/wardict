@@ -15,6 +15,7 @@ import '../../services/achievement_service.dart';
 import '../support/support_screen.dart';
 import '../onboarding/tutorial_screen.dart';
 import 'settings_screen.dart';
+import '../../widgets/common/referral_dialog.dart';
 
 class ProfileScreenNew extends StatefulWidget {
   const ProfileScreenNew({super.key});
@@ -201,6 +202,10 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
               Navigator.pop(context);
               _showPromoCodeDialog();
             }),
+            _buildMenuItem(Icons.group_add, 'ARKADAŞ DAVET ET', Colors.blue, () {
+              Navigator.pop(context);
+              showDialog(context: context, builder: (context) => const ReferralDialog());
+            }),
             _buildMenuItem(Icons.support_agent, 'DESTEK', Colors.indigo, () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen()));
@@ -291,7 +296,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                 ),
                 if (selectedFrame != null) ...[
                   BoxShadow(
-                    color: (isRainbow ? Colors.cyan : frameColor).withOpacity(0.3),
+                    color: (isRainbow ? Colors.cyan : frameColor).withOpacity(0.5),
                     blurRadius: 25,
                     spreadRadius: 5,
                   ),
@@ -411,7 +416,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -453,7 +458,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: Colors.white.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
@@ -496,8 +501,8 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                               height: 70,
                               decoration: BoxDecoration(
                                 color: isSelected 
-                                    ? Colors.green.withOpacity(0.3)
-                                    : Colors.white.withOpacity(0.1),
+                                    ? Colors.green.withOpacity(0.5)
+                                    : Colors.white.withOpacity(0.5),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
                                   color: isSelected ? Colors.green : Colors.transparent,
@@ -528,7 +533,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: Colors.white.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
@@ -572,8 +577,8 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                                   height: 70,
                                   decoration: BoxDecoration(
                                     color: _selectedFrameId == null || _selectedFrameId!.isEmpty
-                                        ? Colors.green.withOpacity(0.3)
-                                        : Colors.white.withOpacity(0.1),
+                                        ? Colors.green.withOpacity(0.5)
+                                        : Colors.white.withOpacity(0.5),
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
                                       color: _selectedFrameId == null || _selectedFrameId!.isEmpty
@@ -610,7 +615,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                                               colors: [Colors.red, Colors.orange, Colors.yellow, Colors.green, Colors.blue, Colors.purple],
                                             )
                                           : null,
-                                      color: frame.previewValue != 'gradient' ? Colors.white.withOpacity(0.1) : null,
+                                      color: frame.previewValue != 'gradient' ? Colors.white.withOpacity(0.5) : null,
                                       borderRadius: BorderRadius.circular(16),
                                       border: Border.all(
                                         color: isSelected ? Colors.green : frameColor,
@@ -676,7 +681,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Icon(Icons.edit, color: Colors.white54, size: 16),
@@ -688,7 +693,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
         Text(
           '$formattedDate tarihinde katıldı',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withOpacity(0.5),
             fontSize: 14,
           ),
         ),
@@ -724,9 +729,9 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                 maxLength: 20,
                 decoration: InputDecoration(
                   hintText: 'Yeni kullanıcı adı',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.1),
+                  fillColor: Colors.white.withOpacity(0.5),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -840,7 +845,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.cyan.withOpacity(0.2),
+        color: Colors.cyan.withOpacity(0.5),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.cyan, width: 1),
       ),
@@ -902,7 +907,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
           child: Text(
             action,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withOpacity(0.5),
               fontSize: 14,
             ),
           ),
@@ -938,35 +943,51 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
     
     return Column(
       children: [
-        // Lig Puanları
-        _buildSectionTitle('Lig Puanları'),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _buildLeagueCard('A', leagueScores.beginnerElo, Colors.green),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildLeagueCard('B', leagueScores.intermediateElo, Colors.orange),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildLeagueCard('C', leagueScores.advancedElo, Colors.red),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        
-        // Practice Puanı
-        _buildSectionTitle('Practice Puanı'),
+        // Duel Puanı
+        _buildSectionTitle('Duel Puanı'),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [const Color(0xFFFF9800).withOpacity(0.3), const Color(0xFFFF9800).withOpacity(0.1)],
+              colors: [const Color(0xFF6C27FF).withOpacity(0.5), const Color(0xFF6C27FF).withOpacity(0.3)],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF6C27FF), width: 1),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.emoji_events, color: Color(0xFF6C27FF), size: 22),
+              const SizedBox(width: 10),
+              Text(
+                '${_profile?.eloRating ?? 0}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Text(
+                'ELO',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        
+        // Practice Puanı
+        _buildSectionTitle('70/30 Puanı'),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [const Color(0xFFFF9800).withOpacity(0.5), const Color(0xFFFF9800).withOpacity(0.5)],
             ),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFFF9800), width: 1),
@@ -995,7 +1016,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
         const SizedBox(height: 16),
         
         // Practice Seviyesi
-        _buildSectionTitle('Practice Seviyesi'),
+        _buildSectionTitle('70/30 Seviyesi'),
         const SizedBox(height: 8),
         _buildPracticeLevelCard(),
         const SizedBox(height: 16),
@@ -1097,7 +1118,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [levelColor.withOpacity(0.3), levelColor.withOpacity(0.1)],
+          colors: [levelColor.withOpacity(0.5), levelColor.withOpacity(0.5)],
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: levelColor, width: 1),
@@ -1108,7 +1129,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: levelColor.withOpacity(0.3),
+              color: levelColor.withOpacity(0.5),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: levelColor, width: 1),
             ),
@@ -1136,7 +1157,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
               Text(
                 'Mevcut seviye',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withOpacity(0.5),
                   fontSize: 12,
                 ),
               ),
@@ -1152,7 +1173,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color.withOpacity(0.3), color.withOpacity(0.1)],
+          colors: [color.withOpacity(0.5), color.withOpacity(0.5)],
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color, width: 1),
@@ -1210,7 +1231,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withOpacity(0.5),
               fontSize: 12,
             ),
           ),
@@ -1226,7 +1247,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withOpacity(0.5),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -1254,7 +1275,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                   Text(
                     '${unlockedAchievements.length} / ${_achievements.length}',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withOpacity(0.5),
                       fontSize: 14,
                     ),
                   ),
@@ -1264,7 +1285,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.2),
+                        color: Colors.amber.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: Colors.amber.withOpacity(0.5)),
                       ),
@@ -1304,15 +1325,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
               children: unlockedAchievements.take(8).map((achievement) {
                 return GestureDetector(
                   onTap: () => _showAchievementDetail(achievement),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _getTierColor(achievement.tier).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _getTierColor(achievement.tier)),
-                    ),
-                    child: Text(achievement.badgeIcon, style: const TextStyle(fontSize: 28)),
-                  ),
+                  child: _buildAchievementBadge(achievement, size: 52),
                 );
               }).toList(),
             ),
@@ -1331,25 +1344,14 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Badge icon büyük
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: _getTierColor(achievement.tier).withOpacity(0.3),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _getTierColor(achievement.tier), width: 3),
-              ),
-              child: Center(
-                child: Text(achievement.badgeIcon, style: const TextStyle(fontSize: 44)),
-              ),
-            ),
+            _buildAchievementBadge(achievement, size: 100),
             const SizedBox(height: 16),
             // Başlık
             Text(
               achievement.title,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
@@ -1360,48 +1362,56 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
               achievement.description,
               style: TextStyle(
                 color: Colors.white.withOpacity(0.7),
-                fontSize: 14,
+                fontSize: 15,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             // Ödül bilgisi
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                color: Colors.amber.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.amber.withOpacity(0.4)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('🪙', style: TextStyle(fontSize: 18)),
+                  const Text('🪙', style: TextStyle(fontSize: 20)),
                   const SizedBox(width: 8),
                   Text(
-                    '+${achievement.rewardCoins} altın kazandınız!',
+                    '${achievement.rewardCoins} Altın Kazandın!',
                     style: const TextStyle(
                       color: Colors.amber,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             // Tier badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
                 color: _getTierColor(achievement.tier),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: _getTierColor(achievement.tier).withOpacity(0.4),
+                    blurRadius: 8,
+                  ),
+                ],
               ),
               child: Text(
-                achievement.tier.name.toUpperCase(),
+                achievement.tier.toString().split('.').last.toUpperCase(),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
                 ),
               ),
             ),
@@ -1443,7 +1453,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1499,25 +1509,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                       child: Row(
                         children: [
                           // Badge icon
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: isUnlocked 
-                                  ? _getTierColor(achievement.tier).withOpacity(0.3)
-                                  : Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Center(
-                              child: Text(
-                                achievement.badgeIcon,
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  color: isUnlocked ? null : Colors.grey,
-                                ),
-                              ),
-                            ),
-                          ),
+                          _buildAchievementBadge(achievement, isUnlocked: isUnlocked, size: 64),
                           const SizedBox(width: 16),
                           // Details
                           Expanded(
@@ -1577,7 +1569,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                achievement.tier.name.toUpperCase(),
+                                achievement.tier.toString().split('.').last.toUpperCase(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
@@ -1600,6 +1592,79 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAchievementBadge(Achievement achievement, {bool isUnlocked = true, double size = 48}) {
+    String badgeAsset;
+    ColorFilter? colorFilter;
+    
+    switch (achievement.tier) {
+      case AchievementTier.bronze:
+        badgeAsset = 'assets/images/badges/bronze.png';
+        break;
+      case AchievementTier.silver:
+        badgeAsset = 'assets/images/badges/silver.png';
+        break;
+      case AchievementTier.gold:
+        badgeAsset = 'assets/images/badges/gold.png';
+        break;
+      case AchievementTier.platinum:
+        badgeAsset = 'assets/images/badges/gold.png';
+        colorFilter = const ColorFilter.mode(Colors.cyanAccent, BlendMode.modulate);
+        break;
+    }
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: isUnlocked ? [
+          BoxShadow(
+            color: _getTierColor(achievement.tier).withOpacity(0.4),
+            blurRadius: size * 0.3,
+            spreadRadius: 2,
+          )
+        ] : null,
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 3D Rozet Resmi
+          Opacity(
+            opacity: isUnlocked ? 1.0 : 0.3,
+            child: ColorFiltered(
+              colorFilter: isUnlocked 
+                  ? (colorFilter ?? const ColorFilter.mode(Colors.transparent, BlendMode.dst))
+                  : const ColorFilter.mode(Colors.grey, BlendMode.saturation),
+              child: Image.asset(
+                badgeAsset, 
+                fit: BoxFit.contain, 
+                width: size, 
+                height: size,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: size,
+                  height: size,
+                  decoration: BoxDecoration(
+                    color: _getTierColor(achievement.tier).withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Emoji (Küçültülmüş ve merkeze yakın)
+          if (isUnlocked)
+            Padding(
+              padding: EdgeInsets.only(bottom: size * 0.08), // Yıldızın biraz üzerine
+              child: Text(
+                achievement.badgeIcon,
+                style: TextStyle(fontSize: size * 0.38),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -1771,9 +1836,9 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withOpacity(0.5),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        border: Border.all(color: Colors.white.withOpacity(0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1842,7 +1907,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                   hintText: 'Kodu girin...',
                   hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.1),
+                  fillColor: Colors.white.withOpacity(0.5),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,

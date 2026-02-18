@@ -72,27 +72,45 @@ class WordPoolService {
   /// 10 soru: 5 kendi seviyesi, 3 bir üst, 2 iki üst
   /// C1: 5 C1 + 5 C2 (iki üst olmadığı için)
   /// C2: 10 C2 (hepsi kendi seviyesi)
-  Map<String, int> getQuestionDistribution(UserLevel userLevel) {
-    switch (userLevel) {
-      case UserLevel.a1:
-        return {'A1': 5, 'A2': 3, 'B1': 2};
-      case UserLevel.a2:
-        return {'A2': 5, 'B1': 3, 'B2': 2};
-      case UserLevel.b1:
-        return {'B1': 5, 'B2': 3, 'C1': 2};
-      case UserLevel.b2:
-        return {'B2': 5, 'C1': 3, 'C2': 2};
-      case UserLevel.c1:
-        return {'C1': 5, 'C2': 5}; // C1'de iki üst olmadığı için 5-5
-      case UserLevel.c2:
-        return {'C2': 10}; // C2'de tüm sorular C2
+  Map<String, int> getQuestionDistribution(UserLevel userLevel, {int? elo}) {
+    // ELO aralığına göre dağılımı belirle (Ara puanlara yaklaştıkça dağılım zorlaşır)
+    bool isNearBorder = false;
+    if (elo != null) {
+      // Ara puan limitleri: Her seviye geçişi öncesi (Örn: 1150, 1350, 1650...)
+      // 5/3/2 dağılımı için kontrol
+      int modElo = elo % 250; 
+      if (modElo >= 100) { // Her 250'lik dilimin son 150 puanında zorluk artar
+        isNearBorder = true;
+      }
     }
+
+    final distribution = <String, int>{};
+    final String current = userLevel.code.toUpperCase();
+    final String next = userLevel.nextLevel.code.toUpperCase();
+    final String twoUp = userLevel.twoLevelsUp.code.toUpperCase();
+
+    if (isNearBorder) {
+      // 5 Kendi Seviyesi / 3 Bir Üst / 2 İki Üst
+      distribution[current] = 5;
+      distribution[next] = 3;
+      distribution[twoUp] = (twoUp == next) ? 5 : 2; // C1/C2 kısıtı için
+    } else {
+      // 6 Kendi Seviyesi / 3 Bir Üst / 1 İki Üst
+      distribution[current] = 6;
+      distribution[next] = 3;
+      distribution[twoUp] = (twoUp == next) ? 4 : 1; // C1/C2 kısıtı için
+    }
+
+    // C2 kısıtı: Eğer en üst seviyeyse hepsi C2
+    if (userLevel == UserLevel.c2) return {'C2': 10};
+
+    return distribution;
   }
 
   /// Kullanıcı seviyesine göre 10 soru üretir
   /// 7 çeviri (en-tr veya tr-en), 3 eş/zıt anlam
-  List<GeneratedQuestion> generateQuestions(UserLevel userLevel) {
-    final distribution = getQuestionDistribution(userLevel);
+  List<GeneratedQuestion> generateQuestions(UserLevel userLevel, {int? elo}) {
+    final distribution = getQuestionDistribution(userLevel, elo: elo);
     final questions = <GeneratedQuestion>[];
 
     // Tüm seviyeleri ve sayıları düz listeye çevir
@@ -151,14 +169,63 @@ class WordPoolService {
     return questions;
   }
 
+  /// Practice (70/30) için: Aynı havuzdan 10 soru, maksimum 2 eski yanlış, minimum 8 yeni kelime
+  List<GeneratedQuestion> generateQuestions70_30(UserLevel userLevel, {List<String>? previousWrongWords}) {
+    // Sadece kendi seviyesinden 10 kelime
+    final levelCode = userLevel.code.toUpperCase();
+    final allWords = getWordsForLevel(levelCode);
+    final questions = <GeneratedQuestion>[];
+    final usedWords = <String>{};
+
+    // Önce eski yanlışlardan max 2 tanesini ekle
+    if (previousWrongWords != null && previousWrongWords.isNotEmpty) {
+      final wrongsToAsk = previousWrongWords.toSet().intersection(allWords.map((w) => w['english']!).toSet()).toList();
+      wrongsToAsk.shuffle(_random);
+      for (final word in wrongsToAsk.take(2)) {
+        final wordMap = allWords.firstWhere((w) => w['english'] == word);
+        questions.add(_createTranslationQuestion(word: wordMap, level: levelCode, isEnToTr: _random.nextBool()));
+        usedWords.add(word);
+      }
+    }
+
+    // Kalanı yeni kelimelerden doldur
+    final remaining = 10 - questions.length;
+    final unusedWords = allWords.where((w) => !usedWords.contains(w['english'])).toList();
+    unusedWords.shuffle(_random);
+    for (final word in unusedWords.take(remaining)) {
+      questions.add(_createTranslationQuestion(word: word, level: levelCode, isEnToTr: _random.nextBool()));
+    }
+
+    // Kullanılan kelimeleri işaretle
+    final askedWords = questions.map((q) => q.correctAnswer).toList();
+    WordUsageService.instance.markWordsUsed(askedWords);
+    return questions;
+  }
+
   /// Çeviri sorusu oluşturur
   GeneratedQuestion _createTranslationQuestion({
     required Map<String, String> word,
     required String level,
     required bool isEnToTr,
   }) {
-    final prompt = isEnToTr ? word['english']! : word['turkish']!;
-    final correctAnswer = isEnToTr ? word['turkish']! : word['english']!;
+    final english = word['english']!;
+    final turkish = word['turkish']!;
+
+    // Türkçe'si ile İngilizce'si hemen hemen aynı olan kelimeleri filtrele
+    if (_areSimilarWords(english, turkish)) {
+      // Benzer kelime bulundu, başka kelime seçmeye çalış
+      return _createTranslationQuestion(
+        word: _getRandomWordForLevel(level, excludeEnglish: english),
+        level: level,
+        isEnToTr: isEnToTr,
+      );
+    }
+
+    final prompt = isEnToTr ? english : turkish;
+    final correctAnswer = isEnToTr ? turkish : english;
+
+    // İki kelime kontrolü
+    final isTwoWordPrompt = prompt.split(' ').length == 2;
 
     // Yanlış seçenekler için aynı seviyeden rastgele kelimeler
     final levelWords = getWordsForLevel(level);
@@ -168,8 +235,24 @@ class WordPoolService {
     for (final w in shuffledWords) {
       if (wrongOptions.length >= 3) break;
       final option = isEnToTr ? w['turkish']! : w['english']!;
-      if (option != correctAnswer && !wrongOptions.contains(option)) {
+      // İki kelime kontrolü: eğer prompt iki kelime ise şıklar da iki kelime olsun
+      final isTwoWordOption = option.split(' ').length == 2;
+      if (option != correctAnswer && !wrongOptions.contains(option) &&
+          (!isTwoWordPrompt || isTwoWordOption) &&
+          !_areSimilarWords(isEnToTr ? w['english']! : option, isEnToTr ? option : w['english']!)) {
         wrongOptions.add(option);
+      }
+    }
+    
+    // Eğer aynı seviyeden yeterli şık bulunamadıysa (iki kelime kısıtı yüzünden vb.), 
+    // aynı seviyeden kısıtları esneterek tekrar dene
+    if (wrongOptions.length < 3) {
+      for (final w in shuffledWords) {
+        if (wrongOptions.length >= 3) break;
+        final option = isEnToTr ? w['turkish']! : w['english']!;
+        if (option != correctAnswer && !wrongOptions.contains(option)) {
+          wrongOptions.add(option);
+        }
       }
     }
 
@@ -182,10 +265,55 @@ class WordPoolService {
         for (final w in otherWords) {
           if (wrongOptions.length >= 3) break;
           final option = isEnToTr ? w['turkish']! : w['english']!;
-          if (option != correctAnswer && !wrongOptions.contains(option)) {
+          // İki kelime kontrolü
+          final isTwoWordOption = option.split(' ').length == 2;
+          if (option != correctAnswer && !wrongOptions.contains(option) &&
+              (!isTwoWordPrompt || isTwoWordOption) &&
+              !_areSimilarWords(isEnToTr ? w['english']! : option, isEnToTr ? option : w['english']!)) {
             wrongOptions.add(option);
           }
         }
+      }
+    }
+
+    // Eğer hala yeterli seçenek yoksa, iki kelime şartını kaldır
+    if (wrongOptions.length < 3) {
+      final allWords = <Map<String, String>>[];
+      for (final lvl in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']) {
+        allWords.addAll(getWordsForLevel(lvl));
+      }
+      
+      final shuffledAllWords = List<Map<String, String>>.from(allWords)..shuffle(_random);
+      for (final w in shuffledAllWords) {
+        if (wrongOptions.length >= 3) break;
+        final option = isEnToTr ? w['turkish']! : w['english']!;
+        if (option != correctAnswer && !wrongOptions.contains(option) &&
+            !_areSimilarWords(isEnToTr ? w['english']! : option, isEnToTr ? option : w['english']!)) {
+          wrongOptions.add(option);
+        }
+      }
+    }
+
+    // Eğer yeterli seçenek yoksa daha fazla ekle
+    if (wrongOptions.length < 3) {
+      final allWords = <Map<String, String>>[];
+      for (final lvl in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']) {
+        allWords.addAll(getWordsForLevel(lvl));
+      }
+      final shuffledAllWords = List<Map<String, String>>.from(allWords)..shuffle(_random);
+      for (final w in shuffledAllWords) {
+        if (wrongOptions.length >= 3) break;
+        final option = isEnToTr ? w['turkish']! : w['english']!;
+        if (option != correctAnswer && !wrongOptions.contains(option)) {
+          wrongOptions.add(option);
+        }
+      }
+    }
+
+    // Eğer hala yeterli yoksa dummy ekle
+    if (wrongOptions.length < 3) {
+      while (wrongOptions.length < 3) {
+        wrongOptions.add("Diğer ${wrongOptions.length + 1}");
       }
     }
 
@@ -313,30 +441,7 @@ class WordPoolService {
     return _createTranslationQuestion(word: word, level: level, isEnToTr: true);
   }
 
-  /// Seviye belirleme testi için sorular üretir (her seviyeden 2 soru = 12 soru)
-  List<GeneratedQuestion> generatePlacementTestQuestions() {
-    final questions = <GeneratedQuestion>[];
 
-    for (final level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']) {
-      final levelWords = getWordsForLevel(level);
-      if (levelWords.isEmpty) continue;
-
-      final shuffled = List<Map<String, String>>.from(levelWords)..shuffle(_random);
-
-      // Her seviyeden 2 soru
-      for (int i = 0; i < min(2, shuffled.length); i++) {
-        final isEnToTr = _random.nextBool();
-        questions.add(_createTranslationQuestion(
-          word: shuffled[i],
-          level: level,
-          isEnToTr: isEnToTr,
-        ));
-      }
-    }
-
-    questions.shuffle(_random);
-    return questions;
-  }
 
   /// Belirli bir seviyeden belirli sayıda soru üretir
   /// Practice modu adaptif zorluk için kullanılır
@@ -388,6 +493,73 @@ class WordPoolService {
     WordUsageService.instance.markWordsUsed(usedWords);
     
     return questions;
+  }
+
+  /// İki kelimenin benzer olup olmadığını kontrol eder
+  bool _areSimilarWords(String english, String turkish) {
+    // Basit benzerlik kontrolü: aynı harf sayısı, benzer yazım
+    final engLower = english.toLowerCase().replaceAll(' ', '');
+    final turLower = turkish.toLowerCase().replaceAll(' ', '');
+
+    // Tamamen aynı ise (örnek: concept-concept)
+    if (engLower == turLower) return true;
+
+    // Çok benzer ise (örnek: democracy-demokrasi)
+    if (engLower.length == turLower.length) {
+      int diffCount = 0;
+      for (int i = 0; i < engLower.length; i++) {
+        if (engLower[i] != turLower[i]) diffCount++;
+        if (diffCount > 2) break; // 2'den fazla fark varsa benzer değil
+      }
+      if (diffCount <= 2) return true;
+    }
+
+    // Özel durumlar
+    final similarPairs = {
+      'democracy': 'demokrasi',
+      'concept': 'konsept',
+      'system': 'sistem',
+      'problem': 'problem',
+      'music': 'müzik',
+      'film': 'film',
+      'sport': 'spor',
+      'art': 'sanat',
+      'science': 'bilim',
+      'technology': 'teknoloji',
+    };
+
+    return similarPairs.containsKey(engLower) && similarPairs[engLower] == turLower;
+  }
+
+  /// Belirtilen seviyeden rastgele kelime seçer (hariç tutulan kelime varsa)
+  Map<String, String> _getRandomWordForLevel(String level, {String? excludeEnglish}) {
+    final levelWords = getWordsForLevel(level);
+    if (levelWords.isEmpty) {
+      // Fallback olarak A1'den kelime seç
+      return _getRandomWordForLevel('A1', excludeEnglish: excludeEnglish);
+    }
+
+    final availableWords = excludeEnglish != null
+        ? levelWords.where((w) => w['english'] != excludeEnglish).toList()
+        : levelWords;
+
+    if (availableWords.isEmpty) {
+      // Hariç tutulan kelime dışında kelime yoksa, başka seviyeden seç
+      for (final lvl in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']) {
+        if (lvl == level) continue;
+        final otherWords = getWordsForLevel(lvl);
+        final filtered = excludeEnglish != null
+            ? otherWords.where((w) => w['english'] != excludeEnglish).toList()
+            : otherWords;
+        if (filtered.isNotEmpty) {
+          return filtered[_random.nextInt(filtered.length)];
+        }
+      }
+      // Son çare olarak orijinal listeden seç
+      return levelWords[_random.nextInt(levelWords.length)];
+    }
+
+    return availableWords[_random.nextInt(availableWords.length)];
   }
 }
 

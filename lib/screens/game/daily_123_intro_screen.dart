@@ -92,7 +92,7 @@ class _Daily123IntroScreenState extends State<Daily123IntroScreen> with TickerPr
                         letterSpacing: 2,
                         shadows: [
                           const Shadow(color: Colors.black, offset: Offset(4, 4)),
-                          Shadow(color: Colors.amber.withOpacity(0.5), blurRadius: 20),
+                          Shadow(color: Colors.amber.withValues(alpha: 0.5), blurRadius: 20),
                         ],
                       ),
                     ),

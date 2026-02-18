@@ -349,7 +349,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen>
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.amber.withOpacity(0.2),
+                          color: Colors.amber.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -423,7 +423,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen>
               height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.green.withOpacity(0.3),
+                color: Colors.green.withValues(alpha: 0.3),
                 border: Border.all(color: Colors.green, width: 4),
               ),
               child: const Center(
@@ -454,7 +454,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.amber.withOpacity(0.3),
+                    color: Colors.amber.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -480,9 +480,9 @@ class _MatchmakingScreenState extends State<MatchmakingScreen>
                   ),
                   gradient: SweepGradient(
                     colors: [
-                      Colors.amber.withOpacity(0.0),
+                      Colors.amber.withValues(alpha: 0.0),
                       Colors.amber,
-                      Colors.amber.withOpacity(0.0),
+                      Colors.amber.withValues(alpha: 0.0),
                     ],
                   ),
                 ),
@@ -497,7 +497,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen>
           height: 120,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
             border: Border.all(color: Colors.white24, width: 2),
           ),
           child: Center(
@@ -520,9 +520,9 @@ class _MatchmakingScreenState extends State<MatchmakingScreen>
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.2),
+        color: Colors.green.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.green.withOpacity(0.5)),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,

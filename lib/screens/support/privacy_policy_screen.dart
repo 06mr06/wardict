@@ -27,7 +27,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             const SizedBox(height: 20),
             _buildSection(
               '1. Toplanan Bilgiler',
-              '''WARDICT uygulaması aşağıdaki bilgileri toplar:
+              '''LUGORENA uygulaması aşağıdaki bilgileri toplar:
 
 • Hesap Bilgileri: E-posta adresi, kullanıcı adı (Google ile giriş yapıldığında)
 • Oyun Verileri: Skor, seviye, başarılar, kelime havuzu
@@ -73,7 +73,7 @@ Cihaz ayarlarınızdan kişiselleştirilmiş reklamları kapatabilirsiniz.''',
             ),
             _buildSection(
               '6. Çocukların Gizliliği',
-              '''WARDICT, 13 yaş ve üzeri kullanıcılar için tasarlanmıştır.
+              '''LUGORENA, 13 yaş ve üzeri kullanıcılar için tasarlanmıştır.
 
 13 yaşından küçük çocuklardan bilerek kişisel bilgi toplamayız. Eğer çocuğunuzun bilgi paylaştığını düşünüyorsanız, lütfen bizimle iletişime geçin.''',
             ),
@@ -103,9 +103,9 @@ Bu hakları kullanmak için uygulama içi destek bölümünden bize ulaşabilirs
             const SizedBox(height: 40),
             Center(
               child: Text(
-                '© 2026 WARDICT. Tüm hakları saklıdır.',
+                '© 2026 LUGORENA. Tüm hakları saklıdır.',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 12,
                 ),
               ),
@@ -135,7 +135,7 @@ Bu hakları kullanmak için uygulama içi destek bölümünden bize ulaşabilirs
           Text(
             content,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.85),
+              color: Colors.white.withValues(alpha: 0.85),
               fontSize: 14,
               height: 1.6,
             ),

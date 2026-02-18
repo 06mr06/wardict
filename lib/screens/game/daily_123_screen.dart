@@ -184,8 +184,8 @@ class _Daily123ScreenState extends State<Daily123Screen> with NetworkAwareMixin 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.1))),
+        color: Colors.white.withValues(alpha: 0.05),
+        border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
       ),
       child: Column(
         children: [
@@ -226,7 +226,7 @@ class _Daily123ScreenState extends State<Daily123Screen> with NetworkAwareMixin 
   Widget _headerInfo(String label, String value, Color color) {
     return Column(
       children: [
-        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         Text(value, style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w900)),
       ],

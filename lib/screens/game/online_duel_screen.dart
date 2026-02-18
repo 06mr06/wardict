@@ -11,6 +11,7 @@ import '../../services/firebase/auth_service.dart';
 import '../../models/cosmetic_item.dart';
 import '../../models/question_mode.dart';
 import '../../models/answered_entry.dart';
+import '../../models/powerup.dart';
 import '../../widgets/game/game_background.dart';
 import '../../widgets/game/game_timer.dart';
 import '../../widgets/game/game_confetti.dart';
@@ -43,7 +44,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
   int _opponentStreak = 0;
   
   Timer? _questionTimer;
-  int _timeLeft = 10;
+  int _timeLeft = 7;
   
   bool _showVsAnim = true;
   int _interstitialStep = 0;
@@ -74,6 +75,12 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
   
   List<QuestionMode> _questionModes = [];
 
+  // Power-up States
+  PowerupInventory? _inventory;
+  Set<int> _eliminatedOptions = {};
+  bool _doubleChanceActive = false;
+  List<PowerupType> _usedPowerupsInCurrentQuestion = [];
+
   @override
   void initState() {
     super.initState();
@@ -95,6 +102,90 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
     _initAvatars();
     _shuffleQuestionsAndOptions();
     _listenToMatch();
+    _loadInventory();
+  }
+
+  Future<void> _loadInventory() async {
+    final inventory = await ShopService.instance.getInventory();
+    if (mounted) {
+      setState(() => _inventory = inventory);
+    }
+  }
+
+  void _usePowerup(PowerupType type) async {
+    if (_locked || _inventory == null || !_inventory!.hasAny(type)) return;
+    
+    // Prevent multiple uses of same powerup type per question
+    if (_usedPowerupsInCurrentQuestion.contains(type)) return;
+
+    // Logic checks
+    if (type == PowerupType.fiftyFifty && _eliminatedOptions.isNotEmpty) return;
+    if (type == PowerupType.doubleChance && _doubleChanceActive) return;
+
+    final success = await ShopService.instance.usePowerup(type);
+    if (!success) return;
+
+    setState(() {
+      _inventory = _inventory!.use(type);
+      _usedPowerupsInCurrentQuestion.add(type);
+    });
+
+    switch (type) {
+      case PowerupType.fiftyFifty:
+        _applyFiftyFifty();
+        break;
+      case PowerupType.doubleChance:
+        setState(() => _doubleChanceActive = true);
+        _showPowerupEffect('İkinci Şans Aktif!', '🔄');
+        break;
+      case PowerupType.freezeTime:
+        setState(() => _timeLeft += 5);
+        _showPowerupEffect('+5 Saniye!', '❄️');
+        break;
+      case PowerupType.revealAnswer:
+        final correctIndex = _shuffledCorrectIndexes[_currentQuestionIndex];
+        _selectOption(correctIndex);
+        break;
+      default:
+        break;
+    }
+  }
+
+  void _applyFiftyFifty() {
+    final correctIndex = _shuffledCorrectIndexes[_currentQuestionIndex];
+    final optionsCount = _shuffledOptions[_currentQuestionIndex].length;
+    final wrongIndices = List.generate(optionsCount, (i) => i)
+      ..remove(correctIndex)
+      ..removeWhere((i) => _eliminatedOptions.contains(i)); // Don't re-eliminate
+
+    wrongIndices.shuffle(_rng);
+    
+    // Eliminate up to 2 wrong options
+    final toEliminate = wrongIndices.take(2).toList();
+    
+    setState(() {
+      _eliminatedOptions.addAll(toEliminate);
+    });
+    
+    _showPowerupEffect('%50 Kullanıldı!', '✂️');
+  }
+
+  void _showPowerupEffect(String text, String emoji) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 24)),
+            const SizedBox(width: 12),
+            Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        backgroundColor: const Color(0xFF6C27FF),
+        duration: const Duration(milliseconds: 1500),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   void _initBotIdentity() {
@@ -103,13 +194,11 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
   }
 
   Future<void> _initAvatars() async {
-    // Get user's photo URL from Firebase Auth (Google profile picture)
     final photoUrl = AuthService.instance.photoURL;
     if (photoUrl != null && photoUrl.isNotEmpty && mounted) {
       setState(() => _myPhotoUrl = photoUrl);
     }
     
-    // Also get selected cosmetic avatar (emoji) as fallback
     final avatarId = await ShopService.instance.getSelectedCosmetic(CosmeticType.avatar);
     if (avatarId != null && avatarId.isNotEmpty) {
       final items = CosmeticItem.availableItems.where((i) => i.id == avatarId);
@@ -140,7 +229,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
       
       _shuffledOptions.add(options);
       _shuffledCorrectIndexes.add(newCorrectIndex);
-      // Sorunun kendi modunu kullan (rastgele değil)
       _questionModes.add(q.mode);
     }
     
@@ -182,7 +270,12 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
       _selectedOption = null;
       _botSelection = null;
       _locked = false;
-      _timeLeft = 10;
+      _timeLeft = 7;
+
+      // Reset Power-ups
+      _eliminatedOptions = {};
+      _doubleChanceActive = false;
+      _usedPowerupsInCurrentQuestion = [];
     });
     
     _questionTimer?.cancel();
@@ -246,7 +339,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
       correctIndex: correctIndex,
       mode: _questionModes[_currentQuestionIndex],
       earnedPoints: 0,
-      usedPowerups: [],
+      usedPowerups: _usedPowerupsInCurrentQuestion,
     ));
     
     _myStreak = 0;
@@ -271,6 +364,19 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
 
   void _selectOption(int index) {
     if (_locked || _selectedOption != null) return;
+
+    // Double Chance Logic
+    final correctIndex = _shuffledCorrectIndexes[_currentQuestionIndex];
+    if (_doubleChanceActive && index != correctIndex && !_eliminatedOptions.contains(index)) {
+        // Wrong answer with Double Chance
+        setState(() {
+            _doubleChanceActive = false; // Consume chance
+            _eliminatedOptions.add(index); // Eliminate the wrong choice
+        });
+        _showPowerupEffect('İkinci Şans! Tekrar Dene.', '🔄');
+        SoundService.instance.playWrong();
+        return;
+    }
     
     setState(() => _selectedOption = index);
     
@@ -351,7 +457,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
       correctIndex: correctIndex,
       mode: _questionModes[_currentQuestionIndex],
       earnedPoints: earnedPoints,
-      usedPowerups: [],
+      usedPowerups: _usedPowerupsInCurrentQuestion,
     ));
     
     setState(() => _locked = true);
@@ -422,6 +528,8 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
           answeredItems: _answeredItems,
           myAvatarEmoji: _myAvatarEmoji,
           opponentAvatarEmoji: _isDemo ? _opponentAvatar : null,
+          opponentId: _isDemo ? null : _match.opponentId,
+          leagueCode: _match.leagueCode,
         ),
       ),
     );
@@ -482,7 +590,14 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
                     _buildHeader(),
                     const SizedBox(height: 12),
                     if (!_showCountdown && _interstitialStep == 0)
-                      Expanded(child: _buildContent()),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Expanded(child: _buildContent()),
+                            _buildPowerupsBar(),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -507,13 +622,125 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
     );
   }
 
+  Widget _buildContent() {
+    if (_currentQuestionIndex >= _match.questions.length) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    final question = _match.questions[_currentQuestionIndex];
+    final options = _shuffledOptions[_currentQuestionIndex];
+    final correctIndex = _shuffledCorrectIndexes[_currentQuestionIndex];
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          GameProgressBar(
+            currentIndex: _currentQuestionIndex,
+            totalQuestions: _match.questions.length,
+          ),
+          const SizedBox(height: 20),
+          
+          QuestionCard(prompt: question.prompt),
+          const SizedBox(height: 20),
+          
+          Expanded(
+            child: OptionsGrid(
+              options: options,
+              selectedIndex: _selectedOption,
+              correctIndex: correctIndex,
+              isLocked: _locked,
+              showCorrect: _locked,
+              onOptionSelected: _selectOption,
+              eliminatedOptions: _eliminatedOptions,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPowerupsBar() {
+    if (_locked || _inventory == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.2),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildPowerupButton(PowerupType.fiftyFifty),
+          _buildPowerupButton(PowerupType.doubleChance),
+          _buildPowerupButton(PowerupType.freezeTime),
+          _buildPowerupButton(PowerupType.revealAnswer),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPowerupButton(PowerupType type) {
+    final count = _inventory!.getCount(type);
+    final isActive = count > 0 && !_usedPowerupsInCurrentQuestion.contains(type);
+    
+    Color bgColor = Colors.white.withValues(alpha: 0.1);
+    if (type == PowerupType.doubleChance && _doubleChanceActive) {
+      bgColor = Colors.yellow.withValues(alpha: 0.3); // Highlight active
+    }
+
+    return GestureDetector(
+      onTap: isActive ? () => _usePowerup(type) : null,
+      child: Opacity(
+        opacity: isActive ? 1.0 : 0.4,
+        child: Column(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isActive ? Colors.white54 : Colors.transparent,
+                  width: 1.5,
+                ),
+                boxShadow: isActive ? [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: Offset(0, 2))
+                ] : [],
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                type.emoji,
+                style: const TextStyle(fontSize: 24),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '$count',
+                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCountdownOverlay() {
     final mode = _questionModes.isNotEmpty ? _questionModes[0] : QuestionMode.enToTr;
     
     return Material(
       color: Colors.transparent,
       child: Container(
-        color: Colors.black.withOpacity(0.85),
+        color: Colors.black.withValues(alpha: 0.85),
         alignment: Alignment.center,
         child: TweenAnimationBuilder<double>(
           key: ValueKey(_countdownValue),
@@ -540,7 +767,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF6C27FF).withOpacity(0.5),
+                            color: const Color(0xFF6C27FF).withValues(alpha: 0.5),
                             blurRadius: 40,
                             spreadRadius: 10,
                           ),
@@ -584,7 +811,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
     return Material(
       color: Colors.transparent,
       child: Container(
-        color: Colors.black.withOpacity(0.85),
+        color: Colors.black.withValues(alpha: 0.85),
         alignment: Alignment.center,
         child: TweenAnimationBuilder<double>(
           duration: const Duration(milliseconds: 600),
@@ -610,7 +837,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF6C27FF).withOpacity(0.5),
+                            color: const Color(0xFF6C27FF).withValues(alpha: 0.5),
                             blurRadius: 40,
                             spreadRadius: 10,
                           ),
@@ -691,7 +918,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -720,7 +947,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -755,6 +982,13 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
                 ),
                 
                 GameTimer(timeLeft: _timeLeft),
+
+                // Çekilme Butonu
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white70),
+                  onPressed: _quitGame,
+                  tooltip: 'Düellodan Çekil',
+                ),
               ],
             ),
           ),
@@ -805,9 +1039,9 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Column(
         children: [
@@ -815,43 +1049,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
           Text('$score', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
           if (streak > 1)
             Text('🔥 $streak', style: const TextStyle(color: Colors.orangeAccent, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContent() {
-    if (_currentQuestionIndex >= _match.questions.length) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    
-    final question = _match.questions[_currentQuestionIndex];
-    final options = _shuffledOptions[_currentQuestionIndex];
-    final correctIndex = _shuffledCorrectIndexes[_currentQuestionIndex];
-    
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          GameProgressBar(
-            currentIndex: _currentQuestionIndex,
-            totalQuestions: _match.questions.length,
-          ),
-          const SizedBox(height: 20),
-          
-          QuestionCard(prompt: question.prompt),
-          const SizedBox(height: 20),
-          
-          Expanded(
-            child: OptionsGrid(
-              options: options,
-              selectedIndex: _selectedOption,
-              correctIndex: correctIndex,
-              isLocked: _locked,
-              showCorrect: _locked,
-              onOptionSelected: _selectOption,
-            ),
-          ),
         ],
       ),
     );

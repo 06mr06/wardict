@@ -5,7 +5,9 @@ import '../models/premium.dart';
 import '../models/cosmetic_item.dart';
 import 'achievement_service.dart';
 import '../models/achievement.dart';
-import 'sound_service.dart';
+// import 'sound_service.dart';
+import 'quest_service.dart';
+import '../models/quest.dart';
 
 class ShopService {
   static final ShopService instance = ShopService._();
@@ -82,7 +84,7 @@ class ShopService {
     AchievementService.instance.updateProgress(AchievementCategory.economy, amount);
     
     // Coin kazanma sesi çal
-    SoundService.instance.playCoinSound();
+    // SoundService.instance.playCoinSound();
   }
 
   // Spend coins
@@ -119,6 +121,8 @@ class ShopService {
       final inventory = await getInventory();
       final newInventory = inventory.add(powerup, 1);
       await saveInventory(newInventory);
+      // Görev: Alışveriş Zamanı
+      QuestService.instance.updateProgress(QuestType.buyItem, 1);
       return true;
     }
     return false;
@@ -355,6 +359,8 @@ class ShopService {
       
       // Başarım ilerlemesini güncelle (Koleksiyoncu)
       await AchievementService.instance.updateProgress(AchievementCategory.economy, 1);
+      // Görev: Alışveriş Zamanı
+      QuestService.instance.updateProgress(QuestType.buyItem, 1);
       
       return true;
     }
@@ -392,6 +398,8 @@ class ShopService {
     final canSpend = await spendCoins(price);
     if (canSpend) {
       await activateStreakShield();
+      // Görev: Alışveriş Zamanı
+      QuestService.instance.updateProgress(QuestType.buyItem, 1);
       return true;
     }
     return false;

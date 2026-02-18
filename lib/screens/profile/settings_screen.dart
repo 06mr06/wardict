@@ -223,7 +223,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Text(
                           'Version $_version',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
+                            color: Colors.white.withValues(alpha: 0.5),
                             fontSize: 14,
                           ),
                         ),
@@ -254,7 +254,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildSettingsCard(List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -298,7 +298,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 12,
                   ),
                 ),
@@ -333,7 +333,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: iconColor?.withOpacity(0.2) ?? const Color(0xFF3D7AB8),
+                color: iconColor?.withValues(alpha: 0.2) ?? const Color(0xFF3D7AB8),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: iconColor ?? Colors.white, size: 24),
@@ -355,7 +355,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        color: textColor?.withOpacity(0.7) ?? Colors.white60,
+                        color: textColor?.withValues(alpha: 0.7) ?? Colors.white60,
                         fontSize: 12,
                       ),
                     ),
@@ -364,7 +364,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             Icon(
               Icons.arrow_forward_ios,
-              color: textColor?.withOpacity(0.5) ?? Colors.white54,
+              color: textColor?.withValues(alpha: 0.5) ?? Colors.white54,
               size: 18,
             ),
           ],
@@ -481,7 +481,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   hintText: 'Kodu girin...',
                   hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.1),
+                  fillColor: Colors.white.withValues(alpha: 0.1),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -619,7 +619,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     _buildGuideSection(
                       icon: '📚',
-                      title: 'Practice Modu',
+                      title: 'Practice (70/30)',
                       description: 'Kendi hızında pratik yap. '
                           'A2 seviyesinden başla, başarına göre seviye atla!',
                       color: const Color(0xFF00D9F5),
@@ -654,12 +654,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color.withOpacity(0.3), color.withOpacity(0.1)],
+          colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -682,7 +682,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   description,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 14,
                     height: 1.4,
                   ),

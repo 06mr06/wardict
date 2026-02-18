@@ -22,35 +22,47 @@ class OptionsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (options.isEmpty) {
+      return Container(
+        height: 200,
+        alignment: Alignment.center,
+        child: const Text('Seçenek yok', style: TextStyle(color: Colors.red, fontSize: 18)),
+      );
+    }
     // 2x2 Layout using Flexible Rows/Columns to prevent overflow
-    return Column(
-      children: [
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: _buildOption(0)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildOption(1)),
-            ],
+    return Container(
+      constraints: const BoxConstraints(minHeight: 300),
+      child: Column(
+        children: [
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _buildOption(0)),
+                const SizedBox(width: 12),
+                Expanded(child: _buildOption(1)),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: _buildOption(2)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildOption(3)),
-            ],
+          const SizedBox(height: 12),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _buildOption(2)),
+                const SizedBox(width: 12),
+                Expanded(child: _buildOption(3)),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildOption(int i) {
+    if (i >= options.length) return Container();
+
     final bool reveal = showCorrect || (selectedIndex != null && isLocked);
     final isEliminated = eliminatedOptions.contains(i);
     final isSelected = selectedIndex == i;
@@ -116,7 +128,7 @@ class OptionsGrid extends StatelessWidget {
           boxShadow: [
              // Soft shadow below the entire block
              BoxShadow(
-               color: Colors.black.withOpacity(0.2),
+               color: Colors.black.withValues(alpha: 0.2),
                blurRadius: 8,
                offset: const Offset(0, 4),
              )
@@ -132,7 +144,7 @@ class OptionsGrid extends StatelessWidget {
               end: Alignment.bottomCenter,
             ),
             border: Border.all(
-              color: Colors.white.withOpacity(0.5), 
+              color: Colors.white.withValues(alpha: 0.5), 
               width: 1.5
             ),
           ),
@@ -141,17 +153,18 @@ class OptionsGrid extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
+              Expanded(
+                child: Center(
                   child: Text(
                     isEliminated ? '' : options[i],
                     textAlign: TextAlign.center,
-                    maxLines: 3,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
                       color: textColor,
+                      height: 1.1,
                     ),
                   ),
                 ),

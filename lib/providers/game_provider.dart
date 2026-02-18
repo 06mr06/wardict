@@ -177,6 +177,22 @@ class GameProvider extends BaseGameProvider {
     if (isCorrect) {
       QuestService.instance.updateProgress(QuestType.answerQuestions, 1);
       QuestService.instance.updateProgress(QuestType.earnPoints, lastScore);
+      
+      // Hızlı cevap görevi (örn: 3 saniyenin altına inen süre durumunda kalan süre > 7 olması hızı gösterir, interface'e göre remainingSeconds 5'ten başlar genellikle ama her modda farklı olabilir. 
+      // Düello'da 5 sn var, Practice'de süre yok. Düello ve Daily123 için hız önemli. 
+      // BaseGameProvider'da timer 5 sn ise, 3 sn altında cevap vermek demek remainingSeconds >= 2 olması demektir (2, 1, 0 geçtiyse). 
+      // Eğer remainingSeconds > 2 ise hızlıdır.
+      if (remainingSeconds >= 3) {
+        QuestService.instance.updateProgress(QuestType.speedAnswer, 1);
+      }
+      
+      // Seri görevi
+      QuestService.instance.updateProgress(QuestType.streakCount, streak, setExact: true);
+    }
+    
+    // Güçlendirici kullanımı
+    if (usedPowerups.isNotEmpty) {
+        QuestService.instance.updateProgress(QuestType.usePowerup, usedPowerups.length);
     }
     
     history.add(AnsweredEntry(
@@ -230,6 +246,8 @@ class GameProvider extends BaseGameProvider {
     if (!exists) {
       savedPool.add(entry);
       _saveSavedPool();
+      // Görev: Kelime Dağarcığı
+      QuestService.instance.updateProgress(QuestType.addWord, 1);
       notifyListeners();
     }
   }

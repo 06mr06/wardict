@@ -1,5 +1,5 @@
-name: wardict_skeleton
-description: WARDICT - Kelime Düello Oyunu
+name: lugorena
+description: LUGORENA - Kelime Düello Oyunu
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -23,6 +23,8 @@ dependencies:
   google_mobile_ads: ^7.0.0
   in_app_purchase: ^3.2.3
   audioplayers: ^6.5.1
+  connectivity_plus: ^6.0.3
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -34,19 +36,20 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/app_icon.png"
+  image_path: "assets/images/logo_lugo.png"
   adaptive_icon_background: "#3a4a5c"
-  adaptive_icon_foreground: "assets/images/app_icon.png"
+  adaptive_icon_foreground: "assets/images/logo_lugo.png"
   min_sdk_android: 21
   remove_alpha_ios: true
   web:
     generate: true
-    image_path: "assets/images/app_icon.png"
+    image_path: "assets/images/logo_lugo.png"
 
 flutter:
   uses-material-design: true
 
   assets:
     - assets/images/
+    - assets/images/badges/
     - assets/data/
     - assets/sounds/

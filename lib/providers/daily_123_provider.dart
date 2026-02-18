@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_level.dart';
 import '../models/question_mode.dart';
 import '../services/word_pool_service.dart';
+import '../services/quest_service.dart';
+import '../models/quest.dart';
 import 'base_game_provider.dart';
 
 /// Cevaplanan soru bilgisi
@@ -97,6 +99,9 @@ class Daily123Provider extends BaseGameProvider {
     if (!_isGameOver) {
       _startTimer();
       await _loadNextQuestion();
+      
+      // Görev: Günün Sorusu (Daily 123 oynamaya başladığında ilerler)
+       QuestService.instance.updateProgress(QuestType.daily123Play, 1);
     } else {
       notifyListeners();
     }

@@ -177,10 +177,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6C27FF).withOpacity(0.4),
+              color: const Color(0xFF6C27FF).withValues(alpha: 0.4),
               blurRadius: 16,
               spreadRadius: 1,
             ),
@@ -248,7 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF6C27FF).withOpacity(0.3) : Colors.white.withOpacity(0.05),
+                      color: isSelected ? const Color(0xFF6C27FF).withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isSelected ? const Color(0xFF6C27FF) : (isUnlocked ? Colors.white24 : Colors.transparent),
@@ -310,9 +310,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -328,7 +328,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(width: 10),
                 Icon(
                   Icons.edit,
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                   size: 20,
                 ),
               ],
@@ -340,7 +340,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Text(
             email,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
               fontSize: 14,
             ),
           ),
@@ -368,10 +368,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'Kullanıcı adı (benzersiz olmalı)',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                   errorText: errorText,
                   enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -462,8 +462,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            _getLevelColor(level).withOpacity(0.3),
-            _getLevelColor(level).withOpacity(0.1),
+            _getLevelColor(level).withValues(alpha: 0.3),
+            _getLevelColor(level).withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -502,7 +502,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Text(
                 'Mevcut Seviye',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 14,
                 ),
               ),
@@ -567,19 +567,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color.withOpacity(0.3), color.withOpacity(0.1)],
+          colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.5), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
       ),
       child: Column(
         children: [
           Text(
             league.name,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 10,
               fontWeight: FontWeight.w600,
             ),
@@ -611,8 +611,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFFFF9800).withOpacity(0.3),
-            const Color(0xFFFF9800).withOpacity(0.1),
+            const Color(0xFFFF9800).withValues(alpha: 0.3),
+            const Color(0xFFFF9800).withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
@@ -624,7 +624,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Icon(Icons.school, color: Color(0xFFFF9800), size: 22),
           const SizedBox(width: 10),
           const Text(
-            'Practice Puanı',
+            'Practice (70/30) Puanı',
             style: TextStyle(
               color: Colors.white70,
               fontSize: 13,
@@ -654,7 +654,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -699,7 +699,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -715,7 +715,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
               fontSize: 11,
             ),
           ),
@@ -734,7 +734,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 13,
             ),
           ),
@@ -760,9 +760,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -822,8 +822,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   color: achievement.isUnlocked 
-                    ? _getTierColor(achievement.tier).withOpacity(0.15) 
-                    : Colors.black.withOpacity(0.3),
+                    ? _getTierColor(achievement.tier).withValues(alpha: 0.15) 
+                    : Colors.black.withValues(alpha: 0.3),
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: achievement.isUnlocked 
@@ -833,7 +833,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   boxShadow: achievement.isUnlocked ? [
                     BoxShadow(
-                      color: _getTierColor(achievement.tier).withOpacity(0.3),
+                      color: _getTierColor(achievement.tier).withValues(alpha: 0.3),
                       blurRadius: 10,
                       spreadRadius: 1,
                     )
@@ -842,7 +842,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Center(
                   child: achievement.isUnlocked
                     ? Text(achievement.badgeIcon, style: const TextStyle(fontSize: 28))
-                    : Icon(Icons.lock_rounded, color: Colors.white.withOpacity(0.2), size: 20),
+                    : Icon(Icons.lock_rounded, color: Colors.white.withValues(alpha: 0.2), size: 20),
                 ),
               ),
             ),
@@ -885,7 +885,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: _getTierColor(achievement.tier).withOpacity(0.1),
+                color: _getTierColor(achievement.tier).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Text(achievement.badgeIcon, style: const TextStyle(fontSize: 64)),
@@ -1043,7 +1043,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -1061,7 +1061,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (history.isEmpty)
             Text(
               'Henüz maç geçmişi yok.',
-              style: TextStyle(color: Colors.white.withOpacity(0.5)),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
             )
           else
             ...history.take(5).map((match) {
@@ -1071,13 +1071,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: isWin 
-                      ? Colors.green.withOpacity(0.1) 
-                      : Colors.red.withOpacity(0.1),
+                      ? Colors.green.withValues(alpha: 0.1) 
+                      : Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isWin 
-                        ? Colors.green.withOpacity(0.3) 
-                        : Colors.red.withOpacity(0.3)
+                        ? Colors.green.withValues(alpha: 0.3) 
+                        : Colors.red.withValues(alpha: 0.3)
                   ),
                 ),
                 child: Row(
@@ -1101,7 +1101,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Text(
                             _formatDate(match.date),
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.5), 
+                              color: Colors.white.withValues(alpha: 0.5), 
                               fontSize: 10
                             ),
                           ),

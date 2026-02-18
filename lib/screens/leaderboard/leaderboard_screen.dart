@@ -26,7 +26,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _currentUserId = AuthService.instance.userId;
     _loadLeaderboard();
   }
@@ -37,10 +37,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     super.dispose();
   }
 
+  List<CloudUserProfile> _weeklyLeaders = [];
+  int? _userWeeklyRank;
+
   Future<void> _loadLeaderboard() async {
     setState(() => _isLoading = true);
 
     try {
+      // Haftalık liderlik
+      _weeklyLeaders = await FirestoreService.instance.getWeeklyLeaderboard(limit: 50);
+      
       // Global liderlik
       _globalLeaders = await FirestoreService.instance.getLeaderboard(limit: 100);
 
@@ -52,6 +58,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
       // Kullanıcı sıralamaları
       if (_currentUserId != null) {
+        _userWeeklyRank = await FirestoreService.instance.getUserWeeklyRank(_currentUserId!);
         _userGlobalRank = await FirestoreService.instance.getUserRank(_currentUserId!);
         _userLeagueRanks = await FirestoreService.instance.getUserLeagueRanks(_currentUserId!);
       }
@@ -88,6 +95,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                     : TabBarView(
                         controller: _tabController,
                         children: [
+                          _buildWeeklyTab(),
                           _buildGlobalTab(),
                           _buildLeagueTab('A'),
                           _buildLeagueTab('B'),
@@ -145,6 +153,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       ),
       child: TabBar(
         controller: _tabController,
+        isScrollable: true,
         indicator: BoxDecoration(
           color: Colors.amber,
           borderRadius: BorderRadius.circular(10),
@@ -153,12 +162,55 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         unselectedLabelColor: Colors.white70,
         labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         tabs: const [
+          Tab(text: '🔥 Haftalık'),
           Tab(text: '🌍 Global'),
           Tab(text: '🅰️ A Ligi'),
           Tab(text: '🅱️ B Ligi'),
           Tab(text: '©️ C Ligi'),
         ],
       ),
+    );
+  }
+
+  Widget _buildWeeklyTab() {
+    return Column(
+      children: [
+        // Haftalık özet bilgisi
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.amber.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.amber, size: 20),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Bu hafta düellolardan en çok puan toplayanlar listelenir. Her Pazartesi sıfırlanır.',
+                  style: TextStyle(color: Colors.amber, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        // Kullanıcının kendi sırası
+        if (_userWeeklyRank != null && _userWeeklyRank! > 0) 
+           _buildUserRankCard(_userWeeklyRank!, 'Haftalık'),
+        
+        // Top 3
+        if (_weeklyLeaders.length >= 3) _buildTopThree(_weeklyLeaders.take(3).toList(), isWeekly: true),
+        
+        // Liste
+        Expanded(
+          child: _buildLeaderList(_weeklyLeaders, isWeekly: true),
+        ),
+      ],
     );
   }
 
@@ -242,9 +294,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     );
   }
 
-  Widget _buildTopThree(List<CloudUserProfile> top3) {
-    if (top3.length < 3) return const SizedBox.shrink();
-
+  Widget _buildTopThree(List<CloudUserProfile> top3, {bool isWeekly = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Row(
@@ -252,17 +302,17 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           // 2. sıra (sol)
-          _buildPodiumPlayer(top3[1], 2, 80),
+          if (top3.length >= 2) _buildPodiumPlayer(top3[1], 2, 80, isWeekly: isWeekly),
           // 1. sıra (orta - en yüksek)
-          _buildPodiumPlayer(top3[0], 1, 100),
+          if (top3.isNotEmpty) _buildPodiumPlayer(top3[0], 1, 100, isWeekly: isWeekly),
           // 3. sıra (sağ)
-          _buildPodiumPlayer(top3[2], 3, 65),
+          if (top3.length >= 3) _buildPodiumPlayer(top3[2], 3, 65, isWeekly: isWeekly),
         ],
       ),
     );
   }
 
-  Widget _buildPodiumPlayer(CloudUserProfile player, int rank, double height) {
+  Widget _buildPodiumPlayer(CloudUserProfile player, int rank, double height, {bool isWeekly = false}) {
     final colors = {
       1: const Color(0xFFFFD700), // Altın
       2: const Color(0xFFC0C0C0), // Gümüş
@@ -271,6 +321,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
     final medals = {1: '🥇', 2: '🥈', 3: '🥉'};
     final isCurrentUser = player.odlevel == _currentUserId;
+    final scoreToShow = isWeekly ? player.weeklyGained : player.totalScore;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -331,7 +382,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         
         // Skor
         Text(
-          '${player.totalScore}',
+          '$scoreToShow',
           style: TextStyle(
             color: colors[rank],
             fontWeight: FontWeight.bold,
@@ -373,7 +424,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     );
   }
 
-  Widget _buildLeaderList(List<CloudUserProfile> leaders) {
+  Widget _buildLeaderList(List<CloudUserProfile> leaders, {bool isWeekly = false}) {
     if (leaders.isEmpty) {
       return const Center(
         child: Column(
@@ -400,6 +451,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         final player = listItems[index];
         final rank = leaders.length > 3 ? index + 4 : index + 1;
         final isCurrentUser = player.odlevel == _currentUserId;
+        final scoreToShow = isWeekly ? player.weeklyGained : player.totalScore;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -474,7 +526,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                '${player.totalScore}',
+                '$scoreToShow',
                 style: const TextStyle(
                   color: Colors.amber,
                   fontWeight: FontWeight.bold,

@@ -128,7 +128,7 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
               ),
               boxShadow: [
                 BoxShadow(
-                  color: _getTierColor(currentAchievement.tier).withOpacity(0.5),
+                  color: _getTierColor(currentAchievement.tier).withValues(alpha: 0.5),
                   blurRadius: 30,
                   spreadRadius: 5,
                 ),
@@ -141,7 +141,7 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.2),
+                    color: Colors.amber.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: Colors.amber),
                   ),
@@ -175,8 +175,8 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
                         colors: [
-                          _getTierColor(currentAchievement.tier).withOpacity(0.3),
-                          _getTierColor(currentAchievement.tier).withOpacity(0.1),
+                          _getTierColor(currentAchievement.tier).withValues(alpha: 0.3),
+                          _getTierColor(currentAchievement.tier).withValues(alpha: 0.1),
                         ],
                       ),
                       shape: BoxShape.circle,
@@ -186,7 +186,7 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: _getTierColor(currentAchievement.tier).withOpacity(0.5),
+                          color: _getTierColor(currentAchievement.tier).withValues(alpha: 0.5),
                           blurRadius: 20,
                           spreadRadius: 2,
                         ),
@@ -218,7 +218,7 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
                 Text(
                   currentAchievement.description,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 14,
                   ),
                   textAlign: TextAlign.center,
@@ -231,12 +231,12 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.amber.withOpacity(0.3),
-                        Colors.orange.withOpacity(0.2),
+                        Colors.amber.withValues(alpha: 0.3),
+                        Colors.orange.withValues(alpha: 0.2),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                    border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -255,7 +255,7 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
                       Text(
                         'altın',
                         style: TextStyle(
-                          color: Colors.amber.withOpacity(0.8),
+                          color: Colors.amber.withValues(alpha: 0.8),
                           fontSize: 16,
                         ),
                       ),
@@ -299,7 +299,7 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
                           shape: BoxShape.circle,
                           color: index == _currentIndex 
                               ? Colors.amber 
-                              : Colors.white.withOpacity(0.3),
+                              : Colors.white.withValues(alpha: 0.3),
                         ),
                       );
                     }),

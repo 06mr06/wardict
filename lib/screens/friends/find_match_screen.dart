@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/friend.dart';
-import '../../services/friend_service.dart';
+import '../../services/online_duel_service.dart';
+import '../game/online_duel_screen.dart';
 
 class FindMatchScreen extends StatefulWidget {
   final String leagueCode;
@@ -25,7 +25,7 @@ class _FindMatchScreenState extends State<FindMatchScreen>
 
   bool _isSearching = true;
   bool _matchFound = false;
-  Friend? _opponent;
+  OnlineDuelMatch? _match;
   String _statusText = 'Rakip aranıyor...';
   int _searchSeconds = 0;
 
@@ -66,22 +66,22 @@ class _FindMatchScreenState extends State<FindMatchScreen>
     // Durum mesajlarını göster
     _updateStatus();
 
-    // Rastgele rakip ara
-    final opponent = await FriendService.instance.findRandomOpponent(widget.leagueCode);
+    // Gerçek Online Düello Servisi ile eşleşme ara
+    final match = await OnlineDuelService.instance.findRandomMatch(widget.leagueCode);
 
     if (mounted) {
       setState(() {
         _isSearching = false;
-        _matchFound = opponent != null;
-        _opponent = opponent;
-        _statusText = opponent != null ? 'Rakip bulundu!' : 'Rakip bulunamadı';
+        _matchFound = match != null;
+        _match = match;
+        _statusText = match != null ? 'Rakip bulundu!' : 'Rakip bulunamadı';
       });
 
-      if (opponent != null) {
+      if (match != null) {
         // 2 saniye bekle ve oyuna başla
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) {
-          _startOnlineMatch();
+          _startOnlineMatch(match);
         }
       }
     }
@@ -107,25 +107,18 @@ class _FindMatchScreenState extends State<FindMatchScreen>
     }
   }
 
-  void _startOnlineMatch() {
-    // TODO: Online düello ekranına git
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.sports_esports, color: Colors.white),
-            const SizedBox(width: 8),
-            Text('${_opponent?.username} ile düello başlıyor! (Demo mod)'),
-          ],
-        ),
-        backgroundColor: const Color(0xFF2E5A8C),
+  void _startOnlineMatch(OnlineDuelMatch match) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OnlineDuelScreen(match: match),
       ),
     );
-    Navigator.pop(context);
   }
 
   void _cancelSearch() {
     setState(() => _isSearching = false);
+    OnlineDuelService.instance.cancelMatch();
     Navigator.pop(context);
   }
 
@@ -189,7 +182,7 @@ class _FindMatchScreenState extends State<FindMatchScreen>
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Colors.orange.withOpacity(0.3),
+                            color: Colors.orange.withOpacity(0.5),
                             width: 3,
                           ),
                         ),
@@ -238,16 +231,16 @@ class _FindMatchScreenState extends State<FindMatchScreen>
                     Text(
                       _formattedTime,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withOpacity(0.5),
                         fontSize: 16,
                       ),
                     ),
-                  ] else if (_matchFound && _opponent != null) ...[
+                  ] else if (_matchFound && _match != null) ...[
                     // Rakip bulundu
                     Container(
                       padding: const EdgeInsets.all(32),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.2),
+                        color: Colors.green.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
                           color: Colors.green.withOpacity(0.5),
@@ -275,7 +268,7 @@ class _FindMatchScreenState extends State<FindMatchScreen>
                             radius: 40,
                             backgroundColor: Colors.blue.shade300,
                             child: Text(
-                              _opponent!.username[0].toUpperCase(),
+                              (_match!.opponentUsername ?? 'R')[0].toUpperCase(),
                               style: const TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
@@ -285,7 +278,7 @@ class _FindMatchScreenState extends State<FindMatchScreen>
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            _opponent!.username,
+                            _match!.opponentUsername ?? 'Rakip',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
@@ -294,9 +287,9 @@ class _FindMatchScreenState extends State<FindMatchScreen>
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '${_opponent!.eloRating ?? 1500} ELO',
+                            'Maç Başlıyor...',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
+                              color: Colors.white.withOpacity(0.5),
                               fontSize: 16,
                             ),
                           ),
@@ -308,7 +301,7 @@ class _FindMatchScreenState extends State<FindMatchScreen>
                     Container(
                       padding: const EdgeInsets.all(32),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.2),
+                        color: Colors.red.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
                           color: Colors.red.withOpacity(0.5),
@@ -336,7 +329,7 @@ class _FindMatchScreenState extends State<FindMatchScreen>
                             'Şu anda bu ligde aktif oyuncu yok.\nDaha sonra tekrar dene!',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
+                              color: Colors.white.withOpacity(0.5),
                               fontSize: 16,
                             ),
                           ),

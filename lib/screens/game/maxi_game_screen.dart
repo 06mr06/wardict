@@ -413,7 +413,7 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
@@ -481,7 +481,7 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
                 margin: const EdgeInsets.symmetric(horizontal: 32),
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Column(
@@ -496,8 +496,8 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
                               height: 40,
                               decoration: BoxDecoration(
                                 color: i < _players.length
-                                    ? Colors.green.withOpacity(0.2)
-                                    : Colors.white.withOpacity(0.1),
+                                    ? Colors.green.withValues(alpha: 0.2)
+                                    : Colors.white.withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Center(
@@ -640,8 +640,8 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
                             color: _timeRemaining <= 5
-                                ? Colors.red.withOpacity(0.3)
-                                : Colors.white.withOpacity(0.1),
+                                ? Colors.red.withValues(alpha: 0.3)
+                                : Colors.white.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
@@ -671,7 +671,7 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
@@ -709,7 +709,7 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Column(
@@ -735,19 +735,19 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
                       
                       // Options
                       ...List.generate(options.length, (index) {
-                        Color bgColor = Colors.white.withOpacity(0.1);
+                        Color bgColor = Colors.white.withValues(alpha: 0.1);
                         Color borderColor = Colors.transparent;
                         
                         if (_answered) {
                           if (index == correctIndex) {
-                            bgColor = Colors.green.withOpacity(0.3);
+                            bgColor = Colors.green.withValues(alpha: 0.3);
                             borderColor = Colors.green;
                           } else if (index == _selectedOption) {
-                            bgColor = Colors.red.withOpacity(0.3);
+                            bgColor = Colors.red.withValues(alpha: 0.3);
                             borderColor = Colors.red;
                           }
                         } else if (index == _selectedOption) {
-                          bgColor = const Color(0xFF6C27FF).withOpacity(0.3);
+                          bgColor = const Color(0xFF6C27FF).withValues(alpha: 0.3);
                           borderColor = const Color(0xFF6C27FF);
                         }
                         
@@ -829,7 +829,7 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
                   margin: const EdgeInsets.symmetric(horizontal: 24),
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Column(
@@ -856,8 +856,8 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 color: player.isMe
-                                    ? const Color(0xFFFFD700).withOpacity(0.2)
-                                    : Colors.white.withOpacity(0.05),
+                                    ? const Color(0xFFFFD700).withValues(alpha: 0.2)
+                                    : Colors.white.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(16),
                                 border: player.isMe
                                     ? Border.all(color: const Color(0xFFFFD700), width: 2)
@@ -876,7 +876,7 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
                                               ? Colors.grey.shade300
                                               : rank == 3
                                                   ? const Color(0xFFCD7F32)
-                                                  : Colors.white.withOpacity(0.2),
+                                                  : Colors.white.withValues(alpha: 0.2),
                                       shape: BoxShape.circle,
                                     ),
                                     child: Center(

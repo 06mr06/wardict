@@ -27,13 +27,13 @@ class TermsOfServiceScreen extends StatelessWidget {
             const SizedBox(height: 20),
             _buildSection(
               '1. Kabul',
-              '''WARDICT uygulamasını kullanarak bu kullanım şartlarını kabul etmiş olursunuz.
+              '''LUGORENA uygulamasını kullanarak bu kullanım şartlarını kabul etmiş olursunuz.
 
 Bu şartları kabul etmiyorsanız, lütfen uygulamayı kullanmayın.''',
             ),
             _buildSection(
               '2. Hizmet Açıklaması',
-              '''WARDICT, İngilizce kelime öğrenmeyi eğlenceli hale getiren bir mobil oyundur.
+              '''LUGORENA, İngilizce kelime öğrenmeyi eğlenceli hale getiren bir mobil oyundur.
 
 Uygulama şunları içerir:
 • Kelime öğrenme oyunları
@@ -86,7 +86,7 @@ Abonelikler otomatik yenilenir. İptal etmek için cihaz ayarlarınızdan abonel
             ),
             _buildSection(
               '7. Fikri Mülkiyet',
-              '''WARDICT ve tüm içeriği telif hakkı ile korunmaktadır.
+              '''LUGORENA ve tüm içeriği telif hakkı ile korunmaktadır.
 
 • Uygulama tasarımı, grafikleri ve kodu bize aittir
 • Kullanıcı tarafından oluşturulan içerik (kullanıcı adı vb.) kullanıcıya aittir
@@ -94,7 +94,7 @@ Abonelikler otomatik yenilenir. İptal etmek için cihaz ayarlarınızdan abonel
             ),
             _buildSection(
               '8. Sorumluluk Reddi',
-              '''WARDICT "olduğu gibi" sunulmaktadır.
+              '''LUGORENA "olduğu gibi" sunulmaktadır.
 
 • Hizmetin kesintisiz çalışacağını garanti etmiyoruz
 • Sunucu bakımları için geçici kesintiler olabilir
@@ -118,9 +118,9 @@ Teknik sorunlardan kaynaklanan veri kayıplarından sorumlu değiliz.''',
             const SizedBox(height: 40),
             Center(
               child: Text(
-                '© 2026 WARDICT. Tüm hakları saklıdır.',
+                '© 2026 LUGORENA. Tüm hakları saklıdır.',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 12,
                 ),
               ),
@@ -150,7 +150,7 @@ Teknik sorunlardan kaynaklanan veri kayıplarından sorumlu değiliz.''',
           Text(
             content,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.85),
+              color: Colors.white.withValues(alpha: 0.85),
               fontSize: 14,
               height: 1.6,
             ),
