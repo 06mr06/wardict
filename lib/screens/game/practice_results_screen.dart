@@ -1,17 +1,29 @@
 import '../../widgets/common/top_toast.dart';
+import '../../widgets/common/ad_banner_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../services/share_service.dart';
 import '../../models/answered_entry.dart';
 import '../../models/question_mode.dart';
-import '../../models/user_level.dart';
 import '../../providers/game_provider.dart';
 import '../../providers/practice_provider.dart';
+import '../../providers/language_provider.dart';
 import '../../services/word_pool_service.dart';
 import '../../services/achievement_service.dart';
 import '../../services/user_profile_service.dart';
-import '../../services/sound_service.dart';
+import '../../services/ranking_service.dart';
 import '../../widgets/game/achievement_celebration.dart';
 import 'package:confetti/confetti.dart';
+import '../../models/premium.dart';
+import '../../services/ad_service.dart';
+import '../../services/shop_service.dart';
+import '../../services/word_usage_service.dart';
+import '../../services/sound_service.dart';
+import '../../widgets/common/level_up_dialog.dart';
+import '../../models/user_level.dart';
+import '../home/widgets/home_dialogs.dart';
+import '../../widgets/game/learning_summary_card.dart';
+
 class SeventyThirtyResultsScreen extends StatefulWidget {
   final PracticeSessionResult result;
   const SeventyThirtyResultsScreen({super.key, required this.result});
@@ -23,10 +35,13 @@ class SeventyThirtyResultsScreen extends StatefulWidget {
 class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen> {
   final Set<int> _savedIndices = {};
   late ConfettiController _confettiController;
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _boundaryKey = GlobalKey();
+  bool _showWordsList = true;
+  
+  bool get allSelected => _savedIndices.length == result.answerHistory.length && result.answerHistory.isNotEmpty;
 
   PracticeSessionResult get result => widget.result;
-
-  bool get allSelected => _savedIndices.length == result.answerHistory.length && result.answerHistory.isNotEmpty;
 
   @override
   void initState() {
@@ -36,18 +51,41 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
     // Yeni kazanılan ödülleri kontrol et
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndShowNewAchievements();
+      _addPointsToWeeklyScore();
       
+      for (int i = 0; i < result.answerHistory.length; i++) {
+        _savedIndices.add(i);
+      }
+      
+      setState(() {});
+
       // Eğer başarı oranı yüksekse konfeti patlat
       if (widget.result.accuracy >= 0.7) {
         _confettiController.play();
-        // SoundService.instance.playSuccess();
+        SoundService.instance.playSuccess();
       }
+      
+      if (widget.result.leveledUp && widget.result.oldLevel != null && widget.result.newLevel != null) {
+        LevelUpDialog.show(
+          context,
+          UserLevel.fromCode(widget.result.oldLevel!),
+          UserLevel.fromCode(widget.result.newLevel!),
+        );
+      }
+
+      // Reklam sayacını güncelle (Geçiş reklamı için)
+      AdService.instance.onGameCompleted();
+
+      // Kelime kullanım istatistiklerini güncelle (Tekrar eden soruları önlemek için)
+      final usedWords = result.answerHistory.map((e) => e.correctAnswer).cast<String>().toList();
+      WordUsageService.instance.markWordsUsed(usedWords);
     });
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -55,7 +93,7 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
   void didChangeDependencies() {
     super.didChangeDependencies();
     final practiceProvider = Provider.of<PracticeProvider>(context, listen: false);
-    if (practiceProvider.duelUnlocked && result.sessionsInRow == 5) {
+    if (practiceProvider.duelUnlocked && practiceProvider.totalSessionsCompleted == 3) {
       // Sadece ilk kez açıldığında göster
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showDuelUnlockedAnimation(context);
@@ -67,10 +105,106 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
 
+    final isNewUser = await ShopService.instance.checkAndGiveWelcomeGift();
+    if (isNewUser && mounted) {
+      HomeDialogs.showWelcomeGiftDialog(context);
+      return; // Yeni kullanıcıysa başarımları hemen gösterme, çok karmaşık olmasın
+    }
+
     final newAchievements = await AchievementService.instance.getNewlyUnlockedAchievements();
     if (newAchievements.isNotEmpty && mounted) {
       AchievementCelebration.showNewAchievements(context, newAchievements);
     }
+  }
+
+  Future<void> _addPointsToWeeklyScore() async {
+    // Haftalık puana ekle
+    final pointsToAdd = result.sessionScore; // Artık gerçek puan toplamını kullanıyoruz
+    if (pointsToAdd > 0) {
+      final profile = await UserProfileService.instance.loadProfile();
+      await RankingService.instance.addScore(profile.username, pointsToAdd);
+    }
+  }
+
+  Widget _buildAdSection() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: Center(
+        child: AdBannerWidget(),
+      ),
+    );
+  }
+
+  Widget _buildFooter(bool isLevelTest, int sessionProgress) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A3A5C),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(120),
+            blurRadius: 15,
+            offset: const Offset(0, -5),
+          ),
+        ],
+        border: Border(top: BorderSide(color: Colors.white.withAlpha(20))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Center(child: AdBannerWidget()),
+          const SizedBox(height: 12),
+          Builder(
+            builder: (context) {
+              final practiceProvider = Provider.of<PracticeProvider>(context, listen: false);
+              final duelJustUnlocked = practiceProvider.duelUnlocked && practiceProvider.totalSessionsCompleted == 3 && result.isPlacementComplete;
+              return Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white.withAlpha(26),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: Colors.white.withAlpha(77)),
+                        ),
+                      ),
+                      child: Text(
+                        context.read<LanguageProvider>().getString('home'),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pushReplacementNamed('/7030');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4CAF50),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: Text(
+                        context.read<LanguageProvider>().getString('continue_button'),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -80,254 +214,170 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
     final sessionProgress = result.sessionsInRow;
     
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                // Confetti Widget
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: ConfettiWidget(
-                    confettiController: _confettiController,
-                    blastDirectionality: BlastDirectionality.explosive,
-                    shouldLoop: false,
-                    colors: const [
-                      Colors.green,
-                      Colors.blue,
-                      Colors.pink,
-                      Colors.orange,
-                      Colors.purple
-                    ],
-                  ),
-                ),
-                // Header with Level Test Progress
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      children: [
-                        // Header with Level Test Progress
-                        if (isLevelTest)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            margin: const EdgeInsets.only(bottom: 8),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF6C27FF), Color(0xFF8E2DE2)],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF6C27FF).withOpacity(0.5),
-                                  blurRadius: 20,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.assignment_turned_in, color: Colors.amber, size: 24),
-                                const SizedBox(width: 12),
-                                Column(
-                                  children: [
-                                    const Text(
-                                      'Seviye Tespiti',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Oturum $sessionProgress / 5',
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        // Header
-                        Text(
-                          isLevelTest ? 'Test Oturumu Tamamlandı!' : 'Oturum Tamamlandı!',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        // ELO Assignment Display (only on 5th session)
-                        if (result.isPlacementComplete && sessionProgress == 5)
-                          _buildEloAssignmentCard(),
-                        if (result.isPlacementComplete && sessionProgress == 5)
-                          const SizedBox(height: 12),
-                        // Level change banner (if any)
-                        if (result.leveledUp)
-                          _buildLevelChangeBanner(
-                            isLevelUp: true,
-                            newLevel: result.newLevel!,
-                          )
-                        else if (result.leveledDown)
-                          _buildLevelChangeBanner(
-                            isLevelUp: false,
-                            newLevel: result.newLevel!,
-                          ),
-                        if (result.leveledUp || result.leveledDown)
-                          const SizedBox(height: 12),
-                        // Score card
-                        _buildLeagueProgressBar(),
-                        const SizedBox(height: 16),
-                        _buildScoreCard(),
-                        const SizedBox(height: 12),
-                        // Soru-Cevap Geçmişi Başlığı
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 4, top: 12, bottom: 8),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.menu_book, color: Colors.amber, size: 20),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'GÜNÜN ÖNEMLİ KELİMELERİ',
-                                  style: TextStyle(
-                                    color: Colors.amber,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          height: 220,
-                          child: _buildAnswerHistory(),
-                        ),
-                        const SizedBox(height: 24),
-                        // Row butonlar
-                        Builder(
-                          builder: (context) {
-                            final practiceProvider = Provider.of<PracticeProvider>(context, listen: false);
-                            final duelJustUnlocked = practiceProvider.duelUnlocked && result.sessionsInRow == 5 && result.isPlacementComplete;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 20),
-                              child: Row(
+      backgroundColor: const Color(0xFF1A3A5C),
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Column(
+                        children: [
+                          // 1. Skor ve Seviye Durumu
+                          RepaintBoundary(
+                            key: _boundaryKey,
+                            child: Container(
+                              color: const Color(0xFF1A3A5C),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.white.withOpacity(0.1),
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(16),
-                                          side: BorderSide(color: Colors.white.withOpacity(0.3)),
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        'Ana Sayfa',
-                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                  ),
-                                  if (!duelJustUnlocked) ...[
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          Navigator.of(context).pushReplacementNamed('/7030');
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF4CAF50),
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(vertical: 16),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                        ),
-                                        child: const Text(
-                                          'Devam Et',
-                                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ),
-                                  ]
+                                  if (isLevelTest) _buildLevelProgressBanner(sessionProgress),
+                                  _buildScoreCard(),
                                 ],
                               ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+                            ),
+                          ),
 
-  Widget _buildLevelBadge(UserLevel level, {bool large = false}) {
-    return Container(
-      width: large ? 100 : 50,
-      height: large ? 100 : 50,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: level.gradientColors.map((c) => Color(c as int)).toList(),
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  // 2. Öğrenme Özeti (Yanlış kelimeler)
+  Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    child: LearningSummaryCard(
+      answerHistory: result.answerHistory.map((r) => AnsweredEntry(
+        prompt: r.prompt,
+        selectedIndex: r.selectedAnswer == r.correctAnswer ? 1 : 0, // Mock index for summary card
+        correctIndex: 1, // Mock index
+        earnedPoints: r.points,
+        mode: QuestionMode.values[r.mode.index], // Enum conversion assuming they map
+        correctText: r.correctAnswer,
+        selectedText: r.selectedAnswer,
+        turkishMeaning: r.turkishMeaning,
+      )).toList(),
+    ),
+  ),
+
+                          // 3. Çıkmış Kelimeler (Sınırlı yükseklik ve içten kaydırma)
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            height: 280, // Sabit yükseklik: 3-4 kelime + buton sığacak şekilde
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(13),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child: _buildWordsList(),
+                          ),
+
+                          // 3. Reklam Alanı (Medium Rectangle)
+                          const AdBannerWidget(isMediumRectangle: true),
+
+                          const SizedBox(height: 16),
+
+                          // 4. Alt Butonlar
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                            child: Row(
+                              children: [
+                                IconButton(
+                                  onPressed: () => ShareService.instance.shareWidgetAsImage(_boundaryKey, 'LUGORENA\'da pratik skoruma bak!'),
+                                  icon: const Icon(Icons.share, color: Colors.white),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.white.withAlpha(26),
+                                    padding: const EdgeInsets.all(14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF3F51B5), // Belirgin İndigo rengi
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      elevation: 4,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.home_rounded, size: 20),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          context.watch<LanguageProvider>().getString('home').toUpperCase(),
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF28A745),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                    child: Text(
+                                      context.watch<LanguageProvider>().getString('continue_button').toUpperCase(),
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Navigasyon bar emniyeti
+                          SizedBox(height: MediaQuery.of(context).padding.bottom),
+                        ],
+                      ),
+                  ),
+                );
+              },
+            ),
+
+            // Navigasyon barı güvenli bölgesi
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 10),
+
+
+            // Konfeti
+            Align(
+              alignment: Alignment.topCenter,
+              child: ConfettiWidget(
+                confettiController: _confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                shouldLoop: false,
+                colors: const [Colors.green, Colors.blue, Colors.pink, Colors.orange, Colors.purple],
+              ),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(level.color as int).withOpacity(0.5),
-            blurRadius: large ? 20 : 10,
-            spreadRadius: 2,
-          ),
-        ],
-        border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-      ),
-      child: Icon(
-        IconData(level.iconCode, fontFamily: 'MaterialIcons'),
-        color: Colors.white,
-        size: large ? 48 : 24,
       ),
     );
   }
 
   Widget _buildLevelChangeBanner({required bool isLevelUp, required String newLevel}) {
-    final level = UserLevel.fromCode(newLevel);
-    
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: level.gradientColors.map((c) => Color(c as int)).toList(),
+          colors: isLevelUp
+              ? [Colors.green.shade400, Colors.green.shade600]
+              : [Colors.red.shade400, Colors.red.shade600],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Color(level.color as int).withOpacity(0.5),
+            color: (isLevelUp ? Colors.green : Colors.red).withAlpha(128),
             blurRadius: 20,
             spreadRadius: 2,
           ),
@@ -336,105 +386,140 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildLevelBadge(level),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isLevelUp ? 'SEVİYE ATLADIN!' : 'SEVİYE DÜŞTÜ',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                Text(
-                  'Yeni Seviye: ${level.turkishName} (${level.code})',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
           Icon(
             isLevelUp ? Icons.arrow_upward : Icons.arrow_downward,
             color: Colors.white,
-            size: 32,
+            size: 28,
+          ),
+          const SizedBox(width: 12),
+          Column(
+            children: [
+              Text(
+                isLevelUp 
+                    ? context.watch<LanguageProvider>().getString('level_up_message') 
+                    : context.watch<LanguageProvider>().getString('level_down_message'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '${context.watch<LanguageProvider>().getString('new_level_prefix')} $newLevel',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEloAssignmentCard() {
-    final level = UserLevel.fromCode(result.currentLevel);
+  Widget _buildLpAssignmentCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFD700).withAlpha(128),
+            blurRadius: 20,
+            spreadRadius: 2,
+          ),
+        ],
       ),
       child: Column(
         children: [
-          const Text(
-            'SEVİYE TESPİTİ TAMAMLANDI',
-            style: TextStyle(
-              color: Colors.amber,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
-            ),
-          ),
-          const SizedBox(height: 20),
-          _buildLevelBadge(level, large: true),
-          const SizedBox(height: 16),
-          Text(
-            level.turkishName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 20),
-          FutureBuilder<int>(
-            future: _getEloRating(),
-            builder: (context, snapshot) {
-              final elo = snapshot.data ?? 0;
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: level.gradientColors.map((c) => Color(c as int)).toList(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.emoji_events,
+                color: Colors.white,
+                size: 32,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  context.watch<LanguageProvider>().getString('level_test_complete'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(level.color as int).withOpacity(0.3),
-                      blurRadius: 15,
-                    ),
-                  ],
                 ),
-                child: Column(
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(77),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  context.watch<LanguageProvider>().getString('determined_level'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  result.currentLevel,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          FutureBuilder<int>(
+            future: _getLpRating(),
+            builder: (context, snapshot) {
+              final lp = snapshot.data ?? 0;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(51),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'BAŞLANGIÇ ELO',
-                      style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                    const Icon(
+                      Icons.stars,
+                      color: Colors.white,
+                      size: 20,
                     ),
+                    const SizedBox(width: 8),
                     Text(
-                      elo > 0 ? '$elo' : '...',
+                      context.watch<LanguageProvider>().getString('starting_lp'),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 36,
-                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      lp > 0 ? '$lp' : (context.watch<LanguageProvider>().currentLanguage == 'tr' ? 'Hesaplanıyor...' : 'Calculating...'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -442,10 +527,13 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
               );
             },
           ),
-          const SizedBox(height: 20),
-          const Text(
-            'Harika bir başlangıç! Artık Düello modunda gerçek rakiplerle yarışabilirsin.',
-            style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.5),
+          const SizedBox(height: 12),
+          Text(
+            context.watch<LanguageProvider>().getString('duel_unlocked_desc'),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -453,107 +541,15 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
     );
   }
 
-  Widget _buildLeagueProgressBar() {
-    final correctCount = result.correctAnswers;
-    final progress = correctCount / 10.0;
-    final level = UserLevel.fromCode(result.currentLevel);
-    
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'LİG İLERLEMESİ',
-                style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
-              ),
-              Text(
-                '$correctCount / 10 Doğru',
-                style: TextStyle(color: Color(level.color as int), fontSize: 13, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Stack(
-            alignment: Alignment.centerLeft,
-            children: [
-              // Background Bar
-              Container(
-                height: 12,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-              // Progress Bar
-              AnimatedFractionallySizedBox(
-                duration: const Duration(milliseconds: 1000),
-                widthFactor: progress,
-                child: Container(
-                  height: 12,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: level.gradientColors.map((c) => Color(c as int)).toList(),
-                    ),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-              ),
-              // Level Up Threshold (7. doğru)
-              Positioned(
-                left: MediaQuery.of(context).size.width * 0.58, // Approx 0.7 position
-                child: Column(
-                  children: [
-                    Container(
-                      width: 2,
-                      height: 20,
-                      color: Colors.amber.withOpacity(0.8),
-                    ),
-                    const Icon(Icons.keyboard_double_arrow_up, color: Colors.amber, size: 14),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('A1', style: TextStyle(color: Colors.white30, fontSize: 10)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text('LEVEL UP SINIRI (7)', style: TextStyle(color: Colors.amber, fontSize: 9, fontWeight: FontWeight.bold)),
-              ),
-              const Text('C2', style: TextStyle(color: Colors.white30, fontSize: 10)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<int> _getEloRating() async {
+  Future<int> _getLpRating() async {
     final profile = await UserProfileService.instance.loadProfile();
-    return profile.eloRating;
+    return profile.lpRating;
   }
 
   Widget _buildScoreCard() {
     final percentage = (result.accuracy * 100).round();
     final isGood = percentage >= 70;
-    final isMedium = percentage >= 30;
+    final isMedium = percentage > 30; // 30 ve altı başarısız (Kırmızı) kabul edilecek
 
     Color cardColor;
     Color textColor;
@@ -562,25 +558,23 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
     if (isGood) {
       cardColor = Colors.green;
       textColor = Colors.green;
-      performanceText = 'Harika!';
+      performanceText = context.watch<LanguageProvider>().getString('great');
     } else if (isMedium) {
       cardColor = const Color(0xFF00CED1); // Turkuaz
       textColor = const Color(0xFF00CED1);
-      performanceText = 'İyi!';
+      performanceText = context.watch<LanguageProvider>().getString('good');
     } else {
       cardColor = Colors.red;
       textColor = Colors.red;
-      performanceText = 'Çalışmaya Devam!';
+      performanceText = context.watch<LanguageProvider>().getString('keep_working');
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), 
+      margin: const EdgeInsets.symmetric(vertical: 4), 
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            cardColor.withOpacity(0.3),
-            cardColor.withOpacity(0.1)
-          ],
+          colors: [cardColor.withAlpha(77), cardColor.withAlpha(26)],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
@@ -599,9 +593,9 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
           const SizedBox(width: 12),
           Column(
             children: [
-              const Text(
-                'Başarı Oranı',
-                style: TextStyle(
+              Text(
+                context.watch<LanguageProvider>().getString('success_rate'),
+                style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 12,
                 ),
@@ -610,14 +604,14 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
                 '%$percentage',
                 style: TextStyle(
                   color: textColor,
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               Text(
                 performanceText,
                 style: TextStyle(
-                  color: textColor.withOpacity(0.8),
+                  color: textColor.withAlpha(204),
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -634,7 +628,7 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
       children: [
         Expanded(
           child: _buildStatCard(
-            'Doğru',
+            context.watch<LanguageProvider>().getString('correct'),
             '${result.correctAnswers}',
             Colors.green,
             Icons.check_circle,
@@ -643,7 +637,7 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
         const SizedBox(width: 12),
         Expanded(
           child: _buildStatCard(
-            'Yanlış',
+            context.watch<LanguageProvider>().getString('wrong'),
             '${result.totalQuestions - result.correctAnswers}',
             Colors.red,
             Icons.cancel,
@@ -652,10 +646,19 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
         const SizedBox(width: 12),
         Expanded(
           child: _buildStatCard(
-            'Başarı',
+            context.watch<LanguageProvider>().getString('success'),
             '%${(result.accuracy * 100).round()}',
-            Colors.blue,
+            result.accuracy >= 0.7 ? Colors.green : (result.accuracy > 0.3 ? Colors.blue : Colors.red),
             Icons.analytics,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            context.watch<LanguageProvider>().getString('points'),
+            '${result.sessionScore}',
+            Colors.amber,
+            Icons.stars,
           ),
         ),
       ],
@@ -666,9 +669,9 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withAlpha(38),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withAlpha(77)),
       ),
       child: Column(
         children: [
@@ -685,7 +688,7 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
           Text(
             label,
             style: TextStyle(
-              color: color.withOpacity(0.8),
+              color: color.withAlpha(204),
               fontSize: 10,
             ),
           ),
@@ -698,24 +701,24 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withAlpha(26),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        border: Border.all(color: Colors.white.withAlpha(51)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(Icons.school, color: Colors.amber, size: 20),
           const SizedBox(width: 8),
-          const Text(
-            'Seviye:',
-            style: TextStyle(color: Colors.white70, fontSize: 12),
+          Text(
+            '${context.watch<LanguageProvider>().getString('level')}:',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
           const SizedBox(width: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(0.2),
+              color: Colors.amber.withAlpha(51),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: Colors.amber),
             ),
@@ -735,10 +738,12 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
 
   Widget _buildDuelProgressBanner() {
     final practiceProvider = Provider.of<PracticeProvider>(context, listen: false);
-    final remainingGames = 5 - practiceProvider.sessionsInRow;
+    final remainingGames = 3 - practiceProvider.sessionsInRow;
     final message = remainingGames == 1
-      ? 'Son oyun kaldı! (4/5) Düello modu açılacak.'
-      : 'Son $remainingGames oyun kaldı! (${practiceProvider.sessionsInRow}/5) Düello modu açılacak.';
+      ? context.watch<LanguageProvider>().getString('one_session_left')
+      : context.watch<LanguageProvider>().getString('sessions_remaining')
+          .replaceAll('{remaining}', remainingGames.toString())
+          .replaceAll('{progress}', practiceProvider.sessionsInRow.toString());
 
     return Container(
       width: double.infinity,
@@ -750,7 +755,7 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6C27FF).withOpacity(0.5),
+            color: const Color(0xFF6C27FF).withAlpha(128),
             blurRadius: 20,
             spreadRadius: 2,
           ),
@@ -768,9 +773,9 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
           Expanded(
             child: Column(
               children: [
-                const Text(
-                  'Düello Moduna Doğru!',
-                  style: TextStyle(
+                Text(
+                  context.watch<LanguageProvider>().getString('towards_duel'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -793,157 +798,233 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
     );
   }
 
-  Widget _buildAnswerHistory() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: Column(
-        children: [
-          // Header with Tümünü Seç/Kaldır
-          Padding(
-            padding: const EdgeInsets.all(16),
+  Widget _buildWordsToggle() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => setState(() => _showWordsList = !_showWordsList),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(26),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white10),
+            ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Cevaplar',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Icon(
+                  _showWordsList ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                  color: Colors.amber,
+                  size: 20,
                 ),
-                // Tümünü Seç / Tümünü Kaldır butonu
-                GestureDetector(
-                  onTap: _toggleAll,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: allSelected 
-                          ? Colors.orange.withOpacity(0.3)
-                          : const Color(0xFF6C27FF).withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: allSelected ? Colors.orange : const Color(0xFF6C27FF),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          allSelected ? Icons.remove_circle : Icons.add_circle,
-                          color: allSelected ? Colors.orange : const Color(0xFF6C27FF),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          allSelected ? 'Tümünü Kaldır' : 'Tümünü Seç',
-                          style: TextStyle(
-                            color: allSelected ? Colors.orange : const Color(0xFF6C27FF),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
+                const SizedBox(width: 6),
+                Text(
+                  _showWordsList 
+                      ? context.watch<LanguageProvider>().getString('hide_words') 
+                      : '${context.watch<LanguageProvider>().getString('show_words')} (${result.answerHistory.length})',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
                   ),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWordsList() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black38,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(51),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.list_alt_rounded, color: Colors.amber, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        context.watch<LanguageProvider>().getString('words_appeared'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: _toggleSelectAll,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: Colors.white60,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    allSelected 
+                        ? 'TEMİZLE' 
+                        : 'TÜMÜNÜ SEÇ',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const Divider(color: Colors.white10, height: 1),
+          
+          // Kelime listesi
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              itemCount: result.answerHistory.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
+            child: Scrollbar(
+              controller: _scrollController,
+              thumbVisibility: true,
+              child: ListView.separated(
+                shrinkWrap: true,
+                controller: _scrollController,
+                padding: const EdgeInsets.all(12),
+                itemCount: result.answerHistory.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
                 final answer = result.answerHistory[index];
                 final isSaved = _savedIndices.contains(index);
+                final isCorrect = answer.isCorrect;
                 
                 return GestureDetector(
-                  onTap: () => _toggleItem(index, answer),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
+                  onTap: () => _toggleWord(index),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: isSaved
-                            ? [Colors.green.withOpacity(0.2), Colors.green.withOpacity(0.1)]
-                            : answer.isCorrect
-                                ? [Colors.green.withOpacity(0.15), Colors.green.withOpacity(0.05)]
-                                : [Colors.red.withOpacity(0.15), Colors.red.withOpacity(0.05)],
-                      ),
+                      color: isSaved 
+                          ? Colors.amber.withAlpha(20) 
+                          : Colors.white.withAlpha(10),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isSaved
-                            ? Colors.green.withOpacity(0.5)
-                            : answer.isCorrect
-                                ? Colors.green.withOpacity(0.3)
-                                : Colors.red.withOpacity(0.3),
-                        width: isSaved ? 2 : 1,
+                        color: isSaved ? Colors.amber : Colors.white10,
+                        width: isSaved ? 1.5 : 1,
                       ),
+                      boxShadow: isSaved ? [
+                        BoxShadow(
+                          color: Colors.amber.withAlpha(30),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        )
+                      ] : null,
                     ),
                     child: Row(
                       children: [
-                        // Checkbox style indicator
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: isSaved ? Colors.green : Colors.transparent,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: isSaved ? Colors.green : Colors.white54,
-                              width: 2,
-                            ),
-                          ),
-                          child: isSaved 
-                              ? const Icon(Icons.check, color: Colors.white, size: 16)
-                              : null,
+                        // Status Icon
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0.8, end: 1.0),
+                          duration: const Duration(milliseconds: 200),
+                          builder: (context, value, child) {
+                            return Transform.scale(
+                              scale: isSaved ? value : 1.0,
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: (isCorrect ? Colors.green : Colors.red).withAlpha(51),
+                                ),
+                                child: Icon(
+                                  isCorrect ? Icons.check_rounded : Icons.close_rounded,
+                                  size: 18,
+                                  color: isCorrect ? Colors.greenAccent : Colors.redAccent,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                        const SizedBox(width: 10),
-                        // Seviye badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            answer.level,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        // Soru ve cevap
-                        Expanded(
+                        const SizedBox(width: 12),
+                        
+                        // Word and Meaning
+                        Flexible(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    answer.correctAnswer,
+                                    style: TextStyle(
+                                      color: isSaved ? Colors.amber : Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
                               Text(
-                                answer.prompt,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
+                                answer.prompt + (answer.turkishMeaning != null ? ' | ${answer.turkishMeaning}' : ''),
+                                style: TextStyle(
+                                  color: isSaved ? Colors.amber.withAlpha(179) : Colors.white.withAlpha(153),
+                                  fontSize: 11,
+                                  fontStyle: FontStyle.italic,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              Text(
-                                '➡️ ${answer.correctAnswer}',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
                             ],
                           ),
+                        ),
+                        
+                        // Points
+                        if (!isSaved)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withAlpha(26),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.amber.withAlpha(77)),
+                            ),
+                            child: Text(
+                              '+${answer.points}',
+                              style: const TextStyle(
+                                color: Colors.amber,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        
+                        const SizedBox(width: 8),
+                        
+                        // Checkbox Icon
+                        Icon(
+                          isSaved ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                          color: isSaved ? Colors.amber : Colors.white24,
+                          size: 22,
                         ),
                       ],
                     ),
@@ -952,98 +1033,116 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
               },
             ),
           ),
+        ),
+          
+          // Add to my words footer
+          if (result.answerHistory.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _savedIndices.isNotEmpty ? _addToMyWords : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber,
+                    foregroundColor: Colors.black,
+                    disabledBackgroundColor: Colors.white.withAlpha(26),
+                    disabledForegroundColor: Colors.white24,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: _savedIndices.isNotEmpty ? 8 : 0,
+                    shadowColor: Colors.amber.withAlpha(102),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _savedIndices.isNotEmpty ? Icons.auto_awesome : Icons.bookmark_add_outlined,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        _savedIndices.isNotEmpty 
+                            ? '${_savedIndices.length} KELİMEYİ KAYDET'
+                            : 'KAYDEDİLECEK KELİME SEÇİN',
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
         ],
       ),
     );
   }
 
-  void _toggleItem(int index, PracticeAnswerRecord answer) {
-    final provider = context.read<GameProvider>();
-    
+  void _toggleWord(int index) {
     setState(() {
       if (_savedIndices.contains(index)) {
-        // Kaldır
         _savedIndices.remove(index);
-        // QuestionType -> QuestionMode dönüşümü
-        final questionMode = _convertToQuestionMode(answer.mode);
-        final entry = AnsweredEntry(
-          prompt: answer.prompt,
-          correctText: answer.correctAnswer,
-          selectedText: answer.selectedAnswer,
-          selectedIndex: answer.isCorrect ? 0 : 1,
-          correctIndex: 0,
-          earnedPoints: answer.points,
-          mode: questionMode,
-        );
-        provider.removeFromPool(entry);
       } else {
-        // Ekle
         _savedIndices.add(index);
-        // QuestionType -> QuestionMode dönüşümü
-        final questionMode = _convertToQuestionMode(answer.mode);
-        final entry = AnsweredEntry(
-          prompt: answer.prompt,
-          correctText: answer.correctAnswer,
-          selectedText: answer.selectedAnswer,
-          selectedIndex: answer.isCorrect ? 0 : 1,
-          correctIndex: 0,
-          earnedPoints: answer.points,
-          mode: questionMode,
-        );
-        provider.addToPool(entry);
-        SoundService.instance.playCoinSound();
-        SoundService.instance.vibrate(HapticFeedbackType.selection);
       }
     });
   }
 
-  void _toggleAll() {
-    final provider = context.read<GameProvider>();
-    
+  void _toggleSelectAll() {
     setState(() {
       if (allSelected) {
-        // Tümünü kaldır
-        for (int i = 0; i < result.answerHistory.length; i++) {
-          final answer = result.answerHistory[i];
-          final questionMode = _convertToQuestionMode(answer.mode);
-          final entry = AnsweredEntry(
-            prompt: answer.prompt,
-            correctText: answer.correctAnswer,
-            selectedText: answer.selectedAnswer,
-            selectedIndex: answer.isCorrect ? 0 : 1,
-            correctIndex: 0,
-            earnedPoints: answer.points,
-            mode: questionMode,
-          );
-          provider.removeFromPool(entry);
-        }
         _savedIndices.clear();
-        SoundService.instance.vibrate(HapticFeedbackType.medium);
-        showTopToast(context, 'Tüm kelimeler havuzdan çıkarıldı', isError: true);
       } else {
-        // Tümünü seç
         for (int i = 0; i < result.answerHistory.length; i++) {
-          if (!_savedIndices.contains(i)) {
-            final answer = result.answerHistory[i];
-            final questionMode = _convertToQuestionMode(answer.mode);
-            final entry = AnsweredEntry(
-              prompt: answer.prompt,
-              correctText: answer.correctAnswer,
-              selectedText: answer.selectedAnswer,
-              selectedIndex: answer.isCorrect ? 0 : 1,
-              correctIndex: 0,
-              earnedPoints: answer.points,
-              mode: questionMode,
-            );
-            provider.addToPool(entry);
-            _savedIndices.add(i);
-          }
+          _savedIndices.add(i);
         }
-        SoundService.instance.playCoinSound();
-        SoundService.instance.vibrate(HapticFeedbackType.heavy);
-        showTopToast(context, '${result.answerHistory.length} kelime havuza eklendi');
       }
     });
+  }
+
+  void _addToMyWords() {
+    if (_savedIndices.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.watch<LanguageProvider>().getString('please_select_level')),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final gameProvider = context.read<GameProvider>();
+    int addedCount = 0;
+
+    for (final index in _savedIndices) {
+      final answer = result.answerHistory[index];
+      final questionMode = _convertToQuestionMode(answer.mode);
+      
+      final entry = AnsweredEntry(
+        prompt: answer.prompt,
+        correctText: answer.correctAnswer,
+        selectedText: answer.selectedAnswer,
+        selectedIndex: answer.isCorrect ? 0 : 1,
+        correctIndex: 0,
+        earnedPoints: answer.points,
+        mode: questionMode,
+        turkishMeaning: answer.turkishMeaning,
+      );
+      if (!gameProvider.isSaved(entry)) {
+        gameProvider.addToPool(entry);
+        addedCount++;
+      }
+    }
+
+    if (mounted) {
+      TopToast.show(
+        context,
+        title: 'Başarılı!',
+        message: '$addedCount yeni kelime koleksiyonuna eklendi.',
+        icon: Icons.bookmark_added_rounded,
+        color: Colors.amber,
+      );
+    }
   }
 
   /// QuestionType'ı QuestionMode'a dönüştürür
@@ -1073,7 +1172,7 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.deepPurple.withOpacity(0.3),
+                color: Colors.deepPurple.withAlpha(77),
                 blurRadius: 24,
                 spreadRadius: 4,
               ),
@@ -1084,9 +1183,9 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
             children: [
               const Icon(Icons.sports_kabaddi, color: Colors.deepPurple, size: 64),
               const SizedBox(height: 16),
-              const Text(
-                'Düello Modu Açıldı!',
-                style: TextStyle(
+              Text(
+                context.watch<LanguageProvider>().getString('duel_unlocked_dialog_title'),
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Colors.deepPurple,
@@ -1094,14 +1193,17 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Artık arkadaşlarınla veya bota karşı yarışabilirsin!',
-                style: TextStyle(fontSize: 16, color: Colors.black87),
+              Text(
+                context.watch<LanguageProvider>().getString('duel_unlocked_dialog_body'),
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  Navigator.of(context).pop(); // Diyaloğu kapat
+                  Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false); // Ana ekrana dön
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple,
                   foregroundColor: Colors.white,
@@ -1109,12 +1211,105 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Harika!'),
+                child: Text(context.watch<LanguageProvider>().getString('awesome')),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLevelProgressBanner(int sessionProgress) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6C27FF), Color(0xFF8E2DE2)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6C27FF).withAlpha(128),
+            blurRadius: 20,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.assignment_turned_in, color: Colors.amber, size: 24),
+          const SizedBox(width: 12),
+          Column(
+            children: [
+              Text(
+                context.watch<LanguageProvider>().getString('level_test_title'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '${context.watch<LanguageProvider>().getString('session')} $sessionProgress / 3',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: 120,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: sessionProgress / 3.0,
+                    backgroundColor: Colors.black.withAlpha(51),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
+                    minHeight: 6,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumBanner() {
+    return FutureBuilder<PremiumSubscription>(
+      future: ShopService.instance.getSubscription(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data!.tier != PremiumTier.free) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withAlpha(77), blurRadius: 8),
+              ],
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.star, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'PREMIUM ÜYE',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ],
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
     );
   }
 }
