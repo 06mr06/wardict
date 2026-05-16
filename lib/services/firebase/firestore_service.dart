@@ -168,6 +168,7 @@ class FirestoreService {
     String level = 'A1',
   }) async {
     try {
+      final userRef = _usersCollection.doc(odlevel);
       final profile = CloudUserProfile(
         odlevel: odlevel,
         level: level,
@@ -175,12 +176,35 @@ class FirestoreService {
         email: email,
       );
 
-      await _usersCollection.doc(odlevel).set(profile.toFirestore());
-      debugPrint('✅ Kullanıcı profili oluşturuldu: $odlevel ($username - $email)');
+      await _db.runTransaction((transaction) async {
+        final snapshot = await transaction.get(userRef);
+        if (snapshot.exists) {
+          transaction.set(
+            userRef,
+            existingUserProfileUpdateData(username: username, email: email),
+            SetOptions(merge: true),
+          );
+        } else {
+          transaction.set(userRef, profile.toFirestore());
+        }
+      });
+      debugPrint('✅ Kullanıcı profili hazırlandı: $odlevel ($username - $email)');
     } catch (e) {
       debugPrint('❌ Profil oluşturma hatası: $e');
       rethrow;
     }
+  }
+
+  @visibleForTesting
+  static Map<String, dynamic> existingUserProfileUpdateData({
+    required String username,
+    String? email,
+  }) {
+    return {
+      'username': username,
+      if (email != null && email.isNotEmpty) 'email': email,
+      'lastPlayedAt': FieldValue.serverTimestamp(),
+    };
   }
 
   /// Kullanıcı adının benzersiz olup olmadığını kontrol et

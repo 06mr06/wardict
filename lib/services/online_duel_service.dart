@@ -384,6 +384,7 @@ class OnlineDuelService {
   /// Cevap gönder
   Future<void> submitAnswer(int questionIndex, int selectedOption, int timeMs) async {
     if (_currentMatch == null || _currentUserId == null) return;
+    if (questionIndex < 0 || questionIndex >= _currentMatch!.questions.length) return;
 
     final question = _currentMatch!.questions[questionIndex];
     final isCorrect = selectedOption == question.correctIndex;
