@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:confetti/confetti.dart';
@@ -18,6 +19,19 @@ import '../../widgets/game/options_grid.dart';
 import '../../widgets/game/game_progress_bar.dart';
 import 'vs_screen.dart';
 import 'online_duel_results_screen.dart';
+
+@visibleForTesting
+int canonicalSelectedOptionIndexForOnlineDuel(
+  List<int> canonicalOptionIndexes,
+  int? selectedOption,
+) {
+  if (selectedOption == null ||
+      selectedOption < 0 ||
+      selectedOption >= canonicalOptionIndexes.length) {
+    return -1;
+  }
+  return canonicalOptionIndexes[selectedOption];
+}
 
 class OnlineDuelScreen extends StatefulWidget {
   final OnlineDuelMatch match;
@@ -65,6 +79,8 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
   
   List<List<String>> _shuffledOptions = [];
   List<int> _shuffledCorrectIndexes = [];
+  List<int> _canonicalQuestionIndexes = [];
+  List<List<int>> _canonicalOptionIndexes = [];
   
   String? _myAvatarEmoji;
   String _opponentAvatar = '👤';
@@ -116,21 +132,26 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
   }
 
   void _shuffleQuestionsAndOptions() {
-    final questions = List<OnlineDuelQuestion>.from(_match.questions);
+    final canonicalQuestions = List<OnlineDuelQuestion>.from(_match.questions);
+    final questions = List<OnlineDuelQuestion>.from(canonicalQuestions);
     questions.shuffle(_rng);
     
     _shuffledOptions = [];
     _shuffledCorrectIndexes = [];
+    _canonicalQuestionIndexes = [];
+    _canonicalOptionIndexes = [];
     _questionModes = [];
     
     for (final q in questions) {
-      final options = List<String>.from(q.options);
-      final correctAnswer = options[q.correctIndex];
-      options.shuffle(_rng);
-      final newCorrectIndex = options.indexOf(correctAnswer);
+      final optionIndexes = List<int>.generate(q.options.length, (index) => index);
+      optionIndexes.shuffle(_rng);
+      final options = optionIndexes.map((index) => q.options[index]).toList();
+      final newCorrectIndex = optionIndexes.indexOf(q.correctIndex);
       
       _shuffledOptions.add(options);
       _shuffledCorrectIndexes.add(newCorrectIndex);
+      _canonicalQuestionIndexes.add(canonicalQuestions.indexOf(q));
+      _canonicalOptionIndexes.add(optionIndexes);
       // Sorunun kendi modunu kullan (rastgele değil)
       _questionModes.add(q.mode);
     }
@@ -349,7 +370,16 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
     
     if (!_isDemo) {
       final timeMs = (10 - _timeLeft) * 1000;
-      OnlineDuelService.instance.submitAnswer(_currentQuestionIndex, _selectedOption ?? -1, timeMs);
+      final canonicalQuestionIndex = _canonicalQuestionIndexes[_currentQuestionIndex];
+      final canonicalSelectedOption = canonicalSelectedOptionIndexForOnlineDuel(
+        _canonicalOptionIndexes[_currentQuestionIndex],
+        _selectedOption,
+      );
+      OnlineDuelService.instance.submitAnswer(
+        canonicalQuestionIndex,
+        canonicalSelectedOption,
+        timeMs,
+      );
     }
     
     Future.delayed(const Duration(seconds: 2), () {
