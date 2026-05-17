@@ -126,9 +126,14 @@ class FirestoreService {
   static FirestoreService? _instance;
   static FirestoreService get instance => _instance ??= FirestoreService._();
 
-  FirestoreService._();
+  FirestoreService._({FirebaseFirestore? firestore})
+      : _db = firestore ?? FirebaseFirestore.instance;
 
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  @visibleForTesting
+  FirestoreService.withFirestore(FirebaseFirestore firestore)
+      : _db = firestore;
+
+  final FirebaseFirestore _db;
 
   // Collection referansları
   CollectionReference<Map<String, dynamic>> get _usersCollection =>
@@ -168,6 +173,7 @@ class FirestoreService {
     String level = 'A1',
   }) async {
     try {
+      final userRef = _usersCollection.doc(odlevel);
       final profile = CloudUserProfile(
         odlevel: odlevel,
         level: level,
@@ -175,12 +181,54 @@ class FirestoreService {
         email: email,
       );
 
-      await _usersCollection.doc(odlevel).set(profile.toFirestore());
-      debugPrint('✅ Kullanıcı profili oluşturuldu: $odlevel ($username - $email)');
+      await _db.runTransaction((transaction) async {
+        final existingProfile = await transaction.get(userRef);
+        if (!existingProfile.exists) {
+          transaction.set(userRef, profile.toFirestore());
+          return;
+        }
+
+        transaction.update(
+          userRef,
+          existingProfileRefreshUpdates(
+            existingData: existingProfile.data(),
+            username: username,
+            email: email,
+            lastPlayedAt: FieldValue.serverTimestamp(),
+          ),
+        );
+      });
+      debugPrint('✅ Kullanıcı profili hazır: $odlevel ($username - $email)');
     } catch (e) {
       debugPrint('❌ Profil oluşturma hatası: $e');
       rethrow;
     }
+  }
+
+  @visibleForTesting
+  static Map<String, dynamic> existingProfileRefreshUpdates({
+    required Map<String, dynamic>? existingData,
+    required String username,
+    required Object lastPlayedAt,
+    String? email,
+  }) {
+    final existingUsername = existingData?['username'] as String?;
+    final updates = <String, dynamic>{
+      'lastPlayedAt': lastPlayedAt,
+    };
+
+    if (email != null && email.isNotEmpty) {
+      updates['email'] = email;
+    }
+
+    // Returning federated users may have customized their username in app.
+    // Only fill the username when an older/incomplete profile lacks one.
+    if (username.isNotEmpty &&
+        (existingUsername == null || existingUsername.isEmpty)) {
+      updates['username'] = username;
+    }
+
+    return updates;
   }
 
   /// Kullanıcı adının benzersiz olup olmadığını kontrol et
