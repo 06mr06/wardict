@@ -139,6 +139,18 @@ class FirestoreService {
 
   // ==================== KULLANICI PROFİLİ ====================
 
+  @visibleForTesting
+  static Map<String, dynamic> buildExistingUserProfileUpdate({
+    required String username,
+    String? email,
+  }) {
+    return {
+      'username': username,
+      if (email != null && email.isNotEmpty) 'email': email,
+      'lastPlayedAt': FieldValue.serverTimestamp(),
+    };
+  }
+
   /// Kullanıcı profilini getir
   Future<CloudUserProfile?> getUserProfile(String odlevel) async {
     try {
@@ -175,8 +187,22 @@ class FirestoreService {
         email: email,
       );
 
-      await _usersCollection.doc(odlevel).set(profile.toFirestore());
-      debugPrint('✅ Kullanıcı profili oluşturuldu: $odlevel ($username - $email)');
+      final userDoc = _usersCollection.doc(odlevel);
+      await _db.runTransaction((transaction) async {
+        final snapshot = await transaction.get(userDoc);
+        if (snapshot.exists) {
+          transaction.update(
+            userDoc,
+            buildExistingUserProfileUpdate(
+              username: username,
+              email: email,
+            ),
+          );
+        } else {
+          transaction.set(userDoc, profile.toFirestore());
+        }
+      });
+      debugPrint('✅ Kullanıcı profili hazırlandı: $odlevel ($username - $email)');
     } catch (e) {
       debugPrint('❌ Profil oluşturma hatası: $e');
       rethrow;
