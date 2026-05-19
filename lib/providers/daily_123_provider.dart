@@ -103,11 +103,7 @@ class Daily123Provider extends BaseGameProvider {
   }
 
   Future<void> resetWithAd() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyScore);
-    await prefs.remove(_keyTime);
-    await prefs.remove(_keyLevel);
-    await prefs.remove(_keyIndex);
+    await clearSavedSession();
     
     score = 0;
     _timeLeft = 123;
@@ -122,6 +118,14 @@ class Daily123Provider extends BaseGameProvider {
     
     _startTimer();
     await _loadNextQuestion();
+  }
+
+  Future<void> clearSavedSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyScore);
+    await prefs.remove(_keyTime);
+    await prefs.remove(_keyLevel);
+    await prefs.remove(_keyIndex);
   }
 
   Future<void> _saveState() async {

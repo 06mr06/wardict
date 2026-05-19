@@ -94,14 +94,26 @@ class UserProfileService {
 
   /// Seviye belirleme testinin tamamlanıp tamamlanmadığını kontrol eder
   Future<bool> hasCompletedPlacementTest() async {
+    final profile = await loadProfile();
+    if (profile.hasCompletedPlacementTest) return true;
+
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_hasCompletedTestKey) ?? false;
+    final hasLegacyFlag = prefs.getBool(_hasCompletedTestKey) ?? false;
+    if (hasLegacyFlag) {
+      await saveProfile(profile.copyWith(hasCompletedPlacementTest: true));
+    }
+    return hasLegacyFlag;
   }
 
   /// Seviye belirleme testinin tamamlandığını işaretle
   Future<void> markPlacementTestCompleted() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_hasCompletedTestKey, true);
+
+    final profile = await loadProfile();
+    if (!profile.hasCompletedPlacementTest) {
+      await saveProfile(profile.copyWith(hasCompletedPlacementTest: true));
+    }
   }
 
   /// Tüm verileri sıfırla (test amaçlı)

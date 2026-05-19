@@ -117,7 +117,9 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
 
   void _shuffleQuestionsAndOptions() {
     final questions = List<OnlineDuelQuestion>.from(_match.questions);
-    questions.shuffle(_rng);
+    if (_isDemo) {
+      questions.shuffle(_rng);
+    }
     
     _shuffledOptions = [];
     _shuffledCorrectIndexes = [];
@@ -125,12 +127,15 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen>
     
     for (final q in questions) {
       final options = List<String>.from(q.options);
-      final correctAnswer = options[q.correctIndex];
-      options.shuffle(_rng);
-      final newCorrectIndex = options.indexOf(correctAnswer);
+      var correctIndex = q.correctIndex;
+      if (_isDemo) {
+        final correctAnswer = options[q.correctIndex];
+        options.shuffle(_rng);
+        correctIndex = options.indexOf(correctAnswer);
+      }
       
       _shuffledOptions.add(options);
-      _shuffledCorrectIndexes.add(newCorrectIndex);
+      _shuffledCorrectIndexes.add(correctIndex);
       // Sorunun kendi modunu kullan (rastgele değil)
       _questionModes.add(q.mode);
     }
