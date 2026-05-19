@@ -35,8 +35,7 @@ class _Daily123ScreenState extends State<Daily123Screen> {
     
     // Oyun zaten bittiyse direkt sonuç ekranına git
     if (provider.isGameOver && mounted) {
-      _showingResult = true;
-      _finishGame();
+      await _finishGame();
     }
   }
 
@@ -57,10 +56,7 @@ class _Daily123ScreenState extends State<Daily123Screen> {
     await provider.answer(index, 0);
 
     if (provider.score >= 123 || provider.timeLeft <= 0) {
-      if (!_showingResult) {
-        _showingResult = true;
-        _finishGame();
-      }
+      await _finishGame();
     } else {
       setState(() {
         _selectedIndex = null;
@@ -70,6 +66,9 @@ class _Daily123ScreenState extends State<Daily123Screen> {
   }
 
   Future<void> _finishGame() async {
+    if (_showingResult || !mounted) return;
+    setState(() => _showingResult = true);
+
     final provider = context.read<Daily123Provider>();
     final score = provider.score;
     final timeSpent = 123 - provider.timeLeft;
@@ -84,6 +83,7 @@ class _Daily123ScreenState extends State<Daily123Screen> {
       timeSeconds: timeSpent,
       isWin: isWin,
     ));
+    await provider.clearSavedSession();
 
     if (!mounted) return;
 
@@ -107,7 +107,11 @@ class _Daily123ScreenState extends State<Daily123Screen> {
     
     // Auto-finish if time is up
     if (provider.timeLeft <= 0 && !_showingResult) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _finishGame());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _finishGame();
+        }
+      });
     }
 
     return Scaffold(

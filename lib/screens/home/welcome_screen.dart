@@ -164,7 +164,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     // Yeni kullanıcıysa A1 set et ve rozeti ver
     if (!profile.hasCompletedPlacementTest) {
       await UserProfileService.instance.markPlacementTestCompleted();
-      await UserProfileService.instance.updateLevel(UserLevel.a1);
+      profile = profile.copyWith(hasCompletedPlacementTest: true);
       await AchievementService.instance.updateAchievementProgressById('lvl_a1', 1);
     }
     

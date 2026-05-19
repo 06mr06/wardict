@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/friend.dart';
 import '../models/question_mode.dart';
+import 'firebase/auth_service.dart';
 import 'user_profile_service.dart';
 
 /// Online düello durumu
@@ -256,8 +257,7 @@ class OnlineDuelService {
 
   Future<void> initialize() async {
     final profile = await UserProfileService.instance.loadProfile();
-    // UserProfile'da username benzersiz id olarak kullanılıyor
-    _currentUserId = profile.username;
+    _currentUserId = AuthService.instance.userId ?? profile.username;
     _currentUsername = profile.username;
     if (_currentUserId != null) {
       OnlineDuelMatch.setCurrentUserId(_currentUserId!);
