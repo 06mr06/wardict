@@ -168,6 +168,24 @@ class FirestoreService {
     String level = 'A1',
   }) async {
     try {
+      final userDoc = _usersCollection.doc(odlevel);
+      final existingProfile = await userDoc.get();
+
+      if (existingProfile.exists) {
+        final updates = <String, dynamic>{
+          'username': username,
+          'lastPlayedAt': FieldValue.serverTimestamp(),
+        };
+
+        if (email != null) {
+          updates['email'] = email;
+        }
+
+        await userDoc.update(updates);
+        debugPrint('✅ Kullanıcı profili güncellendi: $odlevel ($username - $email)');
+        return;
+      }
+
       final profile = CloudUserProfile(
         odlevel: odlevel,
         level: level,
@@ -175,7 +193,7 @@ class FirestoreService {
         email: email,
       );
 
-      await _usersCollection.doc(odlevel).set(profile.toFirestore());
+      await userDoc.set(profile.toFirestore());
       debugPrint('✅ Kullanıcı profili oluşturuldu: $odlevel ($username - $email)');
     } catch (e) {
       debugPrint('❌ Profil oluşturma hatası: $e');

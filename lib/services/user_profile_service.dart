@@ -23,6 +23,8 @@ class UserProfileService {
 
     final prefs = await SharedPreferences.getInstance();
     final jsonString = prefs.getString(_profileKey);
+    final hasCompletedPlacementTest =
+        prefs.getBool(_hasCompletedTestKey) ?? false;
 
     if (jsonString != null) {
       try {
@@ -33,6 +35,14 @@ class UserProfileService {
       }
     } else {
       _cachedProfile = UserProfile();
+    }
+
+    if (hasCompletedPlacementTest &&
+        !_cachedProfile!.hasCompletedPlacementTest) {
+      _cachedProfile = _cachedProfile!.copyWith(
+        hasCompletedPlacementTest: true,
+      );
+      await prefs.setString(_profileKey, jsonEncode(_cachedProfile!.toJson()));
     }
 
     return _cachedProfile!;
@@ -102,6 +112,13 @@ class UserProfileService {
   Future<void> markPlacementTestCompleted() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_hasCompletedTestKey, true);
+
+    final profile = await loadProfile();
+    if (!profile.hasCompletedPlacementTest) {
+      await saveProfile(
+        profile.copyWith(hasCompletedPlacementTest: true),
+      );
+    }
   }
 
   /// Tüm verileri sıfırla (test amaçlı)
