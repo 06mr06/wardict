@@ -73,7 +73,7 @@ class _PlacementTestScreenState extends State<PlacementTestScreen>
     }
 
     // Kısa gecikme sonrası sonraki soruya geç
-    Future.delayed(const Duration(milliseconds: 800), () {
+    Future.delayed(const Duration(milliseconds: 800), () async {
       if (!mounted) return;
 
       if (_currentIndex < _questions.length - 1) {
@@ -82,18 +82,20 @@ class _PlacementTestScreenState extends State<PlacementTestScreen>
           _selectedIndex = null;
         });
       } else {
-        _finishTest();
+        await _finishTest();
       }
     });
   }
 
-  void _finishTest() {
+  Future<void> _finishTest() async {
     // Seviye hesapla
     final determinedLevel = _calculateLevel();
 
     // Seviyeyi kaydet
-    UserProfileService.instance.updateLevel(determinedLevel);
-    UserProfileService.instance.markPlacementTestCompleted();
+    await UserProfileService.instance.updateLevel(determinedLevel);
+    await UserProfileService.instance.markPlacementTestCompleted();
+
+    if (!mounted) return;
 
     // Sonuç ekranına git
     Navigator.of(context).pushReplacement(
