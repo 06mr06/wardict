@@ -102,6 +102,11 @@ class UserProfileService {
   Future<void> markPlacementTestCompleted() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_hasCompletedTestKey, true);
+
+    final profile = await loadProfile();
+    if (!profile.hasCompletedPlacementTest) {
+      await saveProfile(profile.copyWith(hasCompletedPlacementTest: true));
+    }
   }
 
   /// Tüm verileri sıfırla (test amaçlı)

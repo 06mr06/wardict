@@ -25,10 +25,11 @@ class ShopService {
     // İlk kez açılıyorsa 100 altın ver
     final isInitialized = prefs.getBool(_isInitializedKey) ?? false;
     if (!isInitialized) {
-      await prefs.setInt(_coinsKey, 100);
+      final coins = prefs.getInt(_coinsKey) ?? 100;
+      await prefs.setInt(_coinsKey, coins);
       await prefs.setBool(_isInitializedKey, true);
       await prefs.setString(_lastLoginBonusKey, DateTime.now().toIso8601String());
-      return 100;
+      return coins;
     }
     
     // 24 saatlik giriş bonusu kontrolü (birikme olmadan)

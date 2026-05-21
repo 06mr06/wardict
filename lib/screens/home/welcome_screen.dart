@@ -162,10 +162,20 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     }
     
     // Yeni kullanıcıysa A1 set et ve rozeti ver
-    if (!profile.hasCompletedPlacementTest) {
+    final hasCompletedPlacementTest =
+        profile.hasCompletedPlacementTest ||
+        await UserProfileService.instance.hasCompletedPlacementTest();
+    if (!hasCompletedPlacementTest) {
       await UserProfileService.instance.markPlacementTestCompleted();
       await UserProfileService.instance.updateLevel(UserLevel.a1);
       await AchievementService.instance.updateAchievementProgressById('lvl_a1', 1);
+      profile = profile.copyWith(
+        level: UserLevel.a1,
+        hasCompletedPlacementTest: true,
+      );
+    } else if (!profile.hasCompletedPlacementTest) {
+      profile = profile.copyWith(hasCompletedPlacementTest: true);
+      await UserProfileService.instance.saveProfile(profile);
     }
     
     // Check for welcome gift
