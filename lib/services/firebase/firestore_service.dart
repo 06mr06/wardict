@@ -175,8 +175,24 @@ class FirestoreService {
         email: email,
       );
 
-      await _usersCollection.doc(odlevel).set(profile.toFirestore());
-      debugPrint('✅ Kullanıcı profili oluşturuldu: $odlevel ($username - $email)');
+      final profileRef = _usersCollection.doc(odlevel);
+      await _db.runTransaction((transaction) async {
+        final snapshot = await transaction.get(profileRef);
+
+        if (snapshot.exists) {
+          final updates = <String, dynamic>{
+            'username': username,
+            'lastPlayedAt': FieldValue.serverTimestamp(),
+          };
+          if (email != null) {
+            updates['email'] = email;
+          }
+          transaction.update(profileRef, updates);
+        } else {
+          transaction.set(profileRef, profile.toFirestore());
+        }
+      });
+      debugPrint('✅ Kullanıcı profili oluşturuldu/güncellendi: $odlevel ($username - $email)');
     } catch (e) {
       debugPrint('❌ Profil oluşturma hatası: $e');
       rethrow;
