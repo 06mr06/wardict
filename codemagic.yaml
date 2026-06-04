@@ -1,0 +1,76 @@
+workflows:
+  ios-debug:
+    name: iOS Debug Build
+    instance_type: mac_mini_m1
+    environment:
+      vars:
+        GOOGLE_SERVICES_PLIST: ENCRYPTED[!]
+      flutter: 3.38.4
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Decode Firebase config
+        script: |
+          echo $GOOGLE_SERVICES_PLIST | base64 --decode > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
+      - name: Get packages
+        script: flutter pub get
+      - name: Install pods
+        script: cd ios && pod install
+      - name: Build debug
+        script: flutter build ios --debug --no-codesign
+    artifacts:
+      - build/ios/iphoneos/*.app
+    publishing:
+      email:
+        recipients:
+          - emreaktas260@gmail.com
+
+  ios-release:
+    name: iOS Release Build
+    instance_type: mac_mini_m1
+    environment:
+      vars:
+        APP_STORE_APP_ID: YOUR_APP_ID
+        GOOGLE_SERVICES_PLIST: ENCRYPTED[!]
+      flutter: 3.38.4
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Decode Firebase config
+        script: |
+          echo $GOOGLE_SERVICES_PLIST | base64 --decode > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
+      - name: Set up keychain
+        script: keychain initialize
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files $APP_STORE_APP_ID \
+            --type IOS_APP_STORE \
+            --certificates-repo $CERTIFICATES_REPO
+          keychain add-certificates
+      - name: Get packages
+        script: flutter pub get
+      - name: Install pods
+        script: cd ios && pod install
+      - name: Build release
+        script: flutter build ios --release
+      - name: Create IPA
+        script: |
+          cd ios
+          xcodebuild -workspace Runner.xcworkspace -scheme Runner \
+            -configuration Release -sdk iphoneos \
+            -archivePath $CM_BUILD_DIR/build/ios/archive/Runner.xcarchive archive
+          xcodebuild -exportArchive \
+            -archivePath $CM_BUILD_DIR/build/ios/archive/Runner.xcarchive \
+            -exportOptionsPlist $CM_BUILD_DIR/ios/export_options.plist \
+            -exportPath $CM_BUILD_DIR/build/ios/ipa
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - emreaktas260@gmail.com
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_KEY
+        key_id: $APP_STORE_CONNECT_KEY_ID
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
