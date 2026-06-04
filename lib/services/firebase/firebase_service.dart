@@ -1,5 +1,7 @@
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Firebase başlatma ve yönetim servisi
 class FirebaseService {
@@ -26,6 +28,11 @@ class FirebaseService {
       await Firebase.initializeApp(
         options: _getFirebaseOptions(),
       );
+
+      // App Check başlat: client'ın gerçek uygulama olduğunu sunucuya kanıtlar.
+      // Callable fonksiyonlar bu token'ı zorunlu tutuyor.
+      await _initAppCheck();
+
       _initialized = true;
       debugPrint('✅ Firebase başarıyla başlatıldı');
     } catch (e) {
@@ -42,25 +49,72 @@ class FirebaseService {
 
   /// Platform bazlı Firebase ayarları
   FirebaseOptions _getFirebaseOptions() {
+    // Load credentials from environment variables
+    final apiKey = dotenv.get('FIREBASE_API_KEY', fallback: '');
+    final appId = dotenv.get('FIREBASE_APP_ID', fallback: '');
+    final messagingSenderId = dotenv.get('FIREBASE_MESSAGING_SENDER_ID', fallback: '');
+    final projectId = dotenv.get('FIREBASE_PROJECT_ID', fallback: '');
+    final storageBucket = dotenv.get('FIREBASE_STORAGE_BUCKET', fallback: '');
+    final authDomain = dotenv.get('FIREBASE_AUTH_DOMAIN', fallback: '');
+    final measurementId = dotenv.get('FIREBASE_MEASUREMENT_ID', fallback: '');
+    final databaseURL = dotenv.get('FIREBASE_DATABASE_URL', fallback: '');
+
+    if (apiKey.isEmpty || projectId.isEmpty) {
+      throw Exception(
+        'Firebase configuration not found. Please create a .env file with required credentials. '
+        'See .env.example for the required format.'
+      );
+    }
+
     if (kIsWeb) {
-      return const FirebaseOptions(
-        apiKey: 'AIzaSyBXizglIJTCuJfR25OdbfKnVyr11cBaDj0',
-        authDomain: 'wardict-app.firebaseapp.com',
-        projectId: 'wardict-app',
-        storageBucket: 'wardict-app.firebasestorage.app',
-        messagingSenderId: '241339661354',
-        appId: '1:241339661354:web:7aae4ed632b4d4cfc75753',
-        measurementId: 'G-WWS6CZNLM0',
+      return FirebaseOptions(
+        apiKey: apiKey,
+        authDomain: authDomain,
+        projectId: projectId,
+        storageBucket: storageBucket,
+        messagingSenderId: messagingSenderId,
+        appId: appId,
+        measurementId: measurementId,
+        databaseURL: databaseURL.isNotEmpty ? databaseURL : null,
       );
     }
     
-    // Android için (google-services.json'dan otomatik alınır ama fallback olarak)
-    return const FirebaseOptions(
-      apiKey: 'AIzaSyBXizglIJTCuJfR25OdbfKnVyr11cBaDj0',
-      appId: '1:241339661354:web:7aae4ed632b4d4cfc75753',
-      messagingSenderId: '241339661354',
-      projectId: 'wardict-app',
-      storageBucket: 'wardict-app.firebasestorage.app',
+    // Android/iOS
+    return FirebaseOptions(
+      apiKey: apiKey,
+      appId: appId,
+      messagingSenderId: messagingSenderId,
+      projectId: projectId,
+      storageBucket: storageBucket,
+      databaseURL: databaseURL.isNotEmpty ? databaseURL : null,
     );
+  }
+
+  /// Firebase App Check'i uygun provider ile aktifleştir.
+  ///
+  /// - Debug build: `AndroidProvider.debug` / `AppleProvider.debug`
+  /// - Release build: `AndroidProvider.playIntegrity` / `AppleProvider.appAttest`
+  ///
+  /// Play Integrity production'da imza doğrular; emülatör veya rootlu cihazda
+  /// başarısız olur. Bu durumlarda Firebase Console → App Check → "Debug"
+  /// sekmesinde cihaz tokenı ekleyerek test edilebilir.
+  Future<void> _initAppCheck() async {
+    try {
+      await FirebaseAppCheck.instance.activate(
+        providerAndroid: kDebugMode
+            ? const AndroidDebugProvider()
+            : const AndroidPlayIntegrityProvider(),
+        providerApple: kDebugMode
+            ? const AppleDebugProvider()
+            : const AppleAppAttestProvider(),
+        providerWeb: kIsWeb
+            ? ReCaptchaV3Provider(dotenv.get('RECAPTCHA_V3_SITE_KEY', fallback: 'RECAPTCHA_V3_SITE_KEY_PLACEHOLDER'))
+            : null,
+      );
+      debugPrint(
+          '🛡️ App Check aktif (${kDebugMode ? "debug" : "play integrity"})');
+    } catch (e) {
+      debugPrint('⚠️ App Check aktivasyonu başarısız: $e');
+    }
   }
 }

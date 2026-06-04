@@ -22,23 +22,23 @@ enum FriendStatus {
 
 /// Arkadaş modeli
 class Friend {
-  final String oderId;
+  final String userId;
   final String username;
   final String? avatarUrl;
   final OnlineStatus status;
   final FriendStatus friendStatus;
   final DateTime? lastOnline;
-  final int? eloRating;
+  final int? lpRating;
   final String? currentLeague;
 
   const Friend({
-    required this.oderId,
+    required this.userId,
     required this.username,
     this.avatarUrl,
     this.status = OnlineStatus.offline,
     this.friendStatus = FriendStatus.none,
     this.lastOnline,
-    this.eloRating,
+    this.lpRating,
     this.currentLeague,
   });
 
@@ -59,20 +59,20 @@ class Friend {
 
   Map<String, dynamic> toJson() {
     return {
-      'oderId': oderId,
+      'userId': userId,
       'username': username,
       'avatarUrl': avatarUrl,
       'status': status.name,
       'friendStatus': friendStatus.name,
       'lastOnline': lastOnline?.toIso8601String(),
-      'eloRating': eloRating,
+      'lpRating': lpRating,
       'currentLeague': currentLeague,
     };
   }
 
   factory Friend.fromJson(Map<String, dynamic> json) {
     return Friend(
-      oderId: json['oderId'] ?? '',
+      userId: json['userId'] ?? '',
       username: json['username'] ?? '',
       avatarUrl: json['avatarUrl'],
       status: OnlineStatus.values.firstWhere(
@@ -86,59 +86,31 @@ class Friend {
       lastOnline: json['lastOnline'] != null 
           ? DateTime.parse(json['lastOnline']) 
           : null,
-      eloRating: json['eloRating'],
+      lpRating: json['lpRating'] ?? json['eloRating'],
       currentLeague: json['currentLeague'],
     );
   }
 
   Friend copyWith({
-    String? oderId,
+    String? userId,
     String? username,
     String? avatarUrl,
     OnlineStatus? status,
     FriendStatus? friendStatus,
     DateTime? lastOnline,
-    int? eloRating,
+    int? lpRating,
     String? currentLeague,
   }) {
     return Friend(
-      oderId: oderId ?? this.oderId,
+      userId: userId ?? this.userId,
       username: username ?? this.username,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       status: status ?? this.status,
       friendStatus: friendStatus ?? this.friendStatus,
       lastOnline: lastOnline ?? this.lastOnline,
-      eloRating: eloRating ?? this.eloRating,
+      lpRating: lpRating ?? this.lpRating,
       currentLeague: currentLeague ?? this.currentLeague,
     );
   }
 }
 
-/// Duel daveti
-class DuelInvitation {
-  final String id;
-  final Friend fromUser;
-  final String leagueCode;
-  final DateTime createdAt;
-  final DateTime expiresAt;
-  final bool isAccepted;
-  final bool isDeclined;
-
-  const DuelInvitation({
-    required this.id,
-    required this.fromUser,
-    required this.leagueCode,
-    required this.createdAt,
-    required this.expiresAt,
-    this.isAccepted = false,
-    this.isDeclined = false,
-  });
-
-  bool get isExpired => DateTime.now().isAfter(expiresAt);
-  bool get isPending => !isAccepted && !isDeclined && !isExpired;
-
-  int get secondsRemaining {
-    final diff = expiresAt.difference(DateTime.now()).inSeconds;
-    return diff > 0 ? diff : 0;
-  }
-}

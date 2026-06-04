@@ -1,0 +1,84 @@
+{
+  "app_name": "WARDICT - Kelime Düello Oyunu",
+  "short_description": "Kelime bilginizi test edin! Günlük meydan oklamalar ve sıralamalar.",
+  "full_description": "🎮 WARDICT - Kelime Düello Oyunu\n\nKelime bilginizi kanıtlayın! Arkadaşlarınız ve oyuncularla yarışın. WARDICT, kelime severlerin oyunudur!\n\n✨ ANA ÖZELLİKLER:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n📅 GÜNLÜK MEYDAN OKLAMALAR\n• Her gün yeni kelime soruları\n• Hızlı cevap bulman gerekiyor\n• Doğru cevaplar için altın ve puan kazanın\n• Bonus ödülleri açın\n\n🏆 SIRALAMALAR & PUANLAR\n• Küresel oyuncu sıralamalarına katılın\n• Günlük, haftalık ve aylık sıralamalar\n• Arkadaşlarınızı davet edin\n• Üst 10'a girmek için oynamayı tatıyın\n\n🎖️ ROZETLER & BAŞARILAR\n• 50+ telafi rozeti\n• Her başarı için ödül\n• Trophies ve milestone'ları kilidini aç\n• İlerleme çubuğuyla ilerlemeni takip et\n\n💎 PREMIUM ÜYELİK\n• Reklamsız oyun deneyimi\n• Günde 3 extra oyun\n• Premium-only rozetler\n• Ayakkabıya bakım kontrol\n• Karışık oyun modları\n• Ekstra tematik paketler\n\n🔊 SES EFEKTLERI & ANIMASYON\n• Tatmin edici tıklama sesleri\n• Havai fişek ve kutlama animasyonları\n• Başarı gösterileri\n• Genel ayarlardan devre dışı bırakılabilir\n\n📱 KULLANICI DOSTU ARAYÜZ\n• Kolay öğrenilir oyunmechanigi\n• Hızlı ve duyarlı ara yüz\n• Karanlık & aydınlık tema\n• Türkçe tam dil desteği\n\n💪 OYUN ÖZELLİKLERİ:\n━━━━━━━━━━━━━━━━━━\n\n• Beş zorluk seviyesi (Kolay → Çok Zor)\n• 100+ kelime kategorileri\n• Türkçe kelime veritabanı\n• İstatistikler & ilerleme takibi\n• Çevrimdışı oyun desteği (limitli)\n\n🚀 BAŞLANGICI:\n━━━━━━━━━━━━━━━━━━\n\n1. App'i indir ve açmak\n2. Email veya Google ile kayıt ol\n3. İlk günlük oyununu oyna\n4. Puanlar kazanmaya başla\n5. Sıralamaya tırmanmaya başla\n\n📊 ISTATISTIKLER:\n━━━━━━━━━━━━━━━━━━\n\n✓ 1000+ Aktif Oyuncu\n✓ 500+ Tamamlanan Oyun Türü  \n✓ 100+ Kelime Kategorisi\n✓ 50+ Başarı Rozeti\n✓ 24/7 Çevrimiçi Sıralaması\n\n⚠️ YASLAR:\n━━━━━━━━━━━━━━━━━━\n13+ yaşından itibaren önerilir\nEbeveynler için güvenli çevre\n\n💬 DESTEK & İLETİŞİM:\n━━━━━━━━━━━━━━━━━━\n\nHata buldu mu? Önerine var mı?\n📧 Email: support@wardict.com\n🌐 Web: https://wardict.com\n🐛 Bug Raporu: Google Play Store yorumları\n\n🎉 ÖZEL HARITA:\n━━━━━━━━━━━━━━━━━━\n\nv1.0.0 - İlk Sürüm (Şubat 2026)\nYakında: Çok oyunculu turnuvalar, arkadaş sistemi, daha fazla dil desteği!\n\n---\n\nÜcretsiz İndir | Opsiyonel In-App Satın Alma | Reklam Destekli\n\nWARDICT'u Şimdi İndir ve Kelime Şampiyonu Ol! 🏆",
+  "keywords": [
+    "kelime oyunu",
+    "kelime bilmece",
+    "kelime sınav",
+    "kelime mücadelesi",
+    "zeka oyunu"
+  ],
+  "category": "Oyunlar",
+  "subcategory": "Kelime",
+  "privacy_policy_url": "ZORUNLU: BURAYA GIZLILIK POLITIKASI URL'NIZ GELECEK (Yayinlamadan once mutlaka ekleyin)",
+  "support_email": "support@wardict.com",
+  "support_website": "https://wardict.com",
+  "content_rating": {
+    "age_rating": "13+",
+    "violence": false,
+    "sexual_content": false,
+    "drugs_alcohol": false,
+    "hate_speech": false,
+    "contains_ads": true,
+    "contains_iap": true,
+    "multiplayer": false
+  },
+  "release_notes": {
+    "version": "1.0.0",
+    "date": "2026-02-18",
+    "notes": "🎉 WARDICT İlk Sürüme Hoş Geldiniz!\n\n✨ Ana Özellikler:\n• Günlük kelime meydan oklamaları\n• Küresel oyuncu sıralamalar\n• 50+ başarı ve rozet sistemi\n• Premium üyelik (reklamsız oyun)\n• Ses efektleri ve animasyonlar\n\n🔧 Teknik:\n• Firebase tabanlı güvenli giriş\n• Optimiz edilmiş performans\n• Hata raporlama sistemi\n\n🙏 Teşekkürler\nWardict'ı türkçe sunmaktan mutluyuz!"
+  },
+  "screenshots": {
+    "description": "Aşağıdaki ekran görüntülerini Play Console'a yükle. Minimum 2, maksimum 8 olabilir.",
+    "required_count": 2,
+    "recommended_count": 5,
+    "required_format": "JPG/PNG",
+    "required_size": "Portrait (1080x1920 px ideal)",
+    "screenshots": [
+      {
+        "name": "Screenshot 1 - Oyun Ana Ekranı",
+        "description": "Başlık: 'Günlük Kelime Meydan Okumasını Oyna'\nAçıklama: 'Her gün yeni kelime sorularıyla oynamaya başla. Doğru cevaplar için puanlar ve ödüller kazanın.'",
+        "what_to_show": "Ana oyun ekranı, soru ve cevap seçenekleri, skor göstergesi"
+      },
+      {
+        "name": "Screenshot 2 - Sıralama Tablosu",
+        "description": "Başlık: 'Küresel Oyuncular Sıralaması'\nAçıklama: 'Diğer oyunculara karşı yarışın. Günlük, haftalık ve aylık sıralamalar.'",
+        "what_to_show": "Top 10 sıralama, oyuncu adları, puanlar, rozet ikonları"
+      },
+      {
+        "name": "Screenshot 3 - Başarılar & Rozetler",
+        "description": "Başlık: '50+ Farklı Rozet Kilidini Aç'\nAçıklama: 'Her başarı için yeni rozetler kazanın. Tüm bu rozetleri toplayan efsaneler haline gel!'",
+        "what_to_show": "Rozet galerisi, kilit durumu, ilerleme bars, başarı istatistikleri"
+      },
+      {
+        "name": "Screenshot 4 - Premium Üyelik",
+        "description": "Başlık: 'Premium Üyelikle Reklamsız Oyun'\nAçıklama: 'Reklamsız oyun deneyimi ve ekstra avantajlar. 7 günlük ücretsiz deneme başlatın.'",
+        "what_to_show": "Premium paketler, fiyatlar, 'Ücretsiz Dene' butonu, avantaj listesi"
+      },
+      {
+        "name": "Screenshot 5 - İstatistikler & Profil",
+        "description": "Başlık: 'Tüm İstatistiklerini Görüntüle'\nAçıklama: 'Oynanan oyunlar, kazanılan puanlar ve ilerleme. Detaylı istatistikler sayfasından her şeyi takip et.'",
+        "what_to_show": "Kullanıcı profili, avatar, toplam skor, oynanan oyun sayısı, başarılar özeti"
+      }
+    ]
+  },
+  "teaser_graphic": {
+    "description": "1024 x 500 px JPG/PNG",
+    "notes": "Logo, başlık ve oyun öğelerini içeren çekici bir grafik"
+  },
+  "app_icon": {
+    "description": "512 x 512 px PNG (transparent background ideal)",
+    "current_icon": "assets/images/logo_lugo.png"
+  },
+  "premium_setup": {
+    "product_name": "WARDICT Premium Yıllık",
+    "product_id": "com.wardict.premium_yearly",
+    "product_type": "Abonelik",
+    "price": "29,99 TRY",
+    "currency": "TRY",
+    "billing_period": "Yıllık (365 gün)",
+    "free_trial": "7 gün",
+    "description": "WARDICT Premium Üyelik - Reklamsız Oyun + Ekstra Avantajlar\n\nPremium üyelikle:\n✓ Reklamsız oyun deneyimi\n✓ Günde 3 extra oyun\n✓ Özel Premium rozetler\n✓ Ayakkabıya bakım kontrol\n✓ Karışık oyun modları\n✓ Ekstra tematik paketler\n\nÜcretsiz 7 günlük deneme sürümü ile başlayın!\nAbonelik otomatik olarak yenilenecektir. İstediğiniz zaman iptal edebilirsiniz."
+  }
+}

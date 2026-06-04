@@ -57,7 +57,10 @@ class _ReferralDialogState extends State<ReferralDialog> {
   }
 
   void _shareCode() {
-    final text = 'WarDict kelime savaşında bana katıl! Benim davet kodum: $_myCode\n\nUygulamayı indir ve kodumu kullanarak 250 Altın kazan!';
+    final text =
+        'Lugorena kelime savaşında bana katıl! Benim davet kodum: $_myCode\n\n'
+        'İlk kez kodu kullanırsan ${ReferralService.inviteeCoins} altın '
+        'kazanırsın; ben de arkadaşım olarak ${ReferralService.inviterCoins} altın ödülü alırım!';
     Share.share(text);
   }
 
@@ -76,9 +79,16 @@ class _ReferralDialogState extends State<ReferralDialog> {
           borderRadius: BorderRadius.circular(30),
           border: Border.all(color: Colors.white24),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child: _isLoading
+            ? const Padding(
+                padding: EdgeInsets.all(48),
+                child: Center(
+                  child: CircularProgressIndicator(color: Colors.white54),
+                ),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
             const Text(
               'ARKADAŞLARINI DAVET ET',
               style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.2),
@@ -90,7 +100,7 @@ class _ReferralDialogState extends State<ReferralDialog> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withAlpha(13),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white12),
               ),
@@ -146,10 +156,10 @@ class _ReferralDialogState extends State<ReferralDialog> {
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 2),
                 textCapitalization: TextCapitalization.characters,
                 decoration: InputDecoration(
-                  hintText: 'Örn: WD1234',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  hintText: 'Örn: LG1234',
+                  hintStyle: TextStyle(color: Colors.white.withAlpha(77)),
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.05),
+                  fillColor: Colors.white.withAlpha(13),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                 ),
               ),
@@ -168,15 +178,17 @@ class _ReferralDialogState extends State<ReferralDialog> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Kod uyguladığında 250 Altın kazanırsın!',
-                style: TextStyle(color: Colors.greenAccent, fontSize: 11),
+              Text(
+                'Kodu uygulayınca sen ${ReferralService.inviteeCoins} altın '
+                'kazanırsın; davet kodunu paylaşan arkadaşın '
+                '${ReferralService.inviterCoins} altın kazanır.',
+                style: const TextStyle(color: Colors.greenAccent, fontSize: 11),
               ),
             ] else 
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withAlpha(26),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: const Row(
@@ -198,8 +210,8 @@ class _ReferralDialogState extends State<ReferralDialog> {
               onPressed: () => Navigator.pop(context),
               child: const Text('KAPAT', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
             ),
-          ],
-        ),
+                ],
+              ),
       ),
     );
   }

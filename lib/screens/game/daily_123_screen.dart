@@ -9,6 +9,8 @@ import '../../widgets/game/question_card.dart';
 import '../../widgets/game/options_grid.dart';
 import '../../widgets/common/connection_lost_dialog.dart';
 import 'daily_123_results_screen.dart';
+import '../../providers/language_provider.dart';
+import '../../services/sound_service.dart';
 
 class Daily123Screen extends StatefulWidget {
   const Daily123Screen({super.key});
@@ -45,21 +47,8 @@ class _Daily123ScreenState extends State<Daily123Screen> with NetworkAwareMixin 
     NetworkService.instance.startMonitoring();
     _networkSubscription = NetworkService.instance.connectionStream.listen((isConnected) {
       if (!isConnected && mounted && !_showingResult) {
-        // Oyunu duraklat ve bağlantı hatası göster
-        context.read<Daily123Provider>().pauseTimer();
-        showConnectionLostDialog(
-          onRetry: () async {
-            final connected = await NetworkService.instance.checkConnection();
-            if (connected && mounted) {
-              context.read<Daily123Provider>().resumeTimer();
-            } else if (mounted) {
-              _startNetworkMonitoring(); // Tekrar kontrol et
-            }
-          },
-          onExit: () {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          },
-        );
+        // Daily 123'te de artık oyunu kesmiyoruz, sadece debug log basıyoruz.
+        debugPrint('📡 Daily123Screen: Connection lost, but continuing session.');
       }
     });
   }
@@ -83,20 +72,36 @@ class _Daily123ScreenState extends State<Daily123Screen> with NetworkAwareMixin 
       _locked = true;
     });
 
-    // Görsel geri bildirim için kısa bekleme (0.4 sn artırıldı)
-    await Future.delayed(const Duration(milliseconds: 1000));
+    // Görsel geri bildirim için bekleme (Kullanıcının doğru/yanlış cevabı görmesi için)
+    final provider = context.read<Daily123Provider>();
+    final isCorrect = index == provider.currentCorrectIndex;
+    
+    if (isCorrect) {
+      SoundService.instance.playCorrect();
+    } else {
+      SoundService.instance.playWrong();
+    }
+    
+    await Future.delayed(const Duration(milliseconds: 800));
 
     if (!mounted) return;
 
-    final provider = context.read<Daily123Provider>();
-    await provider.answer(index, 0);
+    try {
+      final provider = context.read<Daily123Provider>();
+      await provider.answer(index, 0);
 
-    if (provider.score >= 123 || provider.timeLeft <= 0) {
-      if (!_showingResult) {
-        _showingResult = true;
-        _finishGame();
+      if (provider.score >= 123 || provider.timeLeft <= 0) {
+        if (!_showingResult) {
+          _showingResult = true;
+          _finishGame();
+        }
+      } else {
+        setState(() {
+          _selectedIndex = null;
+          _locked = false;
+        });
       }
-    } else {
+    } catch (e) {
       setState(() {
         _selectedIndex = null;
         _locked = false;
@@ -119,6 +124,11 @@ class _Daily123ScreenState extends State<Daily123Screen> with NetworkAwareMixin 
       timeSeconds: timeSpent,
       isWin: isWin,
     ));
+
+    await Daily123Service.instance.cacheLastSessionAnswers(
+      correctAnswers,
+      wrongAnswers,
+    );
 
     if (!mounted) return;
 
@@ -199,9 +209,9 @@ class _Daily123ScreenState extends State<Daily123Screen> with NetworkAwareMixin 
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _headerInfo('DÜZEY', provider.currentLevel.code, Colors.orange),
-                    _headerInfo('SÜRE', '${provider.timeLeft}s', Colors.redAccent),
-                    _headerInfo('PUAN', '${provider.score}/123', Colors.greenAccent),
+                    _headerInfo(context.watch<LanguageProvider>().getString('level_short'), provider.currentLevel.code, Colors.orange),
+                    _headerInfo(context.watch<LanguageProvider>().getString('time_short'), '${provider.timeLeft}${context.watch<LanguageProvider>().getString('seconds_short')}', Colors.redAccent),
+                    _headerInfo(context.watch<LanguageProvider>().getString('points_short'), '${provider.score}/123', Colors.greenAccent),
                   ],
                 ),
               ),

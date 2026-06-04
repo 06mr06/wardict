@@ -3,7 +3,7 @@ import '../../widgets/lugo_mascot.dart';
 
 class MatchmakingLugoDialog extends StatelessWidget {
   final String message;
-  const MatchmakingLugoDialog({Key? key, required this.message}) : super(key: key);
+  const MatchmakingLugoDialog({super.key, required this.message});
 
   @override
   Widget build(BuildContext context) {

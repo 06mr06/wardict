@@ -1,9 +1,12 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/game_provider.dart';
 import '../../models/question_mode.dart';
+import '../../widgets/game/combo_overlay.dart';
+import '../../widgets/game/lottie_answer_overlay.dart';
 import 'results_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -27,6 +30,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
   late AnimationController _waveController;
+  int? _comboToDisplay;
+  bool _showAnswerAnimation = false;
+  bool _answerIsCorrect = false;
 
   @override
   void initState() {
@@ -110,6 +116,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     setState(() {
       _selectedIndex = index;
       _answered = true;
+      _answerIsCorrect = index == gameProvider.currentCorrectIndex;
+      _showAnswerAnimation = true;
     });
     gameProvider.answer(index, _timeLeft);
     setState(() {
@@ -117,6 +125,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     });
     if (_earnedPoint > 0) {
       _animController.forward(from: 0);
+      HapticFeedback.lightImpact();
+      
+      // Combo effect
+      if (gameProvider.streak >= 3) {
+        setState(() {
+          _comboToDisplay = gameProvider.streak;
+        });
+      }
+    } else {
+      HapticFeedback.heavyImpact();
     }
     Future.delayed(const Duration(seconds: 2), _nextQuestion);
   }
@@ -314,20 +332,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
         // Main question UI
         return Scaffold(
-          body: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+          body: Stack(
+            children: [
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                     // Progress bar
                     Container(
                       height: 8,
@@ -587,36 +607,52 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       },
                     ),
                   ),
-                  ],
-                ),
+                ],
               ),
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+        if (_comboToDisplay != null)
+          ComboOverlay(
+            combo: _comboToDisplay!,
+            onComplete: () {
+              if (mounted) setState(() => _comboToDisplay = null);
+            },
+          ),
+        if (_showAnswerAnimation)
+          LottieAnswerOverlay(
+            isCorrect: _answerIsCorrect,
+            onComplete: () {
+              if (mounted) setState(() => _showAnswerAnimation = false);
+            },
+          ),
+      ],
+    ),
+  );
+},
+);
 }
 
-String _modeShortText(QuestionMode mode) {
-  switch (mode) {
-    case QuestionMode.enToTr:
-      return 'EN > TR';
-    case QuestionMode.trToEn:
-      return 'TR > ENG';
-    case QuestionMode.engToEng:
-      return 'Eş Anlam';
+  String _modeShortText(QuestionMode mode) {
+    switch (mode) {
+      case QuestionMode.enToTr:
+        return 'EN > TR';
+      case QuestionMode.trToEn:
+        return 'TR > ENG';
+      case QuestionMode.engToEng:
+        return 'ENG - ENG';
+    }
   }
-}
 
-String _modeEmoji(QuestionMode mode) {
-  switch (mode) {
-    case QuestionMode.enToTr:
-      return '🇬🇧➡️🇹🇷';
-    case QuestionMode.trToEn:
-      return '🇹🇷➡️🇬🇧';
-    case QuestionMode.engToEng:
-      return '🇬🇧＝🇬🇧';
+  String _modeEmoji(QuestionMode mode) {
+    switch (mode) {
+      case QuestionMode.enToTr:
+        return '🇬🇧➡️🇹🇷';
+      case QuestionMode.trToEn:
+        return '🇹🇷➡️🇬🇧';
+      case QuestionMode.engToEng:
+        return '🇬🇧＝🇬🇧';
+    }
   }
 }
 

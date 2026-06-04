@@ -2,6 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firestore_service.dart';
+import '../shop_service.dart';
+import '../../models/premium.dart';
+import '../user_profile_service.dart';
+import 'package:google_sign_in/google_sign_in.dart' as gsi;
 
 /// Kimlik doğrulama durumu
 enum AuthStatus {
@@ -37,11 +41,32 @@ class AuthService extends ChangeNotifier {
   String? get displayName => _user?.displayName;
   String? get photoURL => _user?.photoURL;
 
+  /// Profilde `createdAt` yoksa katılım tarihi için kullanılır (gerçek hesap açılışı).
+  DateTime? get accountCreatedAt => _user?.metadata.creationTime;
+
+  /// Kullanıcının yönetici olup olmadığını kontrol eder
+  bool get isAdmin {
+    if (_user == null) return false;
+    final email = _user?.email?.toLowerCase() ?? '';
+    final dName = _user?.displayName?.toLowerCase() ?? '';
+
+    final isAdmin = email.endsWith('@wardict.com') ||
+        email == 'admin@wardict.com' ||
+        dName == 'wardict';
+
+    if (isAdmin) {
+      debugPrint('🛡️ Yönetici yetkisi doğrulandı: ${_user?.email}');
+    }
+    return isAdmin;
+  }
+
   void _onAuthStateChanged(User? user) {
     _user = user;
     if (user != null) {
       _status = AuthStatus.authenticated;
       debugPrint('✅ Kullanıcı giriş yaptı: ${user.email}');
+      // Profili senkronize et
+      UserProfileService.instance.fetchProfileFromFirestore();
     } else {
       _status = AuthStatus.unauthenticated;
       debugPrint('ℹ️ Kullanıcı çıkış yaptı');
@@ -98,6 +123,21 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Şifre Sıfırlama
+  Future<bool> resetPassword({required String email}) async {
+    try {
+      _errorMessage = null;
+      await _auth.sendPasswordResetEmail(email: email);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _errorMessage = _getErrorMessage(e.code);
+      _status = AuthStatus.error;
+      notifyListeners();
+      debugPrint('❌ Şifre sıfırlama hatası: ${e.code}');
+      return false;
+    }
+  }
+
   /// Email veya Kullanıcı Adı ile giriş
   Future<UserCredential?> signInWithEmailOrUsername({
     required String identifier, // email veya username
@@ -105,29 +145,52 @@ class AuthService extends ChangeNotifier {
   }) async {
     try {
       _errorMessage = null;
-      
+
+      // Admin bypass
+      if (identifier == 'wardict' && password == '1*2*3*') {
+        var cred = await signInWithEmail(
+            email: 'admin@wardict.com', password: password);
+        // Admin her zaman premium olur
+        await ShopService.instance.activatePremium(PremiumTier.premium, 365);
+
+        if (cred != null) return cred;
+
+        // Kayıtlı değilse oluştur
+        return await signUpWithEmail(
+            email: 'admin@wardict.com',
+            password: password,
+            displayName: 'wardict');
+      }
+
       // Önce email olarak dene
       if (identifier.contains('@')) {
         return await signInWithEmail(email: identifier, password: password);
       }
-      
+
       // Kullanıcı adı ise, email'i Firestore'dan getir
       final firestoreService = FirestoreService.instance;
       final email = await firestoreService.getEmailByUsername(identifier);
-      
+
       if (email == null) {
         _errorMessage = 'Kullanıcı adı bulunamadı';
         _status = AuthStatus.error;
         notifyListeners();
         return null;
       }
-      
+
+      // Email'i bulduktan sonra normal sign-in yap
       return await signInWithEmail(email: email, password: password);
     } catch (e) {
-      _errorMessage = 'Giriş yapılırken hata oluştu';
+      if (e.toString().contains('permission-denied') ||
+          e.toString().contains('insufficient-permissions')) {
+        _errorMessage =
+            'Giriş Hatası: Firestore "users" koleksiyonu izni kapalı.\nLütfen Firebase Console\'da kuralları düzenleyin.';
+      } else {
+        _errorMessage = 'Giriş başarısız: $e';
+      }
       _status = AuthStatus.error;
       notifyListeners();
-      debugPrint('❌ Email/Username giriş hatası: $e');
+      debugPrint('❌ signInWithEmailOrUsername Error: $e');
       return null;
     }
   }
@@ -152,38 +215,80 @@ class AuthService extends ChangeNotifier {
   Future<UserCredential?> signInWithGoogle() async {
     try {
       _errorMessage = null;
-      
+      _status = AuthStatus.initial;
+      notifyListeners();
+
       if (kIsWeb) {
-        // Web için popup kullan
         final googleProvider = GoogleAuthProvider();
         googleProvider.addScope('email');
         googleProvider.addScope('profile');
         final credential = await _auth.signInWithPopup(googleProvider);
-        debugPrint('✅ Google giriş başarılı (Web): ${credential.user?.email}');
+        _status = AuthStatus.authenticated;
+        notifyListeners();
         return credential;
       } else {
-        // Mobil için signInWithProvider kullan (daha basit)
-        final googleProvider = GoogleAuthProvider();
-        googleProvider.addScope('email');
-        googleProvider.addScope('profile');
-        
-        try {
-          final credential = await _auth.signInWithProvider(googleProvider);
-          debugPrint('✅ Google giriş başarılı (Mobil): ${credential.user?.email}');
-          return credential;
-        } catch (e) {
-          debugPrint('⚠️ signInWithProvider hatası, alternatif yöntem deneniyor: $e');
-          
-          // Fallback: google_sign_in paketi ile dene
-          // Not: Bu çalışması için SHA-1 fingerprint Firebase'e eklenmeli
-          throw Exception('Google Sign-In için SHA-1 fingerprint Firebase Console\'a eklenmeli. FIREBASE_SETUP.md dosyasına bakın.');
+        // Mobil için google_sign_in v6.x API
+        final gsi.GoogleSignIn googleSignIn = gsi.GoogleSignIn(
+          scopes: ['email', 'profile'],
+        );
+
+        final gsi.GoogleSignInAccount? googleUser =
+            await googleSignIn.signIn().timeout(
+          const Duration(seconds: 30),
+          onTimeout: () {
+            throw Exception('Google giriş zaman aşımına uğradı');
+          },
+        );
+
+        if (googleUser == null) {
+          // Kullanıcı giriş işlemini iptal etti
+          _errorMessage = 'Giriş iptal edildi';
+          _status = AuthStatus.unauthenticated;
+          notifyListeners();
+          return null;
         }
+
+        final gsi.GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        final UserCredential userCredential =
+            await _auth.signInWithCredential(credential);
+
+        // Durumu güncelle
+        _status = AuthStatus.authenticated;
+        notifyListeners();
+
+        // Profili çek
+        await UserProfileService.instance.fetchProfileFromFirestore();
+
+        return userCredential;
       }
-    } catch (e) {
-      _errorMessage = 'Google ile giriş başarısız oldu. Lütfen SHA-1 fingerprint\'i Firebase\'e ekleyin.';
-      _status = AuthStatus.error;
-      notifyListeners();
+    } catch (e, stack) {
       debugPrint('❌ Google giriş hatası: $e');
+      debugPrint('Stack trace: $stack');
+
+      // Hata mesajını daha açık hale getir
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('network') || errorStr.contains('connection')) {
+        _errorMessage = 'İnternet bağlantınızı kontrol edin.';
+      } else if (errorStr.contains('timeout') || errorStr.contains('zaman')) {
+        _errorMessage = 'Google giriş zaman aşımına uğradı. Tekrar deneyin.';
+      } else if (errorStr.contains('cancelled') || errorStr.contains('iptal')) {
+        _errorMessage = 'Giriş iptal edildi.';
+      } else if (errorStr.contains('image') || errorStr.contains('model')) {
+        _errorMessage =
+            'Google Play Services güncel değil. Lütfen güncelleyin.';
+      } else {
+        _errorMessage = 'Google ile giriş başarısız oldu: ${e.toString()}';
+      }
+
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
       return null;
     }
   }
@@ -192,11 +297,11 @@ class AuthService extends ChangeNotifier {
   Future<UserCredential?> signInWithApple() async {
     try {
       _errorMessage = null;
-      
+
       final appleProvider = AppleAuthProvider();
       appleProvider.addScope('email');
       appleProvider.addScope('name');
-      
+
       if (kIsWeb) {
         // Web için popup kullan
         final credential = await _auth.signInWithPopup(appleProvider);
@@ -217,19 +322,67 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Hesabı sil
+  Future<void> deleteAccount() async {
+    if (_user == null) {
+      throw Exception('Hesabı silmek için giriş yapmış olmalısınız.');
+    }
+
+    try {
+      await _user!.delete();
+      debugPrint('✅ Firebase kullanıcısı silindi.');
+      // Kullanıcı silindikten sonra lokal verileri de temizle
+      await signOut();
+    } on FirebaseAuthException catch (e) {
+      _errorMessage = _getErrorMessage(e.code);
+      _status = AuthStatus.error;
+      notifyListeners();
+      rethrow; // Hatayı UI'ın yakalaması için fırlat
+    }
+  }
+
   /// Çıkış yap - Tüm lokal verileri temizle
   Future<void> signOut() async {
     try {
-      // SharedPreferences'ı tamamen temizle (yeni kullanıcı eski verileri görmesin)
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-      
-      // Firebase'den çıkış yap
+      // 1. Firebase'den çıkış yap
       await _auth.signOut();
-      
-      debugPrint('✅ Çıkış yapıldı ve tüm lokal veriler temizlendi');
+
+      // Durumu hemen güncelle ki UI tepki versin
+      _status = AuthStatus.unauthenticated;
+      _user = null;
+      notifyListeners();
+
+      debugPrint(
+          'ℹ️ AuthService: Firebase signOut tamamlandı, durum güncellendi.');
+
+      // 2. In-memory cache ve SharedPreferences verilerini temizle (Arka planda devam edebilir)
+      await UserProfileService.instance.clearLocalData();
+      UserProfileService.clearAll();
+
+      // 3. Diğer SharedPreferences verilerini temizle (Seçili dili koruyarak)
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+      int removedCount = 0;
+      for (String key in keys) {
+        // Dil, onboarding durumu ve beni hatırla verilerini KORU
+        if (key != 'app_language' &&
+            key != 'has_selected_language' &&
+            key != 'onboarding_completed' &&
+            key != 'remember_me' &&
+            key != 'remembered_email') {
+          await prefs.remove(key);
+          removedCount++;
+        }
+      }
+
+      debugPrint(
+          '✅ AuthService: $removedCount adet lokal anahtar temizlendi (dil ve giriş tercihleri hariç)');
     } catch (e) {
-      debugPrint('❌ Çıkış hatası: $e');
+      debugPrint('❌ AuthService: Çıkış hatası: $e');
+      // Hata durumunda bile durumun resetlendiğinden emin olalım
+      _status = AuthStatus.unauthenticated;
+      _user = null;
+      notifyListeners();
     }
   }
 
@@ -290,6 +443,8 @@ class AuthService extends ChangeNotifier {
         return 'Bu email adresi ile kayıtlı kullanıcı bulunamadı.';
       case 'wrong-password':
         return 'Hatalı şifre girdiniz.';
+      case 'invalid-credential':
+        return 'E-posta adresiniz veya şifreniz hatalı. Lütfen kontrol edip tekrar deneyin.';
       case 'email-already-in-use':
         return 'Bu email adresi zaten kullanılıyor.';
       case 'weak-password':
@@ -305,7 +460,7 @@ class AuthService extends ChangeNotifier {
       case 'network-request-failed':
         return 'İnternet bağlantınızı kontrol edin.';
       default:
-        return 'Bir hata oluştu. Lütfen tekrar deneyin.';
+        return 'Bir hata oluştu ($code). Lütfen tekrar deneyin.';
     }
   }
 }

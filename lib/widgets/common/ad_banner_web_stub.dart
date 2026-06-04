@@ -21,8 +21,13 @@ class BannerAd {
 }
 
 class AdSize {
-  static const AdSize banner = AdSize._();
-  const AdSize._();
+  final int width;
+  final int height;
+
+  const AdSize({required this.width, required this.height});
+
+  static const AdSize banner = AdSize(width: 320, height: 50);
+  static const AdSize mediumRectangle = AdSize(width: 300, height: 250);
 }
 
 class AdRequest {

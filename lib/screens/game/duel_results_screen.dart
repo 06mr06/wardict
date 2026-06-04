@@ -16,11 +16,10 @@ import '../../providers/language_provider.dart';
 import '../../services/user_profile_service.dart';
 import '../../services/word_pool_service.dart';
 import '../../models/cosmetic_item.dart';
+import '../../widgets/common/match_loot_chest_dialog.dart';
 
 import '../home/widgets/home_dialogs.dart';
 import '../../services/share_service.dart';
-
-import '../../widgets/game/learning_summary_card.dart';
 
 class DuelResultsScreen extends StatefulWidget {
   final int userScore;
@@ -144,6 +143,10 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
     if (isNewUser && mounted) {
       HomeDialogs.showWelcomeGiftDialog(context);
       return;
+    }
+    
+    if (widget.userScore > widget.botScore && mounted) {
+      await MatchLootChestDialog.show(context, onClaimed: () {});
     }
     
     final newAchievements = await AchievementService.instance.getNewlyUnlockedAchievements();
@@ -323,13 +326,7 @@ class _DuelResultsScreenState extends State<DuelResultsScreen> {
                             ),
                           ),
 
-                          // 2. Öğrenme Özeti
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: LearningSummaryCard(answerHistory: items),
-                          ),
-
-                          // 3. Cevap Geçmişi
+                          // 2. Cevap Geçmişi
                           Flexible(
                             child: Container(
                               margin: const EdgeInsets.symmetric(horizontal: 16),

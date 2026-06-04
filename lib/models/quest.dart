@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 enum QuestType {
   winDuels,
@@ -6,12 +5,14 @@ enum QuestType {
   earnPoints,
   playPractice,
   streakCount,
-  speedAnswer,      // Hızlı cevap verme
-  perfectPractice,  // Hatasız pratik
-  daily123Play,     // Günlük 123 oynama
-  addWord,          // Kelime ekleme
-  buyItem,          // Marketten ürün alma
-  usePowerup        // Güçlendirici kullanma
+  speedAnswer,
+  perfectPractice,
+  daily123Play,
+  addWord,
+  buyItem,
+  usePowerup,
+  equipItem,
+  buddyDuel
 }
 
 class Quest {
@@ -22,6 +23,8 @@ class Quest {
   final int goal;
   final int currentProgress;
   final int rewardCoins;
+  final String? rewardPowerupType; // Powerup ID (reveal, fifty, etc)
+  final int? rewardPowerupCount;
   final bool isCompleted;
   final DateTime lastUpdated;
 
@@ -33,6 +36,8 @@ class Quest {
     required this.goal,
     this.currentProgress = 0,
     required this.rewardCoins,
+    this.rewardPowerupType,
+    this.rewardPowerupCount,
     this.isCompleted = false,
     required this.lastUpdated,
   });
@@ -44,6 +49,9 @@ class Quest {
     int? currentProgress,
     bool? isCompleted,
     DateTime? lastUpdated,
+    int? rewardCoins,
+    String? rewardPowerupType,
+    int? rewardPowerupCount,
   }) {
     return Quest(
       id: id ?? this.id,
@@ -52,7 +60,9 @@ class Quest {
       type: type,
       goal: goal,
       currentProgress: currentProgress ?? this.currentProgress,
-      rewardCoins: rewardCoins,
+      rewardCoins: rewardCoins ?? this.rewardCoins,
+      rewardPowerupType: rewardPowerupType ?? this.rewardPowerupType,
+      rewardPowerupCount: rewardPowerupCount ?? this.rewardPowerupCount,
       isCompleted: isCompleted ?? this.isCompleted,
       lastUpdated: lastUpdated ?? this.lastUpdated,
     );
@@ -66,6 +76,8 @@ class Quest {
     'goal': goal,
     'currentProgress': currentProgress,
     'rewardCoins': rewardCoins,
+    'rewardPowerupType': rewardPowerupType,
+    'rewardPowerupCount': rewardPowerupCount,
     'isCompleted': isCompleted,
     'lastUpdated': lastUpdated.toIso8601String(),
   };
@@ -78,6 +90,8 @@ class Quest {
     goal: json['goal'],
     currentProgress: json['currentProgress'],
     rewardCoins: json['rewardCoins'],
+    rewardPowerupType: json['rewardPowerupType'],
+    rewardPowerupCount: json['rewardPowerupCount'],
     isCompleted: json['isCompleted'],
     lastUpdated: DateTime.parse(json['lastUpdated']),
   );

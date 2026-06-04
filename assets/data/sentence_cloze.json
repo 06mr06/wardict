@@ -1,0 +1,1846 @@
+[
+  {
+    "level": "A2",
+    "sentence": "The ___ announced a new policy last week.",
+    "answer": "government",
+    "sentence_tr": "Hükümet geçen hafta yeni bir politika açıkladı.",
+    "tr_highlight": "Hükümet"
+  },
+  {
+    "level": "A2",
+    "sentence": "We need accurate ___ before we decide.",
+    "answer": "information",
+    "sentence_tr": "Karar vermeden önce doğru bilgiye ihtiyacımız var.",
+    "tr_highlight": "bilgi"
+  },
+  {
+    "level": "A2",
+    "sentence": "Good ___ helps you stay energetic at work.",
+    "answer": "health",
+    "sentence_tr": "Sağlığınız işyerinde enerjik kalmanıza yardımcı olur."
+  },
+  {
+    "level": "A2",
+    "sentence": "The national ___ grew slowly this year.",
+    "answer": "economy",
+    "sentence_tr": "Ulusal ekonomi bu yıl yavaş büyüdü.",
+    "tr_highlight": "ekonomi"
+  },
+  {
+    "level": "A2",
+    "sentence": "She works in the fashion ___ .",
+    "answer": "industry",
+    "sentence_tr": "Moda endüstrisinde çalışıyor.",
+    "tr_highlight": "endüstri"
+  },
+  {
+    "level": "A2",
+    "sentence": "He joined a tech ___ in London.",
+    "answer": "company",
+    "sentence_tr": "Londra'da bir teknoloji şirketine katıldı.",
+    "tr_highlight": "şirket"
+  },
+  {
+    "level": "A2",
+    "sentence": "Our ___ meets online every Monday.",
+    "answer": "team",
+    "sentence_tr": "Ekibimiz her pazartesi çevrimiçi olarak buluşuyor."
+  },
+  {
+    "level": "A2",
+    "sentence": "The ___ supports local schools.",
+    "answer": "organization",
+    "sentence_tr": "Organizasyon yerel okulları desteklemektedir.",
+    "tr_highlight": "Organizasyon"
+  },
+  {
+    "level": "A2",
+    "sentence": "Every ___ must submit the essay.",
+    "answer": "student",
+    "sentence_tr": "Her öğrencinin makaleyi teslim etmesi gerekmektedir.",
+    "tr_highlight": "öğrenci"
+  },
+  {
+    "level": "A2",
+    "sentence": "The ___ explained the grammar rule.",
+    "answer": "teacher",
+    "sentence_tr": "Öğretmen dilbilgisi kuralını açıkladı.",
+    "tr_highlight": "Öğretmen"
+  },
+  {
+    "level": "A2",
+    "sentence": "This ___ runs on your phone.",
+    "answer": "program",
+    "sentence_tr": "Bu program telefonunuzda çalışır."
+  },
+  {
+    "level": "A2",
+    "sentence": "Please silence your ___ during class.",
+    "answer": "device",
+    "sentence_tr": "Lütfen ders sırasında cihazınızı sessize alın.",
+    "tr_highlight": "cihaz"
+  },
+  {
+    "level": "A2",
+    "sentence": "A large ___ of money was wasted.",
+    "answer": "amount",
+    "sentence_tr": "Büyük miktarda para israf edildi.",
+    "tr_highlight": "miktar"
+  },
+  {
+    "level": "A2",
+    "sentence": "Scientists collected ___ for the study.",
+    "answer": "evidence",
+    "sentence_tr": "Bilim insanları çalışma için kanıt topladı."
+  },
+  {
+    "level": "A2",
+    "sentence": "Always check your ___ before you quote it.",
+    "answer": "source",
+    "sentence_tr": "Alıntı yapmadan önce daima kaynağınızı kontrol edin."
+  },
+  {
+    "level": "A2",
+    "sentence": "May I ___ our new colleague?",
+    "answer": "introduce",
+    "sentence_tr": "Yeni meslektaşımızı tanıştırabilir miyim?"
+  },
+  {
+    "level": "A2",
+    "sentence": "They will ___ the results in May.",
+    "answer": "publish",
+    "sentence_tr": "Sonuçları mayıs ayında yayınlayacaklar."
+  },
+  {
+    "level": "A2",
+    "sentence": "The hotel can ___ free Wi-Fi.",
+    "answer": "provide",
+    "sentence_tr": "Otel ücretsiz Wi-Fi sağlayabilir."
+  },
+  {
+    "level": "A2",
+    "sentence": "He had to ___ the unfair offer.",
+    "answer": "refuse",
+    "sentence_tr": "Haksız teklifi reddetmek zorunda kaldı.",
+    "tr_highlight": "reddetmek"
+  },
+  {
+    "level": "A2",
+    "sentence": "Let's ___ this problem calmly.",
+    "answer": "discuss",
+    "sentence_tr": "Bu sorunu sakince tartışalım."
+  },
+  {
+    "level": "A2",
+    "sentence": "Teachers ___ student work fairly.",
+    "answer": "evaluate",
+    "sentence_tr": "Öğretmenler öğrencilerin çalışmalarını adil bir şekilde değerlendirir."
+  },
+  {
+    "level": "A2",
+    "sentence": "Can you ___ the chart in one sentence?",
+    "answer": "describe",
+    "sentence_tr": "Tabloyu bir cümleyle anlatabilir misiniz?"
+  },
+  {
+    "level": "A2",
+    "sentence": "We should ___ the two proposals.",
+    "answer": "compare",
+    "sentence_tr": "İki öneriyi karşılaştırmalıyız."
+  },
+  {
+    "level": "A2",
+    "sentence": "Please ___ the groups into two lists.",
+    "answer": "separate",
+    "sentence_tr": "Lütfen grupları iki listeye ayırın."
+  },
+  {
+    "level": "A2",
+    "sentence": "Will you ___ our study group?",
+    "answer": "join",
+    "sentence_tr": "Çalışma grubumuza katılır mısınız?"
+  },
+  {
+    "level": "A2",
+    "sentence": "I cannot ___ the meeting tonight.",
+    "answer": "attend",
+    "sentence_tr": "Bu akşamki toplantıya katılamayacağım."
+  },
+  {
+    "level": "A2",
+    "sentence": "May I ___ a different time?",
+    "answer": "suggest",
+    "sentence_tr": "Farklı bir zaman önerebilir miyim?"
+  },
+  {
+    "level": "A2",
+    "sentence": "The board may ___ the budget today.",
+    "answer": "approve",
+    "sentence_tr": "Yönetim kurulu bütçeyi bugün onaylayabilir."
+  },
+  {
+    "level": "A2",
+    "sentence": "They had to ___ his application.",
+    "answer": "reject",
+    "sentence_tr": "Başvurusunu reddetmek zorunda kaldılar.",
+    "tr_highlight": "reddetmek"
+  },
+  {
+    "level": "A2",
+    "sentence": "We must ___ all risks carefully.",
+    "answer": "consider",
+    "sentence_tr": "Tüm riskleri dikkatle değerlendirmeliyiz."
+  },
+  {
+    "level": "A2",
+    "sentence": "This internship is a great ___ for you.",
+    "answer": "opportunity",
+    "sentence_tr": "Bu staj sizin için büyük bir fırsat.",
+    "tr_highlight": "fırsat"
+  },
+  {
+    "level": "A2",
+    "sentence": "We still have another ___ if this fails.",
+    "answer": "option",
+    "sentence_tr": "Bu başarısız olursa hala başka bir seçeneğimiz var."
+  },
+  {
+    "level": "A2",
+    "sentence": "She has the ___ to become a leader.",
+    "answer": "potential",
+    "sentence_tr": "Lider olma potansiyeli var.",
+    "tr_highlight": "potansiyel"
+  },
+  {
+    "level": "A2",
+    "sentence": "The main ___ is lower cost.",
+    "answer": "advantage",
+    "sentence_tr": "Ana avantajı daha düşük maliyettir.",
+    "tr_highlight": "avantaj"
+  },
+  {
+    "level": "A2",
+    "sentence": "The ___ is the long waiting time.",
+    "answer": "disadvantage",
+    "sentence_tr": "Dezavantajı bekleme süresinin uzun olmasıdır.",
+    "tr_highlight": "Dezavantaj"
+  },
+  {
+    "level": "A2",
+    "sentence": "I like fruit, ___ strawberries.",
+    "answer": "especially",
+    "sentence_tr": "Meyveleri severim, özellikle de çileği.",
+    "tr_highlight": "özellikle"
+  },
+  {
+    "level": "A2",
+    "sentence": "The plan failed ___ .",
+    "answer": "completely",
+    "sentence_tr": "Plan tamamen başarısız oldu.",
+    "tr_highlight": "tamamen"
+  },
+  {
+    "level": "A2",
+    "sentence": "The price was ___ low for us.",
+    "answer": "relatively",
+    "sentence_tr": "Fiyatı bizim için nispeten düşüktü.",
+    "tr_highlight": "nispeten"
+  },
+  {
+    "level": "A2",
+    "sentence": "I will ___ be there on time.",
+    "answer": "definitely",
+    "sentence_tr": "Kesinlikle zamanında orada olacağım.",
+    "tr_highlight": "Kesinlikle"
+  },
+  {
+    "level": "A2",
+    "sentence": "We ___ finish the report by six.",
+    "answer": "usually",
+    "sentence_tr": "Raporu genellikle saat altıya kadar bitiriyoruz.",
+    "tr_highlight": "genellikle"
+  },
+  {
+    "level": "A2",
+    "sentence": "The train was ___ because of snow.",
+    "answer": "slow",
+    "sentence_tr": "Kar nedeniyle tren yavaş ilerliyordu.",
+    "tr_highlight": "yavaş"
+  },
+  {
+    "level": "A2",
+    "sentence": "Our ___ welcomes new volunteers.",
+    "answer": "community",
+    "sentence_tr": "Topluluğumuz yeni gönüllüleri memnuniyetle karşılıyor."
+  },
+  {
+    "level": "A2",
+    "sentence": "She studies at a respected ___ .",
+    "answer": "university",
+    "sentence_tr": "Saygın bir üniversitede okuyor.",
+    "tr_highlight": "üniversite"
+  },
+  {
+    "level": "A2",
+    "sentence": "___ connects people across continents.",
+    "answer": "internet",
+    "sentence_tr": "İnternet kıtalar arası insanları birbirine bağlar."
+  },
+  {
+    "level": "A2",
+    "sentence": "Economic ___ slowed after the crisis.",
+    "answer": "development",
+    "sentence_tr": "Krizden sonra ekonomik gelişme yavaşladı.",
+    "tr_highlight": "gelişme"
+  },
+  {
+    "level": "A2",
+    "sentence": "He works in the medical ___ .",
+    "answer": "field",
+    "sentence_tr": "Tıp alanında çalışmaktadır.",
+    "tr_highlight": "alan"
+  },
+  {
+    "level": "A2",
+    "sentence": "We follow a clear teaching ___ .",
+    "answer": "method",
+    "sentence_tr": "Açık bir öğretim yöntemi izliyoruz.",
+    "tr_highlight": "yöntem"
+  },
+  {
+    "level": "A2",
+    "sentence": "This ___ saves time in the lab.",
+    "answer": "technique",
+    "sentence_tr": "Bu teknik laboratuvarda zaman tasarrufu sağlar.",
+    "tr_highlight": "teknik"
+  },
+  {
+    "level": "A2",
+    "sentence": "The product meets safety ___ .",
+    "answer": "standard",
+    "sentence_tr": "Ürün güvenlik standardına uygundur."
+  },
+  {
+    "level": "A2",
+    "sentence": "A useful ___ is offline maps.",
+    "answer": "feature",
+    "sentence_tr": "Yararlı bir özellik çevrimdışı haritalardır.",
+    "tr_highlight": "özellik"
+  },
+  {
+    "level": "A2",
+    "sentence": "Each part has a different ___ .",
+    "answer": "function",
+    "sentence_tr": "Her parçanın farklı bir işlevi vardır.",
+    "tr_highlight": "işlev"
+  },
+  {
+    "level": "A2",
+    "sentence": "We measured the ___ of waste.",
+    "answer": "quantity",
+    "sentence_tr": "Atık miktarını ölçtük.",
+    "tr_highlight": "miktar"
+  },
+  {
+    "level": "A2",
+    "sentence": "___ control is essential here.",
+    "answer": "quality",
+    "sentence_tr": "Burada kalite kontrolü çok önemlidir.",
+    "tr_highlight": "kalite"
+  },
+  {
+    "level": "A2",
+    "sentence": "The ___ of infection is falling.",
+    "answer": "rate",
+    "sentence_tr": "Enfeksiyon oranı düşüyor.",
+    "tr_highlight": "oran"
+  },
+  {
+    "level": "A2",
+    "sentence": "The shop sells a wide ___ of teas.",
+    "answer": "variety",
+    "sentence_tr": "Mağazada çok çeşitli çaylar satılıyor."
+  },
+  {
+    "level": "A2",
+    "sentence": "Exercise helps you keep emotional ___ .",
+    "answer": "balance",
+    "sentence_tr": "Egzersiz duygusal dengenizi korumanıza yardımcı olur.",
+    "tr_highlight": "denge"
+  },
+  {
+    "level": "A2",
+    "sentence": "The storm had a huge ___ on travel.",
+    "answer": "impact",
+    "sentence_tr": "Fırtınanın ulaşımı olumsuz etkilediği belirtildi.",
+    "tr_highlight": "etki"
+  },
+  {
+    "level": "A2",
+    "sentence": "Both sides signed the final ___ .",
+    "answer": "agreement",
+    "sentence_tr": "Her iki taraf da nihai anlaşmayı imzaladı.",
+    "tr_highlight": "anlaşma"
+  },
+  {
+    "level": "A2",
+    "sentence": "The ___ between the schools grew.",
+    "answer": "partnership",
+    "sentence_tr": "Okullar arasındaki işbirliği arttı."
+  },
+  {
+    "level": "A2",
+    "sentence": "Social ___ spread the news quickly.",
+    "answer": "media",
+    "sentence_tr": "Sosyal medya haberi hızla yaydı.",
+    "tr_highlight": "medya"
+  },
+  {
+    "level": "A2",
+    "sentence": "That loud ___ annoyed viewers.",
+    "answer": "advertisement",
+    "sentence_tr": "Bu yüksek sesli reklam izleyenleri rahatsız etti.",
+    "tr_highlight": "reklam"
+  },
+  {
+    "level": "A2",
+    "sentence": "Every ___ wants polite service.",
+    "answer": "customer",
+    "sentence_tr": "Her müşteri kibar hizmet ister.",
+    "tr_highlight": "müşteri"
+  },
+  {
+    "level": "A2",
+    "sentence": "The ___ delayed the shipment.",
+    "answer": "supplier",
+    "sentence_tr": "Tedarikçi sevkiyatı geciktirdi.",
+    "tr_highlight": "Tedarikçi"
+  },
+  {
+    "level": "A2",
+    "sentence": "Factory ___ rose last quarter.",
+    "answer": "production",
+    "sentence_tr": "Fabrika üretimi geçen çeyrekte arttı.",
+    "tr_highlight": "üretim"
+  },
+  {
+    "level": "A2",
+    "sentence": "Sugar ___ fell in several cities.",
+    "answer": "consumption",
+    "sentence_tr": "Birçok şehirde şeker tüketimi düştü.",
+    "tr_highlight": "tüketim"
+  },
+  {
+    "level": "A2",
+    "sentence": "Risk ___ requires expert advice.",
+    "answer": "investment",
+    "sentence_tr": "Risk yatırımı uzman tavsiyesi gerektirir.",
+    "tr_highlight": "yatırım"
+  },
+  {
+    "level": "A2",
+    "sentence": "The firm reported a small ___ .",
+    "answer": "profit",
+    "sentence_tr": "Firma küçük bir kar bildirdi."
+  },
+  {
+    "level": "A2",
+    "sentence": "The store recorded a heavy ___ .",
+    "answer": "loss",
+    "sentence_tr": "Mağaza ağır kayıp kaydetti.",
+    "tr_highlight": "kayıp"
+  },
+  {
+    "level": "A2",
+    "sentence": "Reporting hazards is your ___ .",
+    "answer": "duty",
+    "sentence_tr": "Tehlikeleri bildirmek sizin görevinizdir.",
+    "tr_highlight": "görev"
+  },
+  {
+    "level": "A2",
+    "sentence": "Parents have a ___ to their children.",
+    "answer": "responsibility",
+    "sentence_tr": "Ebeveynlerin çocuklarına karşı sorumlulukları vardır.",
+    "tr_highlight": "sorumluluk"
+  },
+  {
+    "level": "A2",
+    "sentence": "You need ___ to film inside.",
+    "answer": "permission",
+    "sentence_tr": "İçeride çekim yapmak için izne ihtiyacınız var."
+  },
+  {
+    "level": "A2",
+    "sentence": "A new ___ limits plastic bags.",
+    "answer": "rule",
+    "sentence_tr": "Yeni bir kural plastik poşetlere sınırlama getiriyor.",
+    "tr_highlight": "kural"
+  },
+  {
+    "level": "A2",
+    "sentence": "The ___ covers data protection.",
+    "answer": "regulation",
+    "sentence_tr": "Yönetmelik veri korumayı kapsamaktadır."
+  },
+  {
+    "level": "A2",
+    "sentence": "She must ___ a team of twenty.",
+    "answer": "manage",
+    "sentence_tr": "Yirmi kişilik bir ekibi yönetmesi gerekiyor."
+  },
+  {
+    "level": "A2",
+    "sentence": "Pilots ___ the aircraft carefully.",
+    "answer": "control",
+    "sentence_tr": "Pilotlar uçağı dikkatle kontrol ediyor."
+  },
+  {
+    "level": "A2",
+    "sentence": "Researchers ___ the animals daily.",
+    "answer": "observe",
+    "sentence_tr": "Araştırmacılar hayvanları her gün gözlemliyor."
+  },
+  {
+    "level": "A2",
+    "sentence": "Our ___ focuses on green energy.",
+    "answer": "strategy",
+    "sentence_tr": "Stratejimiz yeşil enerjiye odaklanıyor.",
+    "tr_highlight": "Strateji"
+  },
+  {
+    "level": "A2",
+    "sentence": "Success followed years of steady ___ .",
+    "answer": "effort",
+    "sentence_tr": "Başarı, yıllar süren istikrarlı çabanın ardından geldi.",
+    "tr_highlight": "çaba"
+  },
+  {
+    "level": "A2",
+    "sentence": "We track monthly ___ on the chart.",
+    "answer": "progress",
+    "sentence_tr": "Aylık ilerlemeyi grafik üzerinden takip ediyoruz.",
+    "tr_highlight": "ilerleme"
+  },
+  {
+    "level": "A2",
+    "sentence": "The committee approved the budget ___ .",
+    "answer": "plan",
+    "sentence_tr": "Komite bütçe planını onayladı."
+  },
+  {
+    "level": "A2",
+    "sentence": "Her ___ is to become a doctor.",
+    "answer": "goal",
+    "sentence_tr": "Amacı doktor olmaktır."
+  },
+  {
+    "level": "A2",
+    "sentence": "Employee ___ improved this year.",
+    "answer": "performance",
+    "sentence_tr": "Çalışan performansı bu yıl arttı.",
+    "tr_highlight": "performans"
+  },
+  {
+    "level": "B1",
+    "sentence": "The project will ___ many departments.",
+    "answer": "involve",
+    "sentence_tr": "Proje birçok departmanı kapsayacak."
+  },
+  {
+    "level": "B1",
+    "sentence": "We need a fresh ___ to this problem.",
+    "answer": "approach",
+    "sentence_tr": "Bu soruna yeni bir yaklaşıma ihtiyacımız var.",
+    "tr_highlight": "yaklaşım"
+  },
+  {
+    "level": "B1",
+    "sentence": "There is a strong ___ between sleep and mood.",
+    "answer": "connection",
+    "sentence_tr": "Uyku ve ruh hali arasında güçlü bir bağlantı vardır.",
+    "tr_highlight": "bağlantı"
+  },
+  {
+    "level": "B1",
+    "sentence": "Your first ___ is to read chapter two.",
+    "answer": "task",
+    "sentence_tr": "İlk göreviniz ikinci bölümü okumaktır.",
+    "tr_highlight": "örevi"
+  },
+  {
+    "level": "B1",
+    "sentence": "We face serious ___ challenges today.",
+    "answer": "environmental",
+    "sentence_tr": "Bugün ciddi çevresel sorunlarla karşı karşıyayız.",
+    "tr_highlight": "çevresel"
+  },
+  {
+    "level": "B1",
+    "sentence": "Climate change is a ___ issue.",
+    "answer": "global",
+    "sentence_tr": "İklim değişikliği küresel bir sorundur.",
+    "tr_highlight": "üresel "
+  },
+  {
+    "level": "B1",
+    "sentence": "Both sides had to ___ to reach a deal.",
+    "answer": "compromise",
+    "sentence_tr": "Anlaşmaya varmak için her iki tarafın da uzlaşması gerekiyordu."
+  },
+  {
+    "level": "B1",
+    "sentence": "From the data we can ___ that sales rose.",
+    "answer": "conclude",
+    "sentence_tr": "Verilerden satışların arttığı sonucunu çıkarabiliriz."
+  },
+  {
+    "level": "B1",
+    "sentence": "Can you ___ fact from opinion?",
+    "answer": "distinguish",
+    "sentence_tr": "Gerçeği görüşten ayırabilir misiniz?"
+  },
+  {
+    "level": "B1",
+    "sentence": "We still need a practical ___ .",
+    "answer": "solution",
+    "sentence_tr": "Hala pratik bir çözüme ihtiyacımız var.",
+    "tr_highlight": "çözüm"
+  },
+  {
+    "level": "B1",
+    "sentence": "The team will ___ the new rules next month.",
+    "answer": "implement",
+    "sentence_tr": "Ekip yeni kuralları önümüzdeki ay uygulayacak."
+  },
+  {
+    "level": "B1",
+    "sentence": "She wanted to ___ the need for teamwork.",
+    "answer": "emphasize",
+    "sentence_tr": "Ekip çalışmasının gerekliliğini vurgulamak istedi."
+  },
+  {
+    "level": "B1",
+    "sentence": "Can you ___ this decision with evidence?",
+    "answer": "justify",
+    "sentence_tr": "Bu kararınızı delillerle gerekçelendirebilir misiniz?"
+  },
+  {
+    "level": "B1",
+    "sentence": "You should ___ chapter three for the exam.",
+    "answer": "revise",
+    "sentence_tr": "Sınav için üçüncü bölümü tekrar gözden geçirmelisiniz."
+  },
+  {
+    "level": "B1",
+    "sentence": "I did not ___ him without his glasses.",
+    "answer": "recognize",
+    "sentence_tr": "Onu gözlükleri olmadan tanıyamadım."
+  },
+  {
+    "level": "B1",
+    "sentence": "Critics ___ that the data were incomplete.",
+    "answer": "assert",
+    "sentence_tr": "Eleştirmenler verilerin eksik olduğunu iddia ediyor."
+  },
+  {
+    "level": "B1",
+    "sentence": "The clerk will ___ each payment.",
+    "answer": "record",
+    "sentence_tr": "Katip her ödemeyi kaydedecektir."
+  },
+  {
+    "level": "B1",
+    "sentence": "The law does not ___ drones near airports.",
+    "answer": "permit",
+    "sentence_tr": "Kanun, havalimanlarının yakınında drone kullanılmasına izin vermiyor."
+  },
+  {
+    "level": "B1",
+    "sentence": "We need a ___ venue for the concert.",
+    "answer": "suitable",
+    "sentence_tr": "Konser için uygun bir mekana ihtiyacımız var.",
+    "tr_highlight": "uygun"
+  },
+  {
+    "level": "B1",
+    "sentence": "In ___ terms the plan looks sound.",
+    "answer": "overall",
+    "sentence_tr": "Genel anlamda plan sağlam görünüyor."
+  },
+  {
+    "level": "B1",
+    "sentence": "The belief remains ___ among voters.",
+    "answer": "widespread",
+    "sentence_tr": "Bu inanç seçmenler arasında hâlâ yaygın.",
+    "tr_highlight": "yaygın"
+  },
+  {
+    "level": "B1",
+    "sentence": "Further delay seemed almost ___ .",
+    "answer": "inevitable",
+    "sentence_tr": "Daha fazla gecikme neredeyse kaçınılmaz görünüyordu.",
+    "tr_highlight": "kaçınılmaz"
+  },
+  {
+    "level": "B1",
+    "sentence": "Do not ___ basic safety checks.",
+    "answer": "overlook",
+    "sentence_tr": "Temel güvenlik kontrollerini göz ardı etmeyin."
+  },
+  {
+    "level": "B1",
+    "sentence": "Her proudest ___ was the diploma.",
+    "answer": "achievement",
+    "sentence_tr": "En gurur duyduğu başarısı diplomaydı.",
+    "tr_highlight": "başarı"
+  },
+  {
+    "level": "B1",
+    "sentence": "The role presents a daily ___ .",
+    "answer": "challenge",
+    "sentence_tr": "Rol günlük bir zorluk sunuyor.",
+    "tr_highlight": "zorluk"
+  },
+  {
+    "level": "B1",
+    "sentence": "Work abroad changed his ___ .",
+    "answer": "experience",
+    "sentence_tr": "Yurtdışında çalışmak deneyimini değiştirdi.",
+    "tr_highlight": "deneyim"
+  },
+  {
+    "level": "B1",
+    "sentence": "A positive ___ helps remote teams.",
+    "answer": "attitude",
+    "sentence_tr": "Olumlu bir tutum uzak ekiplere yardımcı olur.",
+    "tr_highlight": "tutum"
+  },
+  {
+    "level": "B1",
+    "sentence": "Mediators hoped to ___ the conflict.",
+    "answer": "resolve",
+    "sentence_tr": "Arabulucular anlaşmazlığı çözmeyi umuyorlardı."
+  },
+  {
+    "level": "B1",
+    "sentence": "The treaty will ___ new trade zones.",
+    "answer": "establish",
+    "sentence_tr": "Anlaşma yeni ticaret bölgeleri kuracak."
+  },
+  {
+    "level": "B1",
+    "sentence": "The blast could ___ the old bridge.",
+    "answer": "destroy",
+    "sentence_tr": "Patlama eski köprüyü yok edebilir."
+  },
+  {
+    "level": "A1",
+    "sentence": "My ___ cooks dinner every evening.",
+    "answer": "mother",
+    "sentence_tr": "Annem her akşam yemeği pişirir.",
+    "tr_highlight": "Anne"
+  },
+  {
+    "level": "A1",
+    "sentence": "My ___ drives a taxi.",
+    "answer": "father",
+    "sentence_tr": "Babam taksi şoförlüğü yapıyor.",
+    "tr_highlight": "Baba"
+  },
+  {
+    "level": "A1",
+    "sentence": "I love my ___ very much.",
+    "answer": "family",
+    "sentence_tr": "Ailemi çok seviyorum.",
+    "tr_highlight": "Aile"
+  },
+  {
+    "level": "A1",
+    "sentence": "She is my best ___ at school.",
+    "answer": "friend",
+    "sentence_tr": "Kendisi okuldaki en iyi arkadaşımdır.",
+    "tr_highlight": "arkadaş"
+  },
+  {
+    "level": "A1",
+    "sentence": "We walk to ___ together.",
+    "answer": "school",
+    "sentence_tr": "Birlikte okula yürüyoruz.",
+    "tr_highlight": "okul"
+  },
+  {
+    "level": "A1",
+    "sentence": "Our ___ has three bedrooms.",
+    "answer": "house",
+    "sentence_tr": "Evimizin üç yatak odası var.",
+    "tr_highlight": "Ev"
+  },
+  {
+    "level": "A1",
+    "sentence": "Please drink more ___ .",
+    "answer": "water",
+    "sentence_tr": "Lütfen daha fazla su iç.",
+    "tr_highlight": "su"
+  },
+  {
+    "level": "A1",
+    "sentence": "The ___ on the table looks tasty.",
+    "answer": "food",
+    "sentence_tr": "Masadaki yiyecekler lezzetli görünüyor.",
+    "tr_highlight": "yiyecek"
+  },
+  {
+    "level": "A1",
+    "sentence": "I read a ___ before I sleep.",
+    "answer": "book",
+    "sentence_tr": "Uyumadan önce kitap okurum."
+  },
+  {
+    "level": "A1",
+    "sentence": "He bought a new ___ .",
+    "answer": "car",
+    "sentence_tr": "Yeni bir araba satın aldı.",
+    "tr_highlight": "araba"
+  },
+  {
+    "level": "A1",
+    "sentence": "The ___ is running in the park.",
+    "answer": "dog",
+    "sentence_tr": "Köpek parkta koşuyor.",
+    "tr_highlight": "Köpek"
+  },
+  {
+    "level": "A1",
+    "sentence": "The ___ is sleeping on the sofa.",
+    "answer": "cat",
+    "sentence_tr": "Kedi kanepede uyuyor.",
+    "tr_highlight": "Kedi"
+  },
+  {
+    "level": "A1",
+    "sentence": "The ___ helps us learn English.",
+    "answer": "teacher",
+    "sentence_tr": "Öğretmen İngilizce öğrenmemize yardımcı olur.",
+    "tr_highlight": "Öğretmen"
+  },
+  {
+    "level": "A1",
+    "sentence": "Every ___ has a notebook.",
+    "answer": "student",
+    "sentence_tr": "Her öğrencinin bir not defteri vardır.",
+    "tr_highlight": "öğrenci"
+  },
+  {
+    "level": "A1",
+    "sentence": "I live in a big ___ .",
+    "answer": "city",
+    "sentence_tr": "Büyük bir şehirde yaşıyorum.",
+    "tr_highlight": "şehir"
+  },
+  {
+    "level": "A1",
+    "sentence": "We play football in the ___ .",
+    "answer": "park",
+    "sentence_tr": "Parkta futbol oynuyoruz.",
+    "tr_highlight": "Park"
+  },
+  {
+    "level": "A1",
+    "sentence": "I feel ___ today.",
+    "answer": "happy",
+    "sentence_tr": "Bugün kendimi mutlu hissediyorum.",
+    "tr_highlight": "mutlu"
+  },
+  {
+    "level": "A1",
+    "sentence": "Children ___ games after school.",
+    "answer": "play",
+    "sentence_tr": "Çocuklar okuldan sonra oyun oynarlar."
+  },
+  {
+    "level": "A1",
+    "sentence": "I ___ an email to my cousin.",
+    "answer": "write",
+    "sentence_tr": "Kuzenime bir e-posta yazıyorum."
+  },
+  {
+    "level": "A1",
+    "sentence": "Call me on my ___ .",
+    "answer": "phone",
+    "sentence_tr": "Beni telefonumdan ara.",
+    "tr_highlight": "telefon"
+  },
+  {
+    "level": "A1",
+    "sentence": "The keys are on the ___ .",
+    "answer": "table",
+    "sentence_tr": "Anahtarlar masanın üzerinde."
+  },
+  {
+    "level": "A1",
+    "sentence": "Please ___ the window.",
+    "answer": "open",
+    "sentence_tr": "Lütfen pencereyi açın."
+  },
+  {
+    "level": "A1",
+    "sentence": "I can ___ the birds outside.",
+    "answer": "hear",
+    "sentence_tr": "Dışarıdaki kuşların sesini duyabiliyorum."
+  },
+  {
+    "level": "A1",
+    "sentence": "We ___ TV every evening.",
+    "answer": "watch",
+    "sentence_tr": "Her akşam televizyon izliyoruz."
+  },
+  {
+    "level": "A1",
+    "sentence": "You should ___ ten new words daily.",
+    "answer": "learn",
+    "sentence_tr": "Her gün on yeni kelime öğrenmelisiniz."
+  },
+  {
+    "level": "A1",
+    "sentence": "Lessons ___ at nine o'clock.",
+    "answer": "start",
+    "sentence_tr": "Dersler saat dokuzda başlıyor."
+  },
+  {
+    "level": "A1",
+    "sentence": "The rain will ___ soon.",
+    "answer": "stop",
+    "sentence_tr": "Yağmur yakında duracak."
+  },
+  {
+    "level": "A1",
+    "sentence": "I want to ___ fresh bread.",
+    "answer": "buy",
+    "sentence_tr": "Taze ekmek almak istiyorum."
+  },
+  {
+    "level": "A1",
+    "sentence": "They ___ fruit at the market.",
+    "answer": "sell",
+    "sentence_tr": "Pazarda meyve satıyorlar."
+  },
+  {
+    "level": "A1",
+    "sentence": "Please ___ your room.",
+    "answer": "clean",
+    "sentence_tr": "Lütfen odanızı temizleyin."
+  },
+  {
+    "level": "A1",
+    "sentence": "She must ___ her hands.",
+    "answer": "wash",
+    "sentence_tr": "Ellerini yıkaması gerekiyor."
+  },
+  {
+    "level": "A1",
+    "sentence": "The boy can ___ very fast.",
+    "answer": "run",
+    "sentence_tr": "Çocuk çok hızlı koşabiliyor."
+  },
+  {
+    "level": "A1",
+    "sentence": "Please ___ on this chair.",
+    "answer": "sit",
+    "sentence_tr": "Lütfen bu sandalyeye oturun."
+  },
+  {
+    "level": "A1",
+    "sentence": "Everyone should ___ up slowly.",
+    "answer": "stand",
+    "sentence_tr": "Herkes yavaşça ayağa kalkmalı."
+  },
+  {
+    "level": "A1",
+    "sentence": "The ___ is very hot today.",
+    "answer": "sun",
+    "sentence_tr": "Bugün güneş çok sıcak.",
+    "tr_highlight": "güneş"
+  },
+  {
+    "level": "A1",
+    "sentence": "Take an ___ in the rain.",
+    "answer": "umbrella",
+    "sentence_tr": "Yağmurda şemsiye alın.",
+    "tr_highlight": "şemsiye"
+  },
+  {
+    "level": "A1",
+    "sentence": "Strong ___ closed the airport.",
+    "answer": "wind",
+    "sentence_tr": "Şiddetli rüzgar havaalanını kapattı.",
+    "tr_highlight": "rüzgar"
+  },
+  {
+    "level": "A1",
+    "sentence": "I like this old ___ .",
+    "answer": "song",
+    "sentence_tr": "Bu eski şarkıyı seviyorum.",
+    "tr_highlight": "şarkı"
+  },
+  {
+    "level": "A1",
+    "sentence": "Today is my ___ .",
+    "answer": "birthday",
+    "sentence_tr": "Bugün benim doğum günüm.",
+    "tr_highlight": "doğum günü"
+  },
+  {
+    "level": "A1",
+    "sentence": "What ___ is the meeting?",
+    "answer": "time",
+    "sentence_tr": "Toplantı saat kaçta?"
+  },
+  {
+    "level": "A1",
+    "sentence": "The ___ runs through our town.",
+    "answer": "river",
+    "sentence_tr": "Dere kasabamızın içinden geçiyor."
+  },
+  {
+    "level": "A1",
+    "sentence": "I ride my ___ to school.",
+    "answer": "bicycle",
+    "sentence_tr": "Okula bisikletimle gidiyorum.",
+    "tr_highlight": "bisiklet"
+  },
+  {
+    "level": "A1",
+    "sentence": "Please ___ here five minutes.",
+    "answer": "wait",
+    "sentence_tr": "Lütfen burada beş dakika bekleyin."
+  },
+  {
+    "level": "A1",
+    "sentence": "I often ___ about my family.",
+    "answer": "think",
+    "sentence_tr": "Sık sık ailemi düşünüyorum."
+  },
+  {
+    "level": "B2",
+    "sentence": "The hotel will ___ families with connecting rooms.",
+    "answer": "accommodate",
+    "sentence_tr": "Otel, bağlantılı odalarda aileleri ağırlayacaktır."
+  },
+  {
+    "level": "B2",
+    "sentence": "We may need to ___ the schedule slightly.",
+    "answer": "modify",
+    "sentence_tr": "Programda biraz değişiklik yapmamız gerekebilir."
+  },
+  {
+    "level": "B2",
+    "sentence": "Her essay was clear and ___ .",
+    "answer": "coherent",
+    "sentence_tr": "Yazısı açık ve tutarlıydı.",
+    "tr_highlight": "tutarlı"
+  },
+  {
+    "level": "B2",
+    "sentence": "The danger was ___ to everyone in the room.",
+    "answer": "apparent",
+    "sentence_tr": "Tehlike odadaki herkes tarafından açıkça görülüyordu."
+  },
+  {
+    "level": "B2",
+    "sentence": "They reached an ___ understanding.",
+    "answer": "implicit",
+    "sentence_tr": "Örtülü bir anlayışa ulaştılar."
+  },
+  {
+    "level": "B2",
+    "sentence": "Money was a serious ___ on the plan.",
+    "answer": "constraint",
+    "sentence_tr": "Para plan üzerinde ciddi bir kısıtlamaydı.",
+    "tr_highlight": "kısıtlama"
+  },
+  {
+    "level": "B2",
+    "sentence": "The ___ of the software surprised new users.",
+    "answer": "complexity",
+    "sentence_tr": "Yazılımın karmaşıklığı yeni kullanıcıları şaşırttı."
+  },
+  {
+    "level": "B2",
+    "sentence": "Good managers ___ creativity in teams.",
+    "answer": "foster",
+    "sentence_tr": "İyi yöneticiler ekiplerde yaratıcılığı teşvik eder."
+  },
+  {
+    "level": "B2",
+    "sentence": "Bad weather can ___ the rescue work.",
+    "answer": "hinder",
+    "sentence_tr": "Kötü hava koşulları kurtarma çalışmalarını engelleyebilir."
+  },
+  {
+    "level": "B2",
+    "sentence": "The city wants to ___ the bus service.",
+    "answer": "accelerate",
+    "sentence_tr": "Belediye otobüs seferlerinin hızlandırılmasını istiyor."
+  },
+  {
+    "level": "B2",
+    "sentence": "Let me ___ the key results in two minutes.",
+    "answer": "summarize",
+    "sentence_tr": "Temel sonuçları iki dakika içinde özetleyeyim."
+  },
+  {
+    "level": "B2",
+    "sentence": "Training will ___ on the first of May.",
+    "answer": "commence",
+    "sentence_tr": "Eğitimler 1 Mayıs'ta başlayacak."
+  },
+  {
+    "level": "B2",
+    "sentence": "Either side may ___ the deal with notice.",
+    "answer": "terminate",
+    "sentence_tr": "Her iki taraf da bildirimde bulunarak anlaşmayı feshedebilir."
+  },
+  {
+    "level": "B2",
+    "sentence": "This ___ shifted how economists view debt.",
+    "answer": "paradigm",
+    "sentence_tr": "Bu paradigma, ekonomistlerin borca ​​bakış açısını değiştirdi.",
+    "tr_highlight": "paradigma"
+  },
+  {
+    "level": "B2",
+    "sentence": "We tested the ___ with fresh survey data.",
+    "answer": "hypothesis",
+    "sentence_tr": "Hipotezi yeni anket verileriyle test ettik.",
+    "tr_highlight": "Hipotez"
+  },
+  {
+    "level": "B2",
+    "sentence": "There is a clear ___ between age and income.",
+    "answer": "correlation",
+    "sentence_tr": "Yaş ile gelir arasında açık bir ilişki vardır."
+  },
+  {
+    "level": "B2",
+    "sentence": "All staff must follow ___ regulations.",
+    "answer": "compliance",
+    "sentence_tr": "Tüm personel uyumluluk düzenlemelerine uymalıdır.",
+    "tr_highlight": "uyum"
+  },
+  {
+    "level": "B2",
+    "sentence": "The medicine may ___ the worst symptoms.",
+    "answer": "mitigate",
+    "sentence_tr": "İlaç en kötü semptomları hafifletebilir."
+  },
+  {
+    "level": "B2",
+    "sentence": "The scandal damaged the government's ___ .",
+    "answer": "legitimacy",
+    "sentence_tr": "Skandal hükümetin meşruiyetine zarar verdi.",
+    "tr_highlight": "meşruiyet"
+  },
+  {
+    "level": "B2",
+    "sentence": "Few readers fully ___ the technical report.",
+    "answer": "comprehend",
+    "sentence_tr": "Çok az okuyucu teknik raporu tam olarak anlıyor."
+  },
+  {
+    "level": "B2",
+    "sentence": "There is a striking ___ between the two speeches.",
+    "answer": "contradiction",
+    "sentence_tr": "İki konuşma arasında çarpıcı bir çelişki var.",
+    "tr_highlight": "elişki "
+  },
+  {
+    "level": "B2",
+    "sentence": "Strong institutions protect financial ___ .",
+    "answer": "integrity",
+    "sentence_tr": "Güçlü kurumlar mali bütünlüğü korur."
+  },
+  {
+    "level": "B2",
+    "sentence": "No test can fully ___ every outcome.",
+    "answer": "predetermine",
+    "sentence_tr": "Hiçbir test her sonucu tam olarak önceden belirleyemez."
+  },
+  {
+    "level": "B2",
+    "sentence": "Leaks could ___ public trust.",
+    "answer": "undermine",
+    "sentence_tr": "Sızıntılar halkın güvenini sarsabilir."
+  },
+  {
+    "level": "B2",
+    "sentence": "Only experts fully ___ this clause.",
+    "answer": "comprehend",
+    "sentence_tr": "Bu maddeyi yalnızca uzmanlar tam olarak anlayabilir."
+  },
+  {
+    "level": "B2",
+    "sentence": "The choice felt almost ___ .",
+    "answer": "arbitrary",
+    "sentence_tr": "Seçim neredeyse keyfi gibi geldi.",
+    "tr_highlight": "keyfi"
+  },
+  {
+    "level": "B2",
+    "sentence": "The rule was criticized as ___ .",
+    "answer": "discriminatory",
+    "sentence_tr": "Kural ayrımcı olduğu gerekçesiyle eleştirildi.",
+    "tr_highlight": "ayrımcı"
+  },
+  {
+    "level": "B2",
+    "sentence": "Victims deserve a legal ___ .",
+    "answer": "remedy",
+    "sentence_tr": "Mağdurlar yasal bir çözümü hak ediyor."
+  },
+  {
+    "level": "B2",
+    "sentence": "Higher rates may ___ growth.",
+    "answer": "decelerate",
+    "sentence_tr": "Daha yüksek oranlar büyümeyi yavaşlatabilir."
+  },
+  {
+    "level": "B2",
+    "sentence": "The chair chose to ___ the warning.",
+    "answer": "reiterate",
+    "sentence_tr": "Başkan uyarıyı yinelemeyi tercih etti."
+  },
+  {
+    "level": "B2",
+    "sentence": "The study failed to ___ the model.",
+    "answer": "validate",
+    "sentence_tr": "Çalışma modeli doğrulamada başarısız oldu."
+  },
+  {
+    "level": "B2",
+    "sentence": "Fresh data could ___ old claims.",
+    "answer": "invalidate",
+    "sentence_tr": "Yeni veriler eski iddiaları geçersiz kılabilir."
+  },
+  {
+    "level": "B2",
+    "sentence": "Lawyers continue to ___ the ruling.",
+    "answer": "dispute",
+    "sentence_tr": "Avukatlar karara itiraz etmeye devam ediyor."
+  },
+  {
+    "level": "B2",
+    "sentence": "Many groups ___ for prison reform.",
+    "answer": "advocate",
+    "sentence_tr": "Birçok grup hapishane reformunu savunuyor."
+  },
+  {
+    "level": "B2",
+    "sentence": "Smoke began to ___ from the roof.",
+    "answer": "ascend",
+    "sentence_tr": "Çatıdan dumanlar yükselmeye başladı."
+  },
+  {
+    "level": "B2",
+    "sentence": "The path ___ steeply to the beach.",
+    "answer": "descend",
+    "sentence_tr": "Yol plaja doğru dik bir şekilde iniyor.",
+    "tr_highlight": "iniyor"
+  },
+  {
+    "level": "B2",
+    "sentence": "That gadget is practically ___ now.",
+    "answer": "obsolete",
+    "sentence_tr": "Bu gadget'ın artık neredeyse modası geçmiş durumda."
+  },
+  {
+    "level": "B2",
+    "sentence": "The approach was ___ but untested.",
+    "answer": "novel",
+    "sentence_tr": "Yaklaşım yeniydi ama denenmemişti.",
+    "tr_highlight": "yeni"
+  },
+  {
+    "level": "B2",
+    "sentence": "She felt ___ chest pain.",
+    "answer": "acute",
+    "sentence_tr": "Akut göğüs ağrısı hissetti."
+  },
+  {
+    "level": "B2",
+    "sentence": "The pain became ___ over months.",
+    "answer": "chronic",
+    "sentence_tr": "Ağrı aylar geçtikçe kronikleşti.",
+    "tr_highlight": "kronik"
+  },
+  {
+    "level": "B2",
+    "sentence": "The crisis had a ___ impact.",
+    "answer": "profound",
+    "sentence_tr": "Krizin derin etkileri oldu.",
+    "tr_highlight": "derin"
+  },
+  {
+    "level": "B2",
+    "sentence": "His reply seemed ___ and vague.",
+    "answer": "shallow",
+    "sentence_tr": "Cevabı yüzeysel ve belirsiz görünüyordu."
+  },
+  {
+    "level": "B2",
+    "sentence": "The results look ___ across sites.",
+    "answer": "inconsistent",
+    "sentence_tr": "Sonuçlar siteler arasında tutarsız görünüyor.",
+    "tr_highlight": "tutarsız"
+  },
+  {
+    "level": "B2",
+    "sentence": "Oil markets remain highly ___ .",
+    "answer": "volatile",
+    "sentence_tr": "Petrol piyasaları oldukça değişken olmaya devam ediyor.",
+    "tr_highlight": "değişken"
+  },
+  {
+    "level": "C1",
+    "sentence": "It is hard to ___ subtle bias in everyday language.",
+    "answer": "perceive",
+    "sentence_tr": "Günlük dilde ince önyargıları algılamak zordur.",
+    "tr_highlight": "algılamak"
+  },
+  {
+    "level": "C1",
+    "sentence": "Old ___ caused long delays for commuters.",
+    "answer": "infrastructure",
+    "sentence_tr": "Eski altyapı, işe gidip gelenler için uzun gecikmelere neden oldu.",
+    "tr_highlight": "altyapı"
+  },
+  {
+    "level": "C1",
+    "sentence": "The lawyer drew an ___ between the two cases.",
+    "answer": "analogy",
+    "sentence_tr": "Avukat iki dava arasında bir benzetme yaptı."
+  },
+  {
+    "level": "C1",
+    "sentence": "The novel follows a powerful family ___ .",
+    "answer": "narrative",
+    "sentence_tr": "Roman güçlü bir aile anlatısını takip ediyor.",
+    "tr_highlight": "anlatı"
+  },
+  {
+    "level": "C1",
+    "sentence": "The result was a puzzling statistical ___ .",
+    "answer": "anomaly",
+    "sentence_tr": "Sonuç şaşırtıcı bir istatistiksel anormallikti.",
+    "tr_highlight": "anormallik"
+  },
+  {
+    "level": "C1",
+    "sentence": "Experts ___ the wreckage for three days.",
+    "answer": "examine",
+    "sentence_tr": "Uzmanlar enkazı üç gün boyunca inceliyor."
+  },
+  {
+    "level": "C1",
+    "sentence": "Opinions sharply ___ on immigration policy.",
+    "answer": "diverge",
+    "sentence_tr": "Göç politikası konusunda görüşler keskin bir şekilde farklılaşıyor."
+  },
+  {
+    "level": "C1",
+    "sentence": "New taxes aim to ___ housing costs.",
+    "answer": "mitigate",
+    "sentence_tr": "Yeni vergiler konut maliyetlerini azaltmayı amaçlıyor."
+  },
+  {
+    "level": "C1",
+    "sentence": "Stress can ___ as headaches.",
+    "answer": "manifest",
+    "sentence_tr": "Stres baş ağrısı olarak kendini gösterebilir."
+  },
+  {
+    "level": "C1",
+    "sentence": "Readers must ___ fact from rumour.",
+    "answer": "discern",
+    "sentence_tr": "Okuyucular gerçeği söylentilerden ayırt etmelidir."
+  },
+  {
+    "level": "C1",
+    "sentence": "Could you ___ on your objection?",
+    "answer": "elaborate",
+    "sentence_tr": "İtirazınızı detaylandırabilir misiniz?"
+  },
+  {
+    "level": "C1",
+    "sentence": "His legal ___ was hard to refute.",
+    "answer": "reasoning",
+    "sentence_tr": "Onun hukuki gerekçesini çürütmek zordu."
+  },
+  {
+    "level": "C1",
+    "sentence": "Every quote needs a full ___ .",
+    "answer": "citation",
+    "sentence_tr": "Her alıntının tam alıntıya ihtiyacı vardır.",
+    "tr_highlight": "alıntı"
+  },
+  {
+    "level": "C1",
+    "sentence": "They agreed to settle the dispute by ___ .",
+    "answer": "arbitration",
+    "sentence_tr": "Anlaşmazlığın tahkim yoluyla çözülmesi konusunda anlaştılar."
+  },
+  {
+    "level": "C1",
+    "sentence": "The app has a cleaner user ___ now.",
+    "answer": "interface",
+    "sentence_tr": "Uygulama artık daha temiz bir kullanıcı arayüzüne sahip.",
+    "tr_highlight": "arayüz"
+  },
+  {
+    "level": "C1",
+    "sentence": "Many delays ___ poor planning.",
+    "answer": "stem from",
+    "sentence_tr": "Birçok gecikme kötü planlamadan kaynaklanmaktadır."
+  },
+  {
+    "level": "C1",
+    "sentence": "Analysts ___ the rise to higher oil prices.",
+    "answer": "attribute",
+    "sentence_tr": "Analistler bu artışı petrol fiyatlarındaki artışa bağlıyor."
+  },
+  {
+    "level": "C1",
+    "sentence": "The law banned forced residential ___ .",
+    "answer": "segregation",
+    "sentence_tr": "Kanun zorla konut ayrımcılığını yasakladı."
+  },
+  {
+    "level": "C1",
+    "sentence": "Auditors ___ every travel claim.",
+    "answer": "scrutinize",
+    "sentence_tr": "Denetçiler her seyahat talebini inceler."
+  },
+  {
+    "level": "C1",
+    "sentence": "The bank moved to ___ risky loans.",
+    "answer": "curb",
+    "sentence_tr": "Banka riskli kredileri engellemek için harekete geçti."
+  },
+  {
+    "level": "C1",
+    "sentence": "His ___ dislike of the plan was obvious.",
+    "answer": "overt",
+    "sentence_tr": "Plandan açıkça hoşlanmadığı açıktı.",
+    "tr_highlight": "açık"
+  },
+  {
+    "level": "C1",
+    "sentence": "Public support began to ___ after the scandal.",
+    "answer": "dwindle",
+    "sentence_tr": "Skandalın ardından halkın desteği azalmaya başladı."
+  },
+  {
+    "level": "C1",
+    "sentence": "They negotiated an ___ settlement.",
+    "answer": "equitable",
+    "sentence_tr": "Adil bir çözüm için pazarlık yaptılar.",
+    "tr_highlight": "Adil"
+  },
+  {
+    "level": "C1",
+    "sentence": "The verdict felt like complete ___ .",
+    "answer": "vindication",
+    "sentence_tr": "Karar tam bir haklılık hissi uyandırdı."
+  },
+  {
+    "level": "C1",
+    "sentence": "Critics ___ his awkward speech.",
+    "answer": "deride",
+    "sentence_tr": "Eleştirmenler onun garip konuşmasıyla alay ediyor."
+  },
+  {
+    "level": "C1",
+    "sentence": "The campaign was built on pure ___ .",
+    "answer": "deceit",
+    "sentence_tr": "Kampanya tamamen aldatma üzerine inşa edildi.",
+    "tr_highlight": "aldatma"
+  },
+  {
+    "level": "C1",
+    "sentence": "The offer looked attractive yet ___ .",
+    "answer": "deceptive",
+    "sentence_tr": "Teklif çekici ama aldatıcı görünüyordu.",
+    "tr_highlight": "aldatıcı"
+  },
+  {
+    "level": "C1",
+    "sentence": "Young audiences proved surprisingly ___ .",
+    "answer": "receptive",
+    "sentence_tr": "Genç izleyiciler şaşırtıcı derecede anlayışlı davrandılar."
+  },
+  {
+    "level": "C1",
+    "sentence": "Asset ___ lowered reported profits.",
+    "answer": "depreciation",
+    "sentence_tr": "Varlık amortismanı rapor edilen karı düşürdü.",
+    "tr_highlight": "amortisman"
+  },
+  {
+    "level": "C1",
+    "sentence": "Search ___ must match the topic.",
+    "answer": "keywords",
+    "sentence_tr": "Arama anahtar kelimeleri konuyla eşleşmelidir.",
+    "tr_highlight": "anahtar kelimeler"
+  },
+  {
+    "level": "C1",
+    "sentence": "Prices collapsed almost ___ .",
+    "answer": "instantaneously",
+    "sentence_tr": "Fiyatlar neredeyse anında çöktü.",
+    "tr_highlight": "anında"
+  },
+  {
+    "level": "C1",
+    "sentence": "She argued ___ for reform.",
+    "answer": "adamantly",
+    "sentence_tr": "Reform yapılmasını ısrarla savundu."
+  },
+  {
+    "level": "C1",
+    "sentence": "Legal ___ remained in the contract.",
+    "answer": "ambiguity",
+    "sentence_tr": "Sözleşmede hukuki belirsizlik devam etti.",
+    "tr_highlight": "belirsizlik"
+  },
+  {
+    "level": "C1",
+    "sentence": "Page two lists the ___ risks.",
+    "answer": "salient",
+    "sentence_tr": "İkinci sayfada göze çarpan riskler listeleniyor."
+  },
+  {
+    "level": "C1",
+    "sentence": "A strange ___ of crises followed.",
+    "answer": "confluence",
+    "sentence_tr": "Bunu garip bir krizler birbirini takip etti."
+  },
+  {
+    "level": "C1",
+    "sentence": "The ___ of the banks alarmed unions.",
+    "answer": "merger",
+    "sentence_tr": "Bankaların birleşmesi sendikaları alarma geçirdi.",
+    "tr_highlight": "birleşme"
+  },
+  {
+    "level": "C1",
+    "sentence": "The firm hoped to ___ its debts.",
+    "answer": "consolidate",
+    "sentence_tr": "Firma borçlarını konsolide etmeyi umuyordu."
+  },
+  {
+    "level": "C1",
+    "sentence": "Streaming ___ old business models.",
+    "answer": "disrupt",
+    "sentence_tr": "Akış, eski iş modellerini bozuyor."
+  },
+  {
+    "level": "C1",
+    "sentence": "The research ___ surprised reviewers.",
+    "answer": "findings",
+    "sentence_tr": "Araştırma bulguları eleştirmenleri şaşırttı.",
+    "tr_highlight": "bulgular"
+  },
+  {
+    "level": "C1",
+    "sentence": "The case led to expensive ___ .",
+    "answer": "litigation",
+    "sentence_tr": "Dava pahalı davalara yol açtı.",
+    "tr_highlight": "Dava"
+  },
+  {
+    "level": "C1",
+    "sentence": "Small communities showed remarkable ___ .",
+    "answer": "resilience",
+    "sentence_tr": "Küçük topluluklar olağanüstü bir dayanıklılık gösterdi.",
+    "tr_highlight": "dayanıklılık"
+  },
+  {
+    "level": "C1",
+    "sentence": "The evidence remained ___ at best.",
+    "answer": "tenuous",
+    "sentence_tr": "Kanıtlar en iyi ihtimalle zayıf kaldı.",
+    "tr_highlight": "zayıf"
+  },
+  {
+    "level": "C1",
+    "sentence": "The board ordered an independent ___ .",
+    "answer": "audit",
+    "sentence_tr": "Kurul bağımsız denetim yapılmasını emretti.",
+    "tr_highlight": "denetim"
+  },
+  {
+    "level": "C1",
+    "sentence": "The state had to ___ border territory.",
+    "answer": "cede",
+    "sentence_tr": "Devlet sınır bölgesini terk etmek zorunda kaldı."
+  },
+  {
+    "level": "C2",
+    "sentence": "The author tried to ___ a difficult theory.",
+    "answer": "elucidate",
+    "sentence_tr": "Yazar zor bir teoriyi açıklamaya çalıştı."
+  },
+  {
+    "level": "C2",
+    "sentence": "Veto power is a presidential ___ in this system.",
+    "answer": "prerogative",
+    "sentence_tr": "Bu sistemde veto gücü başkana özgü bir ayrıcalıktır.",
+    "tr_highlight": "ayrıcalıktır"
+  },
+  {
+    "level": "C2",
+    "sentence": "The manager began to ___ the team in public.",
+    "answer": "berate",
+    "sentence_tr": "Yönetici kamuoyunun önünde takımı azarlamaya başladı.",
+    "tr_highlight": "azarlama"
+  },
+  {
+    "level": "C2",
+    "sentence": "The firm faced an ethical ___ .",
+    "answer": "quandary",
+    "sentence_tr": "Firma etik bir ikilemle karşı karşıya kaldı."
+  },
+  {
+    "level": "C2",
+    "sentence": "Relief was ___ when the news arrived.",
+    "answer": "palpable",
+    "sentence_tr": "Haber geldiğinde rahatlama hissedildi."
+  },
+  {
+    "level": "C2",
+    "sentence": "She continued to ___ radical reform.",
+    "answer": "espouse",
+    "sentence_tr": "Radikal reformları savunmaya devam etti."
+  },
+  {
+    "level": "C2",
+    "sentence": "His excuses remained ___ and unconvincing.",
+    "answer": "nebulous",
+    "sentence_tr": "Bahaneleri belirsiz ve ikna edici değildi.",
+    "tr_highlight": "belirsiz"
+  },
+  {
+    "level": "C2",
+    "sentence": "Voters respected her political ___ .",
+    "answer": "sagacity",
+    "sentence_tr": "Seçmenler onun siyasi zekasına saygı duydu."
+  },
+  {
+    "level": "C2",
+    "sentence": "A deep ___ split the movement.",
+    "answer": "schism",
+    "sentence_tr": "Derin bir bölünme hareketi böldü.",
+    "tr_highlight": "bölünme"
+  },
+  {
+    "level": "C2",
+    "sentence": "The thesis argues for ___ rather than narrow analysis.",
+    "answer": "holism",
+    "sentence_tr": "Tez, dar analizden ziyade bütüncüllüğü savunmaktadır."
+  },
+  {
+    "level": "C2",
+    "sentence": "New evidence may ___ the accused.",
+    "answer": "exonerate",
+    "sentence_tr": "Yeni deliller sanığı temize çıkarabilir."
+  },
+  {
+    "level": "C2",
+    "sentence": "Neighbors came to ___ with the bereaved family.",
+    "answer": "commiserate",
+    "sentence_tr": "Acılı aileyi taziyeye komşuları da geldi."
+  },
+  {
+    "level": "C2",
+    "sentence": "The official story sounded utterly ___ .",
+    "answer": "specious",
+    "sentence_tr": "Resmi hikaye kulağa son derece yanıltıcı geliyordu.",
+    "tr_highlight": "yanıltıcı"
+  },
+  {
+    "level": "C2",
+    "sentence": "The crowd responded with sudden ___ .",
+    "answer": "fervor",
+    "sentence_tr": "Kalabalık ani bir coşkuyla karşılık verdi.",
+    "tr_highlight": "coşkuyla"
+  },
+  {
+    "level": "C2",
+    "sentence": "___ all trials will follow the new protocol.",
+    "answer": "henceforth",
+    "sentence_tr": "Bundan böyle tüm denemeler yeni protokole uyacak.",
+    "tr_highlight": "Bundan böyle"
+  },
+  {
+    "level": "C2",
+    "sentence": "Parliament may ___ the minister for misconduct.",
+    "answer": "impeach",
+    "sentence_tr": "Parlamento, bakanı görevi kötüye kullanmaktan dolayı suçlayabilir."
+  },
+  {
+    "level": "C2",
+    "sentence": "A careless clause could ___ the agreement.",
+    "answer": "vitiate",
+    "sentence_tr": "Dikkatsiz bir madde anlaşmayı geçersiz kılabilir."
+  },
+  {
+    "level": "C2",
+    "sentence": "The archive offers a ___ of primary sources.",
+    "answer": "cornucopia",
+    "sentence_tr": "Arşiv, birincil kaynaklardan oluşan bir bereket sunuyor.",
+    "tr_highlight": "bereket"
+  },
+  {
+    "level": "C2",
+    "sentence": "The seminar introduced basic ___ and methods.",
+    "answer": "epistemology",
+    "sentence_tr": "Seminerde temel epistemoloji ve yöntemler tanıtıldı."
+  },
+  {
+    "level": "C2",
+    "sentence": "Historians studied state ___ of dissent.",
+    "answer": "repression",
+    "sentence_tr": "Tarihçiler devletin muhaliflere uyguladığı baskıyı incelediler."
+  },
+  {
+    "level": "C2",
+    "sentence": "The decision was ___ and final.",
+    "answer": "irrevocable",
+    "sentence_tr": "Karar geri alınamaz ve kesindi.",
+    "tr_highlight": "geri alınamaz"
+  },
+  {
+    "level": "C2",
+    "sentence": "The scene had chilling ___ .",
+    "answer": "verisimilitude",
+    "sentence_tr": "Sahnenin tüyler ürpertici bir gerçeğe benzerliği vardı.",
+    "tr_highlight": "gerçeğe benzerliği"
+  },
+  {
+    "level": "C2",
+    "sentence": "Safety standards had grown ___ .",
+    "answer": "lax",
+    "sentence_tr": "Güvenlik standartları gevşekleşmişti.",
+    "tr_highlight": "gevşek"
+  },
+  {
+    "level": "C2",
+    "sentence": "Lawyers tried to ___ the alibi.",
+    "answer": "corroborate",
+    "sentence_tr": "Avukatlar iddiayı doğrulamaya çalıştı."
+  },
+  {
+    "level": "C2",
+    "sentence": "Musical talent seemed ___ in that family.",
+    "answer": "innate",
+    "sentence_tr": "O ailede müzik yeteneği doğuştan görünüyordu.",
+    "tr_highlight": "doğuştan"
+  },
+  {
+    "level": "C2",
+    "sentence": "Only ___ evidence was presented.",
+    "answer": "circumstantial",
+    "sentence_tr": "Sunulan kanıt yalnızca durumsal nitelikteydi.",
+    "tr_highlight": "durumsal"
+  },
+  {
+    "level": "C2",
+    "sentence": "Heavy rain began to ___ the fields.",
+    "answer": "saturate",
+    "sentence_tr": "Şiddetli yağmur tarlaları doyurmaya başladı.",
+    "tr_highlight": "doyurmaya"
+  },
+  {
+    "level": "C2",
+    "sentence": "His speech was largely ___ .",
+    "answer": "extemporaneous",
+    "sentence_tr": "Konuşması büyük ölçüde doğaçlamaydı.",
+    "tr_highlight": "doğaçlama"
+  },
+  {
+    "level": "C2",
+    "sentence": "Fresh data ___ the earlier theory.",
+    "answer": "buttress",
+    "sentence_tr": "Taze veriler önceki teoriyi pekiştiriyor.",
+    "tr_highlight": "pekiştiriyor"
+  },
+  {
+    "level": "C2",
+    "sentence": "Kind words helped ___ her confidence.",
+    "answer": "bolster",
+    "sentence_tr": "Nazik sözler onun güvenini artırmaya yardımcı oldu."
+  },
+  {
+    "level": "C2",
+    "sentence": "Politicians often ___ instead of answering.",
+    "answer": "circumlocute",
+    "sentence_tr": "Politikacılar genellikle cevap vermek yerine dolaylı konuşuyorlar."
+  },
+  {
+    "level": "C2",
+    "sentence": "She gave a ___ refusal.",
+    "answer": "forthright",
+    "sentence_tr": "Açıkça reddetti."
+  },
+  {
+    "level": "C2",
+    "sentence": "The site needs urgent environmental ___ .",
+    "answer": "remediation",
+    "sentence_tr": "Sitenin acil çevresel iyileştirmeye ihtiyacı var."
+  },
+  {
+    "level": "C2",
+    "sentence": "The room was hardly ___ to calm debate.",
+    "answer": "conducive",
+    "sentence_tr": "Oda tartışmayı sakinleştirmeye pek elverişli değildi.",
+    "tr_highlight": "elverişli"
+  },
+  {
+    "level": "C2",
+    "sentence": "Personal attacks ___ from the main issue.",
+    "answer": "detract",
+    "sentence_tr": "Kişisel saldırılar asıl meseleyi gölgeliyor."
+  },
+  {
+    "level": "C2",
+    "sentence": "The merger felt ___ and poorly planned.",
+    "answer": "haphazard",
+    "sentence_tr": "Birleşme gelişigüzel ve kötü planlanmış gibi geldi.",
+    "tr_highlight": "gelişigüzel"
+  },
+  {
+    "level": "C2",
+    "sentence": "The queen could ___ the general's order.",
+    "answer": "countermand",
+    "sentence_tr": "Kraliçe generalin emrini iptal edebilir."
+  },
+  {
+    "level": "C2",
+    "sentence": "He ___ revealed the secret.",
+    "answer": "inadvertently",
+    "sentence_tr": "Yanlışlıkla sırrı açığa çıkardı."
+  },
+  {
+    "level": "C2",
+    "sentence": "The leader remained deliberately ___ .",
+    "answer": "enigmatic",
+    "sentence_tr": "Lider kasıtlı olarak esrarengiz kalmayı sürdürdü.",
+    "tr_highlight": "esrarengiz"
+  },
+  {
+    "level": "C2",
+    "sentence": "The rules seemed utterly ___ .",
+    "answer": "inflexible",
+    "sentence_tr": "Kurallar tamamen esnek görünmüyordu."
+  }
+]

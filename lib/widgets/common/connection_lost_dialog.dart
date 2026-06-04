@@ -4,17 +4,20 @@ import 'package:flutter/material.dart';
 class ConnectionLostDialog extends StatelessWidget {
   final VoidCallback? onRetry;
   final VoidCallback? onExit;
+  final VoidCallback? onPractice;
 
   const ConnectionLostDialog({
     super.key,
     this.onRetry,
     this.onExit,
+    this.onPractice,
   });
 
   /// Dialog'u göster
   static Future<void> show(BuildContext context, {
     VoidCallback? onRetry,
     VoidCallback? onExit,
+    VoidCallback? onPractice,
   }) {
     return showDialog(
       context: context,
@@ -22,6 +25,7 @@ class ConnectionLostDialog extends StatelessWidget {
       builder: (context) => ConnectionLostDialog(
         onRetry: onRetry,
         onExit: onExit,
+        onPractice: onPractice,
       ),
     );
   }
@@ -41,7 +45,7 @@ class ConnectionLostDialog extends StatelessWidget {
               end: Alignment.bottomCenter,
             ),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.red.withValues(alpha: 0.5), width: 2),
+            border: Border.all(color: Colors.red.withAlpha(128), width: 2),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -50,7 +54,7 @@ class ConnectionLostDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.2),
+                  color: Colors.red.withAlpha(51),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -77,7 +81,7 @@ class ConnectionLostDialog extends StatelessWidget {
                 'İnternet bağlantınız kesildi.\nLütfen bağlantınızı kontrol edin.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
+                  color: Colors.white.withAlpha(204),
                   fontSize: 16,
                 ),
               ),
@@ -123,6 +127,30 @@ class ConnectionLostDialog extends StatelessWidget {
                   ),
                 ],
               ),
+              
+              // Practice Button (Offline Mode)
+              if (onPractice != null) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      onPractice?.call();
+                    },
+                    icon: const Icon(Icons.school, color: Colors.white),
+                    label: const Text('Practice Modu (Çevrimdışı)'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00D9F5),
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -138,6 +166,7 @@ mixin NetworkAwareMixin<T extends StatefulWidget> on State<T> {
   void showConnectionLostDialog({
     VoidCallback? onRetry,
     VoidCallback? onExit,
+    VoidCallback? onPractice,
   }) {
     if (_isDialogShowing) return;
     _isDialogShowing = true;
@@ -156,6 +185,7 @@ mixin NetworkAwareMixin<T extends StatefulWidget> on State<T> {
           Navigator.of(context).popUntil((route) => route.isFirst);
         }
       },
+      onPractice: onPractice,
     );
   }
 }

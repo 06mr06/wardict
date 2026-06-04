@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../models/support_ticket.dart';
 import '../../services/support_service.dart';
@@ -6,8 +6,13 @@ import '../../services/support_service.dart';
 /// Destek sohbet ekranı (tek bir ticket için mesajlaşma)
 class SupportChatScreen extends StatefulWidget {
   final String ticketId;
+  final bool isAdmin;
 
-  const SupportChatScreen({super.key, required this.ticketId});
+  const SupportChatScreen({
+    super.key, 
+    required this.ticketId,
+    this.isAdmin = false,
+  });
 
   @override
   State<SupportChatScreen> createState() => _SupportChatScreenState();
@@ -82,7 +87,9 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
     setState(() => _isSending = true);
     _messageController.clear();
 
-    final success = await SupportService.instance.sendMessage(widget.ticketId, message);
+    final success = widget.isAdmin 
+        ? await SupportService.instance.sendAdminMessage(widget.ticketId, message)
+        : await SupportService.instance.sendMessage(widget.ticketId, message);
 
     if (mounted) {
       setState(() => _isSending = false);
@@ -294,7 +301,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
                     ),
                     const SizedBox(width: 6),
                     const Text(
-                      'Wardict Destek',
+                      'Lugorena Destek',
                       style: TextStyle(
                         color: Color(0xFF6C27FF),
                         fontSize: 12,

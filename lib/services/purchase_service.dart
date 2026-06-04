@@ -171,6 +171,52 @@ class PurchaseService {
   /// 3 ay premium + özel avatar (nonConsumable, abonelik değil).
   static const String seasonPassId = 'season_pass_3m';
 
+  /// Demo / yedek gösterim: (TRY metni, TRY sayısal, USD metni, USD sayısal).
+  static (String, double, String, double)? _coinPackDemoPricing(String id) {
+    return switch (id) {
+      coinPack500Id => ('₺29,99', 29.99, r'$0.99', 0.99),
+      coinPack1250Id => ('₺59,99', 59.99, r'$1.99', 1.99),
+      coinPack2500Id => ('₺89,99', 89.99, r'$2.99', 2.99),
+      coinPack3750Id => ('₺119,99', 119.99, r'$3.99', 3.99),
+      _ => null,
+    };
+  }
+
+  /// Mağazada SKU yoksa coin kartında gösterilecek fiyat — cihaz diline göre hep TRY **veya** hep USD (karışık sembol kalmaz).
+  static String coinPackUiFallbackPrice(String productId) {
+    final p = _coinPackDemoPricing(productId);
+    if (p == null) return '—';
+    final isTurkish =
+        ui.PlatformDispatcher.instance.locale.languageCode == 'tr';
+    return isTurkish ? p.$1 : p.$3;
+  }
+
+  void _addDemoCoinProduct({
+    required String id,
+    required String title,
+    required String description,
+    required int coinAmount,
+    String? badge,
+    bool highlight = false,
+  }) {
+    final p = _coinPackDemoPricing(id);
+    if (p == null) return;
+    final isTurkish =
+        ui.PlatformDispatcher.instance.locale.languageCode == 'tr';
+    _products.add(ProductInfo(
+      id: id,
+      title: title,
+      description: description,
+      price: isTurkish ? p.$1 : p.$3,
+      priceValue: isTurkish ? p.$2 : p.$4,
+      currencyCode: isTurkish ? 'TRY' : 'USD',
+      type: ProductType.consumable,
+      coinAmount: coinAmount,
+      badge: badge,
+      highlight: highlight,
+    ));
+  }
+
   // Yüklenen ürünler
   final List<ProductInfo> _products = [];
   List<ProductInfo> get products => List.unmodifiable(_products);
@@ -276,52 +322,35 @@ class PurchaseService {
     
     _products.clear();
     
-    // Coin Paketleri
-    // Coin paketleri — bonus% etiketleri ile
-    _products.add(ProductInfo(
+    // Coin Paketleri — fiyat tablosu [_coinPackDemoPricing] ile tek kaynak
+    _addDemoCoinProduct(
       id: coinPack500Id,
       title: '500 Altın',
       description: 'Başlangıç altın paketi',
-      price: isTurkish ? '₺29,99' : '\$0.99',
-      priceValue: isTurkish ? 29.99 : 0.99,
-      currencyCode: isTurkish ? 'TRY' : 'USD',
-      type: ProductType.consumable,
       coinAmount: 500,
-    ));
-    _products.add(ProductInfo(
+    );
+    _addDemoCoinProduct(
       id: coinPack1250Id,
       title: '1250 Altın',
       description: '+%20 BONUS — sık oynayanların tercihi',
-      price: isTurkish ? '₺59,99' : '\$1.99',
-      priceValue: isTurkish ? 59.99 : 1.99,
-      currencyCode: isTurkish ? 'TRY' : 'USD',
-      type: ProductType.consumable,
       coinAmount: 1250,
       badge: '+%20 BONUS',
-    ));
-    _products.add(ProductInfo(
+    );
+    _addDemoCoinProduct(
       id: coinPack2500Id,
       title: '2500 Altın',
       description: '+%40 BONUS — en popüler seçim',
-      price: isTurkish ? '₺89,99' : '\$2.99',
-      priceValue: isTurkish ? 89.99 : 2.99,
-      currencyCode: isTurkish ? 'TRY' : 'USD',
-      type: ProductType.consumable,
       coinAmount: 2500,
       badge: '+%40 BONUS',
       highlight: true,
-    ));
-    _products.add(ProductInfo(
+    );
+    _addDemoCoinProduct(
       id: coinPack3750Id,
       title: '3750 Altın',
       description: '+%60 BONUS — en değerli paket',
-      price: isTurkish ? '₺119,99' : '\$3.99',
-      priceValue: isTurkish ? 119.99 : 3.99,
-      currencyCode: isTurkish ? 'TRY' : 'USD',
-      type: ProductType.consumable,
       coinAmount: 3750,
       badge: 'EN DEĞERLİ',
-    ));
+    );
 
     // Premium abonelikler — yeniden fiyatlandırıldı (2.5 görev)
     _products.add(ProductInfo(

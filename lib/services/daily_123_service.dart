@@ -1,9 +1,14 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/daily_123.dart';
+import '../providers/daily_123_provider.dart' show AnsweredQuestion;
 import 'achievement_service.dart';
 import '../models/achievement.dart';
 import 'shop_service.dart';
+import 'firebase/firestore_service.dart';
+import 'firebase/auth_service.dart';
+import 'quest_service.dart';
+import '../models/quest.dart';
 
 class Daily123Service {
   static final Daily123Service instance = Daily123Service._();
@@ -12,6 +17,87 @@ class Daily123Service {
   static const String _statsKey = 'daily_123_stats';
   static const String _lastPlayedKey = 'daily_123_last_played';
   static const String _adResetKey = 'daily_123_ad_reset';
+  static const String _lastCorrectAnswersKey = 'daily_123_last_correct_json';
+  static const String _lastWrongAnswersKey = 'daily_123_last_wrong_json';
+  static const String _lastAnswersDayKey = 'daily_123_last_answers_day_iso';
+
+  /// Bugünkü en son Daily 123 sonucu (aynı gün birden fazla oynandıysa en günceli).
+  Future<Daily123Result?> getLatestResultForToday() async {
+    final stats = await getStats();
+    final now = DateTime.now();
+    Daily123Result? latest;
+    for (final r in stats.history) {
+      final d = r.date;
+      if (d.year != now.year || d.month != now.month || d.day != now.day) {
+        continue;
+      }
+      if (latest == null || r.date.isAfter(latest.date)) {
+        latest = r;
+      }
+    }
+    return latest;
+  }
+
+  Map<String, dynamic> _answeredToJson(AnsweredQuestion e) => {
+        'prompt': e.prompt,
+        'correctAnswer': e.correctAnswer,
+        'userAnswer': e.userAnswer,
+        'isCorrect': e.isCorrect,
+        'turkishMeaning': e.turkishMeaning,
+      };
+
+  AnsweredQuestion _answeredFromJson(Map<String, dynamic> j) => AnsweredQuestion(
+        prompt: j['prompt'] as String,
+        correctAnswer: j['correctAnswer'] as String,
+        userAnswer: j['userAnswer'] as String?,
+        isCorrect: j['isCorrect'] as bool,
+        turkishMeaning: j['turkishMeaning'] as String?,
+      );
+
+  /// Oyun bittiğinde sonuç ekranında doğru/yanlış listelerini tekrar göstermek için.
+  Future<void> cacheLastSessionAnswers(
+    List<AnsweredQuestion> correct,
+    List<AnsweredQuestion> wrong,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _lastCorrectAnswersKey,
+      jsonEncode(correct.map(_answeredToJson).toList()),
+    );
+    await prefs.setString(
+      _lastWrongAnswersKey,
+      jsonEncode(wrong.map(_answeredToJson).toList()),
+    );
+    await prefs.setString(_lastAnswersDayKey, DateTime.now().toIso8601String());
+  }
+
+  Future<(List<AnsweredQuestion>, List<AnsweredQuestion>)>
+      loadCachedAnswersForToday() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dayStr = prefs.getString(_lastAnswersDayKey);
+    if (dayStr == null) {
+      return (<AnsweredQuestion>[], <AnsweredQuestion>[]);
+    }
+    final stored = DateTime.parse(dayStr);
+    final now = DateTime.now();
+    if (stored.year != now.year ||
+        stored.month != now.month ||
+        stored.day != now.day) {
+      return (<AnsweredQuestion>[], <AnsweredQuestion>[]);
+    }
+    List<AnsweredQuestion> decode(String? raw) {
+      if (raw == null || raw.isEmpty) return [];
+      final list = jsonDecode(raw) as List<dynamic>;
+      return list
+          .map((e) => _answeredFromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    }
+
+    return (
+      decode(prefs.getString(_lastCorrectAnswersKey)),
+      decode(prefs.getString(_lastWrongAnswersKey)),
+    );
+  }
 
   Future<Daily123Stats> getStats() async {
     final prefs = await SharedPreferences.getInstance();
@@ -85,23 +171,72 @@ class Daily123Service {
     await prefs.setString(_lastPlayedKey, result.date.toIso8601String());
     await prefs.setBool(_adResetKey, false); // Oynadığı için reklam hakkını harcadı
 
+    // --- GLOBAL INTEGRATION ---
+    // Skorları Firestore'a kaydet (Hem günlük hem genel)
+    await FirestoreService.instance.recordDaily123Result(
+      result.score, 
+      result.timeSeconds, 
+      result.isWin
+    );
+
+    // Kullanıcının toplam skorunu da artır (Genel sıralama için)
+    await FirestoreService.instance.updateGameScore(
+      scoreEarned: result.score, 
+      isDuel: false,
+    );
+
     // Başarım ilerlemesini güncelle (Daily Master)
     if (newStreak > 0) {
       await AchievementService.instance.updateProgress(AchievementCategory.skill, newStreak, setExact: true);
     }
+
+    // Görev ilerlemesini güncelle (Daily 123 Ustası)
+    if (result.isWin) {
+      await QuestService.instance.updateProgress(QuestType.daily123Play, 1);
+    }
   }
 
-  // Simulated ranking data for the UI
-  Future<Map<String, dynamic>> getRankingData() async {
-    // In a real app, this would come from a backend.
-    // For now, we return mock data based on user performance.
+  // Real ranking data from Firestore
+  Future<Map<String, dynamic>> getRankingData({int? score, int? seconds}) async {
+    final userId = AuthService.instance.userId;
+    if (userId == null) return _getMockRanking();
+
+    // Firestore'dan gerçek verileri çek
+    final globalData = await FirestoreService.instance.getDaily123GlobalRanking(
+      score ?? 0, 
+      seconds ?? 123
+    );
+
+    // Genel sıralama hesaplama (totalScore bazlı)
+    final globalRank = await FirestoreService.instance.getUserRank(userId);
+    
+    // Gerçek toplam kullanıcı sayısı
+    final totalGlobalPlayers = await FirestoreService.instance.getTotalUsersCount();
+    
+    // Gerçek genel ortalama (Firestore'dan çekilebilir veya basitleştirilmiş hesaplama)
+    // Şimdilik 123 için toplam skoru oyuncu sayısına bölebiliriz veya Firestore aggregate kullanabiliriz.
+    final globalAvg = await FirestoreService.instance.getGlobalAverageScore();
+
     return {
-      'dailyRank': 12, // Mock rank
-      'totalDailyPlayers': 450,
-      'dailyAvgPoints': 85,
-      'globalRank': 1250,
-      'totalGlobalPlayers': 15000,
-      'globalAvgPoints': 72,
+      'dailyRank': globalData['rank'],
+      'totalDailyPlayers': globalData['totalPlayers'],
+      'dailyAvgPoints': globalData['avgPoints'],
+      'prevPlayer': globalData['prevPlayer'],
+      'nextPlayer': globalData['nextPlayer'],
+      'globalRank': globalRank ?? '-',
+      'totalGlobalPlayers': totalGlobalPlayers, 
+      'globalAvgPoints': globalAvg,
+    };
+  }
+
+  Map<String, dynamic> _getMockRanking() {
+    return {
+      'dailyRank': '-',
+      'totalDailyPlayers': '-',
+      'dailyAvgPoints': '-',
+      'globalRank': '-',
+      'totalGlobalPlayers': '-',
+      'globalAvgPoints': '-',
     };
   }
 }

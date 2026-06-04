@@ -9,7 +9,12 @@ class AnsweredEntry {
   final QuestionMode mode;
   final String? selectedText; // null if no selection
   final String correctText;
+  final String? turkishMeaning;
   final List<PowerupType> usedPowerups;
+  
+  // SRS (Spaced Repetition System) Fields
+  DateTime? lastReviewedAt;
+  int srsLevel; // 0-5 (Leitner boxes)
 
   AnsweredEntry({
     required this.prompt,
@@ -19,7 +24,10 @@ class AnsweredEntry {
     required this.mode,
     required this.correctText,
     this.selectedText,
+    this.turkishMeaning,
     this.usedPowerups = const [],
+    this.lastReviewedAt,
+    this.srsLevel = 0,
   });
 
   Map<String, dynamic> toJson() {
@@ -31,7 +39,10 @@ class AnsweredEntry {
       'mode': mode.name,
       'selectedText': selectedText,
       'correctText': correctText,
+      'turkishMeaning': turkishMeaning,
       'usedPowerups': usedPowerups.map((e) => e.name).toList(),
+      'lastReviewedAt': lastReviewedAt?.toIso8601String(),
+      'srsLevel': srsLevel,
     };
   }
 
@@ -47,6 +58,7 @@ class AnsweredEntry {
       ),
       correctText: json['correctText'] ?? '',
       selectedText: json['selectedText'],
+      turkishMeaning: json['turkishMeaning'],
       usedPowerups: (json['usedPowerups'] as List<dynamic>?)
               ?.map((e) => PowerupType.values.firstWhere(
                     (p) => p.name == e,
@@ -54,6 +66,8 @@ class AnsweredEntry {
                   ))
               .toList() ??
           [],
+      lastReviewedAt: json['lastReviewedAt'] != null ? DateTime.parse(json['lastReviewedAt']) : null,
+      srsLevel: json['srsLevel'] ?? 0,
     );
   }
 }

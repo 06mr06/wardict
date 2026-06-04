@@ -9,8 +9,9 @@ class Daily123IntroScreen extends StatefulWidget {
   State<Daily123IntroScreen> createState() => _Daily123IntroScreenState();
 }
 
-class _Daily123IntroScreenState extends State<Daily123IntroScreen> with TickerProviderStateMixin {
-  int _step = 0; // 0: Daily, 1: 1, 2: 2, 3: 3
+class _Daily123IntroScreenState extends State<Daily123IntroScreen>
+    with TickerProviderStateMixin {
+  int _step = 0;
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _rotateAnimation;
@@ -33,22 +34,18 @@ class _Daily123IntroScreenState extends State<Daily123IntroScreen> with TickerPr
   }
 
   Future<void> _startAnimation() async {
-    // Step 0: Daily
     setState(() => _step = 0);
     _controller.forward(from: 0);
     await Future.delayed(const Duration(milliseconds: 800));
 
-    // Step 1: 1
     setState(() => _step = 1);
     _controller.forward(from: 0);
     await Future.delayed(const Duration(milliseconds: 600));
 
-    // Step 2: 2
     setState(() => _step = 2);
     _controller.forward(from: 0);
     await Future.delayed(const Duration(milliseconds: 600));
 
-    // Step 3: 3
     setState(() => _step = 3);
     _controller.forward(from: 0);
     await Future.delayed(const Duration(milliseconds: 1000));
@@ -92,7 +89,10 @@ class _Daily123IntroScreenState extends State<Daily123IntroScreen> with TickerPr
                         letterSpacing: 2,
                         shadows: [
                           const Shadow(color: Colors.black, offset: Offset(4, 4)),
-                          Shadow(color: Colors.amber.withValues(alpha: 0.5), blurRadius: 20),
+                          Shadow(
+                            color: Colors.amber.withAlpha(128),
+                            blurRadius: 20,
+                          ),
                         ],
                       ),
                     ),
@@ -101,8 +101,10 @@ class _Daily123IntroScreenState extends State<Daily123IntroScreen> with TickerPr
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _buildNumber('1', _step >= 1 ? 1.0 : 0.0, Colors.red),
-                          if (_step >= 2) _buildNumber('2', _step >= 2 ? 1.0 : 0.0, Colors.green),
-                          if (_step >= 3) _buildNumber('3', _step >= 3 ? 1.0 : 0.0, Colors.blue),
+                          if (_step >= 2)
+                            _buildNumber('2', _step >= 2 ? 1.0 : 0.0, Colors.green),
+                          if (_step >= 3)
+                            _buildNumber('3', _step >= 3 ? 1.0 : 0.0, Colors.blue),
                         ],
                       ),
                   ],
@@ -124,8 +126,8 @@ class _Daily123IntroScreenState extends State<Daily123IntroScreen> with TickerPr
           fontSize: 100,
           fontWeight: FontWeight.w900,
           color: color,
-          shadows: [
-            const Shadow(color: Colors.black, offset: Offset(5, 5)),
+          shadows: const [
+            Shadow(color: Colors.black, offset: Offset(5, 5)),
           ],
         ),
       ),

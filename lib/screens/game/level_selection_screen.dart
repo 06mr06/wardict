@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/user_level.dart';
 import '../../services/user_profile_service.dart';
+import '../../providers/language_provider.dart';
 
 /// Seviye seçim ekranı - Kullanıcı kendi seviyesini seçer
 class LevelSelectionScreen extends StatefulWidget {
@@ -74,9 +76,9 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen>
                   style: TextStyle(fontSize: 50),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Seviyeni Seç',
-                  style: TextStyle(
+                Text(
+                  context.watch<LanguageProvider>().getString('select_level'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -84,7 +86,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'İngilizce seviyeni en iyi sen bilirsin!',
+                  context.watch<LanguageProvider>().getString('select_level_desc'),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 16,
@@ -123,8 +125,10 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen>
                       ),
                       child: Text(
                         _selectedLevel != null
-                            ? '${_selectedLevel!.turkishName} ile Başla'
-                            : 'Seviye Seçin',
+                            ? (context.watch<LanguageProvider>().currentLanguage == 'tr' 
+                                ? '${_selectedLevel!.turkishName} ${context.watch<LanguageProvider>().getString('start_with')}'
+                                : '${context.watch<LanguageProvider>().getString('start_with')} ${_selectedLevel!.englishName}')
+                            : context.watch<LanguageProvider>().getString('please_select_level'),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -210,7 +214,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    level.turkishName,
+                    context.watch<LanguageProvider>().currentLanguage == 'tr' ? level.turkishName : level.englishName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -219,7 +223,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _getLevelDescription(level),
+                    _getLevelDescription(level, context),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 13,
@@ -268,20 +272,20 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen>
     }
   }
 
-  String _getLevelDescription(UserLevel level) {
+  String _getLevelDescription(UserLevel level, BuildContext context) {
     switch (level) {
       case UserLevel.a1:
-        return 'Temel kelimeler: hello, book, water, eat...';
+        return context.watch<LanguageProvider>().getString('level_a1_desc');
       case UserLevel.a2:
-        return 'Günlük kelimeler: government, customer, agree...';
+        return context.watch<LanguageProvider>().getString('level_a2_desc');
       case UserLevel.b1:
-        return 'Orta seviye: establish, distinguish, crucial...';
+        return context.watch<LanguageProvider>().getString('level_b1_desc');
       case UserLevel.b2:
-        return 'İleri seviye: undermine, coherent, mitigate...';
+        return context.watch<LanguageProvider>().getString('level_b2_desc');
       case UserLevel.c1:
-        return 'Akademik: discern, pervasive, corroborate...';
+        return context.watch<LanguageProvider>().getString('level_c1_desc');
       case UserLevel.c2:
-        return 'Uzman: enigmatic, inexorably, jurisprudence...';
+        return context.watch<LanguageProvider>().getString('level_c2_desc');
     }
   }
 }

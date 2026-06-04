@@ -9,6 +9,7 @@ import '../models/practice_session.dart';
 import '../models/match_history_item.dart';
 import 'firebase/auth_service.dart'; // Added import
 import 'shop_service.dart';
+import 'weekly_practice_points_service.dart';
 
 /// Kullanıcı profili yönetimi servisi
 class UserProfileService {
@@ -291,29 +292,9 @@ class UserProfileService {
     return profile.level;
   }
   
-  /// Kullanıcı profili için varsayılan avatarlar
+  /// Kullanıcı profili için varsayılan avatarlar (bot / yer tutucu)
   static const List<String> avatars = [
-    'assets/images/avatars/dino_nerd.png',
-    'assets/images/avatars/dino_sleepy.png',
-    'assets/images/avatars/dino_cowboy.png',
-    'assets/images/avatars/dino_artist.png',
-    'assets/images/avatars/dino_farmer.png',
-    'assets/images/avatars/dino_rocker.png',
-    'assets/images/avatars/dino_ninja.png',
-    'assets/images/avatars/dino_chef.png',
-    'assets/images/avatars/dino_king.png',
-    'assets/images/avatars/dino_astronaut.png',
-    'assets/images/avatars/dino_librarian.png',
-    'assets/images/avatars/dino_wizard.png',
-    'assets/images/avatars/dino_painter.png',
-    'assets/images/avatars/dino_footballer.png',
-    'assets/images/avatars/dino_detective.png',
-    'assets/images/avatars/dino_scientist.png',
-    'assets/images/avatars/dino_doctor.png',
-    'assets/images/avatars/dino_cyber.png',
-    'assets/images/avatars/dino_peaceful.png',
-    'assets/images/avatars/dino_thunder.png',
-    'assets/images/avatars/dino_red_wing.png',
+    'assets/images/avatars/avatar_scholar_blue.png',
     '🦁', '🐯', '🐻', '🐨', '🐼'
   ];
 
@@ -398,12 +379,25 @@ class UserProfileService {
     if (userId == null) return;
 
     try {
+      final docRef = _firestore.collection(_usersCollection).doc(userId);
+      final snap = await docRef.get();
+      final data = snap.data();
       final json = updatedProfile.toJson();
-      // Önemli: null olan kritik alanları sil (Firestore'u null ile ezmesin)
       if (json['email'] == null) json.remove('email');
-      
-      // Document ID olarak userId kullan
-      await _firestore.collection(_usersCollection).doc(userId).set({
+
+      final remoteHasCreatedAt =
+          snap.exists && data != null && data['createdAt'] != null;
+      if (remoteHasCreatedAt) {
+        // Katılım tarihi yalnızca sunucudan; yerel yanlış tarihle ezilmesin
+        json.remove('createdAt');
+      } else {
+        if (json['createdAt'] == null) {
+          json.remove('createdAt');
+          json['createdAt'] = FieldValue.serverTimestamp();
+        }
+      }
+
+      await docRef.set({
         ...json,
         'lastOnline': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -427,32 +421,35 @@ class UserProfileService {
         
         // Mevcut yerel profili al
         final localProfile = await loadProfile();
-        
-        // KONTROL: Eğer yerel profil mevcut kullanıcıya ait değilse senkronizasyon yapma, 
-        // doğrudan buluttakini kullan.
+
         final authEmail = AuthService.instance.userEmail;
+        // KONTROL: Eğer yerel profil mevcut kullanıcıya ait değilse (veya misafir profili değilse ve email farklıysa)
         if (authEmail != null && localProfile.email != authEmail) {
-          debugPrint('⚠️ Yerel profil farklı bir kullanıcıya ait. Bulut verisi ile eziliyor.');
+          debugPrint(
+              '⚠️ Yerel profil farklı bir kullanıcıya ait. Bulut verisi ile eziliyor.');
           await saveProfile(remoteProfile);
-          return;
-        }
-
-        // SENKRONİZASYON KONTROLÜ: 
-        // Sadece uzak veri daha yeniyse yerel veriyi güncelle (veya yerel veri "boş" ise)
-        final remoteLastPlayed = remoteProfile.lastPlayed ?? DateTime(2000);
-        final localHistoryEmpty = localProfile.matchHistory.isEmpty;
-
-        if (remoteLastPlayed.isAfter(localProfile.lastPlayed ?? DateTime(1999)) || localHistoryEmpty) {
-          debugPrint('🔄 Remote profile is newer or local is empty. Updating local profile.');
-          await saveProfile(remoteProfile);
-          
-          if (remoteProfile.isPremium) {
-            await ShopService.instance.activatePremium(PremiumTier.premium, 30);
-          }
         } else {
-          debugPrint('ℹ️ Local profile is newer. Merging and syncing up.');
-          // Eğer yerel daha yeniyse, buluta gönderelim (birleştirme mantığı daha komplex olabilir ama şimdilik sync yeterli)
-          await syncProfileToFirestore();
+          // SENKRONİZASYON KONTROLÜ:
+          // Sadece uzak veri daha yeniyse yerel veriyi güncelle (veya yerel veri "boş" ise)
+          final remoteLastPlayed = remoteProfile.lastPlayed ?? DateTime(2000);
+          final localHistoryEmpty = localProfile.matchHistory.isEmpty;
+
+          if (remoteLastPlayed
+                  .isAfter(localProfile.lastPlayed ?? DateTime(1999)) ||
+              localHistoryEmpty) {
+            debugPrint(
+                '🔄 Remote profile is newer or local is empty. Updating local profile.');
+            await saveProfile(remoteProfile);
+
+            if (remoteProfile.isPremium) {
+              await ShopService.instance.activatePremium(PremiumTier.premium, 30);
+            }
+          } else {
+            debugPrint(
+                'ℹ️ Local profile is newer. Merging and syncing up.');
+            // Eğer yerel daha yeniyse, buluta gönderelim (birleştirme mantığı daha komplex olabilir ama şimdilik sync yeterli)
+            await syncProfileToFirestore();
+          }
         }
       } else {
         // Kullanıcı Firestore'da yok (Yeni kullanıcı)
@@ -462,5 +459,6 @@ class UserProfileService {
     } catch (e) {
       debugPrint('❌ Error fetching profile from Firestore: $e');
     }
+    await WeeklyPracticePointsService.instance.syncFromCloudAndRollover();
   }
 }

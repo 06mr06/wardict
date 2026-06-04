@@ -52,3 +52,48 @@ ios/Runner/GoogleService-Info.plist
 android/key.properties
 *.keystore
 *.jks
+
+# Environment variables (SENSITIVE - Never commit!)
+.env
+.env.*
+!.env.example
+
+analyze*.txt
+analysis*.txt
+build_*.txt
+build_*.log
+flutter_*.log
+run_output*.txt
+*.tmp
+errors*.txt
+git_diff.txt
+
+# Node.js binary distribution (large, not needed for Flutter project)
+nodejs/
+
+# Temporary/script files
+tmp/
+tools/
+scripts/
+pandoc/
+pandoc.zip
+
+# Android build output
+android/build/
+android/java_pid*.hprof
+
+# Generated/housekeeping docs
+LUGORENA_ANALIZ_RAPORU.md
+TEMIZLIK_PLANI.md
+TROUBLESHOOTING.md
+PLAY_STORE_*.md
+SCREENSHOT_GUIDE.md
+PREMIUM_SETUP.md
+SECURITY_SETUP.md
+PRIVACY_POLICY.md
+FAQ.md
+CHANGELOG.md
+
+# Firestore backup
+firestore.rules
+firestore.indexes.json

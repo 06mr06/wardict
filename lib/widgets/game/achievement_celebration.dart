@@ -1,78 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
+import 'package:provider/provider.dart';
 import '../../models/achievement.dart';
+import '../../providers/language_provider.dart';
 
-/// Yeni kazanılan ödülleri kutlama dialogu olarak gösterir
-class AchievementCelebration {
+class AchievementCelebration extends StatefulWidget {
+  final List<Achievement> achievements;
+
+  const AchievementCelebration({super.key, required this.achievements});
+
   static void showNewAchievements(BuildContext context, List<Achievement> achievements) {
-    if (achievements.isEmpty) return;
-    
-    showGeneralDialog(
+    showDialog(
       context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Dismiss',
-      barrierColor: Colors.black87,
-      transitionDuration: const Duration(milliseconds: 400),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return _AchievementCelebrationDialog(achievements: achievements);
-      },
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        return FadeTransition(
-          opacity: animation,
-          child: ScaleTransition(
-            scale: CurvedAnimation(
-              parent: animation,
-              curve: Curves.elasticOut,
-            ),
-            child: child,
-          ),
-        );
-      },
+      barrierDismissible: false,
+      builder: (context) => AchievementCelebration(achievements: achievements),
     );
   }
-}
 
-class _AchievementCelebrationDialog extends StatefulWidget {
-  final List<Achievement> achievements;
-  
-  const _AchievementCelebrationDialog({required this.achievements});
-  
   @override
-  State<_AchievementCelebrationDialog> createState() => _AchievementCelebrationDialogState();
+  State<AchievementCelebration> createState() => _AchievementCelebrationState();
 }
 
-class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDialog> 
-    with TickerProviderStateMixin {
+class _AchievementCelebrationState extends State<AchievementCelebration> {
   late ConfettiController _confettiController;
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
   int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-    
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) _confettiController.play();
-    });
+    _confettiController = ConfettiController(duration: const Duration(seconds: 4));
+    // İlk başarım için confetti'yi hemen başlat
+    _confettiController.play();
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
-    _pulseController.dispose();
     super.dispose();
   }
 
-  Achievement get currentAchievement => widget.achievements[_currentIndex];
+  Achievement get currentAchievement {
+    if (_currentIndex >= widget.achievements.length) {
+      return widget.achievements.last;
+    }
+    return widget.achievements[_currentIndex];
+  }
 
   Color _getTierColor(AchievementTier tier) {
     switch (tier) {
@@ -89,8 +61,12 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
+    final currentAchievement = this.currentAchievement;
+    
+    return Material(
+      type: MaterialType.transparency,
+      child: Stack(
+        children: [
         // Confetti
         Align(
           alignment: Alignment.topCenter,
@@ -116,93 +92,64 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
             margin: const EdgeInsets.symmetric(horizontal: 32),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF3A6EA5), Color(0xFF2E5A8C)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+              gradient: const RadialGradient(
+                center: Alignment(0.5, -0.6),
+                radius: 1.2,
+                colors: [
+                  Color(0xFF1E3A5F),
+                  Color(0xFF02040A),
+                ],
               ),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: _getTierColor(currentAchievement.tier),
-                width: 3,
+                color: _getTierColor(currentAchievement.tier).withAlpha(100),
+                width: 2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: _getTierColor(currentAchievement.tier).withValues(alpha: 0.5),
-                  blurRadius: 30,
-                  spreadRadius: 5,
+                  color: Colors.black.withAlpha(150),
+                  blurRadius: 40,
+                  spreadRadius: 10,
                 ),
               ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Yeni Ödül başlığı
+                // Icon / Emblem
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.amber),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('🎉', style: TextStyle(fontSize: 20)),
-                      SizedBox(width: 8),
-                      Text(
-                        'YENİ ÖDÜL!',
-                        style: TextStyle(
-                          color: Colors.amber,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: _getTierColor(currentAchievement.tier).withAlpha(80),
+                        blurRadius: 20,
+                        spreadRadius: 5,
                       ),
-                      SizedBox(width: 8),
-                      Text('🎉', style: TextStyle(fontSize: 20)),
                     ],
                   ),
-                ),
-                const SizedBox(height: 24),
-                
-                // Badge animasyonlu
-                ScaleTransition(
-                  scale: _pulseAnimation,
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        colors: [
-                          _getTierColor(currentAchievement.tier).withValues(alpha: 0.3),
-                          _getTierColor(currentAchievement.tier).withValues(alpha: 0.1),
-                        ],
-                      ),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: _getTierColor(currentAchievement.tier),
-                        width: 4,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _getTierColor(currentAchievement.tier).withValues(alpha: 0.5),
-                          blurRadius: 20,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        currentAchievement.badgeIcon,
-                        style: const TextStyle(fontSize: 52),
-                      ),
-                    ),
+                  child: Text(
+                    currentAchievement.badgeIcon, // This usually contains emoji
+                    style: const TextStyle(fontSize: 64),
                   ),
                 ),
-                const SizedBox(height: 20),
                 
-                // Başlık
+                const SizedBox(height: 24),
+                
+                // Title
+                Text(
+                  context.read<LanguageProvider>().getString('new_reward').toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.amber,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 3,
+                  ),
+                ),
+                
+                const SizedBox(height: 8),
+                
                 Text(
                   currentAchievement.title,
                   style: const TextStyle(
@@ -212,81 +159,21 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
                 
-                // Açıklama
+                const SizedBox(height: 12),
+                
                 Text(
                   currentAchievement.description,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
+                  style: const TextStyle(
+                    color: Colors.white70,
                     fontSize: 14,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 20),
                 
-                // Ödül
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.amber.withValues(alpha: 0.3),
-                        Colors.orange.withValues(alpha: 0.2),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('🪙', style: TextStyle(fontSize: 24)),
-                      const SizedBox(width: 10),
-                      Text(
-                        '+${currentAchievement.rewardCoins}',
-                        style: const TextStyle(
-                          color: Colors.amber,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'altın',
-                        style: TextStyle(
-                          color: Colors.amber.withValues(alpha: 0.8),
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // Tier rozeti
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _getTierColor(currentAchievement.tier),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    currentAchievement.tier.name.toUpperCase(),
-                    style: TextStyle(
-                      color: currentAchievement.tier == AchievementTier.gold || 
-                             currentAchievement.tier == AchievementTier.silver
-                          ? Colors.black87
-                          : Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 24),
                 
-                // Sayfa göstergesi (birden fazla ödül varsa)
+                // Indicators (if more than one)
                 if (widget.achievements.length > 1) ...[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -299,7 +186,7 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
                           shape: BoxShape.circle,
                           color: index == _currentIndex 
                               ? Colors.amber 
-                              : Colors.white.withValues(alpha: 0.3),
+                              : Colors.white.withAlpha(77),
                         ),
                       );
                     }),
@@ -307,7 +194,7 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
                   const SizedBox(height: 16),
                 ],
                 
-                // Buton
+                // Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -322,20 +209,23 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber,
-                      foregroundColor: Colors.black87,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: const Color(0xFF6C27FF),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 8,
+                      shadowColor: const Color(0xFF6C27FF).withAlpha(100),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                       ),
                     ),
                     child: Text(
                       _currentIndex < widget.achievements.length - 1
-                          ? 'Sonraki Ödül →'
-                          : 'Harika! 🎊',
+                          ? context.read<LanguageProvider>().getString('next_reward').toUpperCase()
+                          : context.read<LanguageProvider>().getString('great_confetti').toUpperCase(),
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
                       ),
                     ),
                   ),
@@ -345,6 +235,7 @@ class _AchievementCelebrationDialogState extends State<_AchievementCelebrationDi
           ),
         ),
       ],
-    );
+    ),
+   );
   }
 }

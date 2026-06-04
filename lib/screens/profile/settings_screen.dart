@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
+import '../../providers/language_provider.dart';
 import '../../services/firebase/auth_service.dart';
 import '../../services/shop_service.dart';
 import '../auth/login_screen.dart';
@@ -80,13 +82,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                      icon:
+                          const Icon(Icons.arrow_back_ios, color: Colors.white),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Ayarlar',
+                        context.watch<LanguageProvider>().getString('settings'),
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -104,14 +107,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Genel Ayarlar
+                      _buildSectionTitle(context
+                          .watch<LanguageProvider>()
+                          .getString('general')),
+                      const SizedBox(height: 12),
+                      _buildSettingsCard([
+                        _buildLanguageTile(),
+                      ]),
+                      const SizedBox(height: 24),
+
                       // Ses Ayarları
-                      _buildSectionTitle('Ses ve Titreşim'),
+                      _buildSectionTitle(context
+                          .watch<LanguageProvider>()
+                          .getString('sound_vibration')),
                       const SizedBox(height: 12),
                       _buildSettingsCard([
                         _buildSwitchTile(
                           icon: Icons.volume_up,
-                          title: 'Ses',
-                          subtitle: 'Oyun seslerini aç/kapat',
+                          title: context
+                              .watch<LanguageProvider>()
+                              .getString('sound'),
+                          subtitle: context
+                              .watch<LanguageProvider>()
+                              .getString('sound_subtitle'),
                           value: _soundEnabled,
                           onChanged: (value) {
                             setState(() => _soundEnabled = value);
@@ -121,8 +140,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const Divider(color: Colors.white12),
                         _buildSwitchTile(
                           icon: Icons.vibration,
-                          title: 'Titreşim',
-                          subtitle: 'Daily123\'te son 5 saniye titreşim',
+                          title: context
+                              .watch<LanguageProvider>()
+                              .getString('vibration'),
+                          subtitle: context
+                              .watch<LanguageProvider>()
+                              .getString('vibration_subtitle'),
                           value: _vibrationEnabled,
                           onChanged: (value) {
                             setState(() => _vibrationEnabled = value);
@@ -137,13 +160,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 24),
 
                       // Bildirimler
-                      _buildSectionTitle('Bildirimler'),
+                      _buildSectionTitle(context
+                          .watch<LanguageProvider>()
+                          .getString('notifications')),
                       const SizedBox(height: 12),
                       _buildSettingsCard([
                         _buildSwitchTile(
                           icon: Icons.notifications,
-                          title: 'Bildirimler',
-                          subtitle: 'Push bildirimlerini aç/kapat',
+                          title: context
+                              .watch<LanguageProvider>()
+                              .getString('notifications'),
+                          subtitle: context
+                              .watch<LanguageProvider>()
+                              .getString('notifications_subtitle'),
                           value: _notificationsEnabled,
                           onChanged: (value) {
                             setState(() => _notificationsEnabled = value);
@@ -155,18 +184,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 24),
 
                       // Yasal
-                      _buildSectionTitle('Yasal'),
+                      _buildSectionTitle(
+                          context.watch<LanguageProvider>().getString('legal')),
                       const SizedBox(height: 12),
                       _buildSettingsCard([
                         _buildNavigationTile(
                           icon: Icons.description,
-                          title: 'Terms and Conditions',
+                          title: context
+                              .watch<LanguageProvider>()
+                              .getString('terms'),
                           onTap: () => _showTermsDialog(),
                         ),
                         const Divider(color: Colors.white12),
                         _buildNavigationTile(
                           icon: Icons.privacy_tip,
-                          title: 'Privacy Policy',
+                          title: context
+                              .watch<LanguageProvider>()
+                              .getString('privacy'),
                           onTap: () => _showPrivacyDialog(),
                         ),
                       ]),
@@ -177,41 +211,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _buildSettingsCard([
                         _buildNavigationTile(
                           icon: Icons.logout,
-                          title: 'Çıkış Yap',
+                          title: context
+                              .watch<LanguageProvider>()
+                              .getString('logout'),
                           iconColor: Colors.red,
                           textColor: Colors.red,
                           onTap: () => _handleLogout(),
+                        ),
+                        const Divider(color: Colors.white12),
+                        _buildNavigationTile(
+                          icon: Icons.delete_forever,
+                          title: context
+                              .watch<LanguageProvider>()
+                              .getString('delete_account'),
+                          iconColor: Colors.red,
+                          textColor: Colors.red,
+                          onTap: () => _handleDeleteAccount(),
                         ),
                       ]),
 
                       const SizedBox(height: 24),
 
                       // Diğer
-                      _buildSectionTitle('Diğer'),
+                      _buildSectionTitle(
+                          context.watch<LanguageProvider>().getString('other')),
                       const SizedBox(height: 12),
                       _buildSettingsCard([
                         _buildNavigationTile(
                           icon: Icons.support_agent,
-                          title: 'Destek',
-                          subtitle: 'Yardım ve geri bildirim',
+                          title: context
+                              .watch<LanguageProvider>()
+                              .getString('support'),
+                          subtitle: context
+                              .watch<LanguageProvider>()
+                              .getString('support_subtitle'),
                           onTap: () => _openSupport(),
                         ),
                         const Divider(color: Colors.white12),
                         _buildNavigationTile(
                           icon: Icons.menu_book,
-                          title: 'Rehber',
+                          title: context
+                              .watch<LanguageProvider>()
+                              .getString('guide'),
                           onTap: () => _showGuide(),
                         ),
                         const Divider(color: Colors.white12),
                         _buildNavigationTile(
                           icon: Icons.play_circle_outline,
-                          title: 'Tutorial\'ı Tekrar İzle',
+                          title: context
+                              .watch<LanguageProvider>()
+                              .getString('replay_tutorial'),
                           onTap: () => _showTutorial(),
                         ),
                         const Divider(color: Colors.white12),
                         _buildNavigationTile(
                           icon: Icons.card_giftcard,
-                          title: 'Promosyon Kodu Kullan',
+                          title: context
+                              .watch<LanguageProvider>()
+                              .getString('promo_code'),
                           onTap: () => _showPromoCodeDialog(),
                         ),
                       ]),
@@ -221,9 +278,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       // Version
                       Center(
                         child: Text(
-                          'Version $_version',
+                          '${context.watch<LanguageProvider>().getString('version')} $_version',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: Colors.white.withOpacity(0.5),
                             fontSize: 14,
                           ),
                         ),
@@ -254,7 +311,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildSettingsCard(List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -298,7 +355,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
+                    color: Colors.white.withOpacity(0.6),
                     fontSize: 12,
                   ),
                 ),
@@ -333,7 +390,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: iconColor?.withValues(alpha: 0.2) ?? const Color(0xFF3D7AB8),
+                color: iconColor?.withOpacity(0.2) ?? const Color(0xFF3D7AB8),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: iconColor ?? Colors.white, size: 24),
@@ -355,7 +412,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        color: textColor?.withValues(alpha: 0.7) ?? Colors.white60,
+                        color: textColor?.withOpacity(0.7) ?? Colors.white60,
                         fontSize: 12,
                       ),
                     ),
@@ -364,7 +421,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             Icon(
               Icons.arrow_forward_ios,
-              color: textColor?.withValues(alpha: 0.5) ?? Colors.white54,
+              color: textColor?.withOpacity(0.5) ?? Colors.white54,
               size: 18,
             ),
           ],
@@ -400,25 +457,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A3A5C),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Çıkış Yap',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          context.read<LanguageProvider>().getString('logout'),
+          style: const TextStyle(color: Colors.white),
         ),
-        content: const Text(
-          'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
-          style: TextStyle(color: Colors.white70),
+        content: Text(
+          context.read<LanguageProvider>().getString('confirm_logout'),
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('İptal', style: TextStyle(color: Colors.white70)),
+            child: Text(context.read<LanguageProvider>().getString('cancel'),
+                style: const TextStyle(color: Colors.white70)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.shade700,
             ),
-            child: const Text('Çıkış Yap', style: TextStyle(color: Colors.white)),
+            child: Text(context.read<LanguageProvider>().getString('logout'),
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -426,21 +485,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (confirm == true && mounted) {
       await AuthService.instance.signOut();
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      }
     }
   }
 
   void _showTutorial() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => TutorialScreen(
-          onComplete: () => Navigator.of(context).pop(),
-        ),
+        builder: (_) => const TutorialScreen(),
       ),
     );
   }
@@ -451,26 +502,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
+      builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF1A3A5C),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
             children: [
-              Icon(Icons.card_giftcard, color: Colors.amber, size: 28),
-              SizedBox(width: 8),
+              const Icon(Icons.card_giftcard, color: Colors.amber, size: 28),
+              const SizedBox(width: 8),
               Text(
-                'Promosyon Kodu',
-                style: TextStyle(color: Colors.white),
+                context.read<LanguageProvider>().getString('promo_code_title'),
+                style: const TextStyle(color: Colors.white),
               ),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Premium kazanmak için promosyon kodunuzu girin:',
-                style: TextStyle(color: Colors.white70),
+              Text(
+                context.read<LanguageProvider>().getString('promo_code_body'),
+                style: const TextStyle(color: Colors.white70),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -478,10 +530,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 textCapitalization: TextCapitalization.characters,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Kodu girin...',
+                  hintText:
+                      context.read<LanguageProvider>().getString('enter_code'),
                   hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.1),
+                  fillColor: Colors.white.withOpacity(0.1),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -494,7 +547,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+              child: Text(context.read<LanguageProvider>().getString('cancel'),
+                  style: const TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
               onPressed: isLoading
@@ -505,15 +559,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                       setDialogState(() => isLoading = true);
 
-                      final result = await ShopService.instance.redeemPromoCode(code);
+                      final result =
+                          await ShopService.instance.redeemPromoCode(code);
 
                       setDialogState(() => isLoading = false);
 
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
+                      if (!mounted) return;
+                      Navigator.pop(dialogContext);
 
                       // Sonucu göster
-                      ScaffoldMessenger.of(this.context).showSnackBar(
+                      ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(result['message'] as String),
                           backgroundColor: result['success'] == true
@@ -536,7 +591,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Uygula'),
+                  : Text(context.read<LanguageProvider>().getString('apply')),
             ),
           ],
         ),
@@ -571,15 +626,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               // Title
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Row(
                   children: [
-                    Icon(Icons.menu_book, color: Colors.amber, size: 28),
-                    SizedBox(width: 12),
+                    const Icon(Icons.menu_book, color: Colors.amber, size: 28),
+                    const SizedBox(width: 12),
                     Text(
-                      'Oyun Rehberi',
-                      style: TextStyle(
+                      context.watch<LanguageProvider>().getString('game_guide'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -597,39 +653,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     _buildGuideSection(
                       icon: '🎮',
-                      title: 'WARDICT Nedir?',
-                      description: 'İngilizce kelime bilgini test et ve geliştir! '
-                          'Farklı oyun modlarıyla eğlenerek öğren.',
+                      title: context
+                          .read<LanguageProvider>()
+                          .getString('guide_title_1'),
+                      description: context
+                          .read<LanguageProvider>()
+                          .getString('guide_desc_1'),
                       color: const Color(0xFF6C27FF),
                     ),
                     _buildGuideSection(
                       icon: '⚔️',
-                      title: 'Duel Modu',
-                      description: 'Online rakiplerinle, arkadaşlarınla veya '
-                          'seviyene uygun botla 10 soruluk düellolara katıl!',
+                      title: context
+                          .read<LanguageProvider>()
+                          .getString('guide_title_2'),
+                      description: context
+                          .read<LanguageProvider>()
+                          .getString('guide_desc_2'),
                       color: const Color(0xFF2AA7FF),
                     ),
                     _buildGuideSection(
                       icon: '🎯',
-                      title: 'Daily 123',
-                      description: '123 saniyede 123 puana ulaşmaya çalış! '
-                          'Her gün yeni bir meydan okuma seni bekliyor. '
-                          'Hızlı ol, üst sıraları yakala!',
+                      title: context
+                          .read<LanguageProvider>()
+                          .getString('guide_title_3'),
+                      description: context
+                          .read<LanguageProvider>()
+                          .getString('guide_desc_3'),
                       color: const Color(0xFFFF6B6B),
                     ),
                     _buildGuideSection(
                       icon: '📚',
-                      title: 'Practice (70/30)',
-                      description: 'Kendi hızında pratik yap. '
-                          'A2 seviyesinden başla, başarına göre seviye atla!',
+                      title: context
+                          .read<LanguageProvider>()
+                          .getString('guide_title_4'),
+                      description: context
+                          .read<LanguageProvider>()
+                          .getString('guide_desc_4'),
                       color: const Color(0xFF00D9F5),
                     ),
-
                     _buildGuideSection(
                       icon: '⭐',
-                      title: 'Premium Özellikler',
-                      description: 'Premium üyelikle reklamsız deneyim, '
-                          'özel temalar, sınırsız duel ve daha fazlası!',
+                      title: context
+                          .read<LanguageProvider>()
+                          .getString('guide_title_5'),
+                      description: context
+                          .read<LanguageProvider>()
+                          .getString('guide_desc_5'),
                       color: const Color(0xFF00F5A0),
                     ),
                     const SizedBox(height: 20),
@@ -654,12 +723,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0.1)],
+          colors: [color.withOpacity(0.3), color.withOpacity(0.1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        border: Border.all(color: color.withOpacity(0.5)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -682,7 +751,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   description,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
+                    color: Colors.white.withOpacity(0.8),
                     fontSize: 14,
                     height: 1.4,
                   ),
@@ -693,6 +762,110 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildLanguageTile() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF3D7AB8),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.language, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              context.watch<LanguageProvider>().getString('language'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          DropdownButton<String>(
+            value: context.watch<LanguageProvider>().currentLanguage,
+            dropdownColor: const Color(0xFF1A3A5C),
+            style: const TextStyle(color: Colors.white),
+            underline: const SizedBox(),
+            items: const [
+              DropdownMenuItem(value: 'tr', child: Text('Türkçe 🇹🇷')),
+              DropdownMenuItem(value: 'en', child: Text('English 🇺🇸')),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                context.read<LanguageProvider>().setLanguage(value);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A3A5C),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            const SizedBox(width: 10),
+            Text(context.read<LanguageProvider>().getString('delete_account'),
+                style: const TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(
+          context.read<LanguageProvider>().getString('confirm_delete'),
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(context.read<LanguageProvider>().getString('cancel'),
+                style: const TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+            ),
+            child: Text(
+                context.read<LanguageProvider>().getString('delete_account'),
+                style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      try {
+        await AuthService.instance.deleteAccount();
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AuthService.instance.errorMessage ??
+                  'Error deleting account'),
+              backgroundColor: Colors.red.shade700,
+            ),
+          );
+        }
+      }
+    }
   }
 }
 
@@ -705,7 +878,7 @@ class VibrationHelper {
       HapticFeedback.heavyImpact();
     }
   }
-  
+
   static Future<bool> isEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('vibration_enabled') ?? true;

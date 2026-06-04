@@ -97,12 +97,12 @@ class _SupportScreenState extends State<SupportScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.support_agent, size: 80, color: Colors.white.withValues(alpha: 0.5)),
+          Icon(Icons.support_agent, size: 80, color: Colors.white.withAlpha(128)),
           const SizedBox(height: 16),
           Text(
             'Henüz destek talebiniz yok',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
+              color: Colors.white.withAlpha(179),
               fontSize: 18,
             ),
           ),
@@ -111,7 +111,7 @@ class _SupportScreenState extends State<SupportScreen> {
             'Yardıma mı ihtiyacınız var?\nYeni talep oluşturun!',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: Colors.white.withAlpha(128),
               fontSize: 14,
             ),
           ),
@@ -148,7 +148,7 @@ class _SupportScreenState extends State<SupportScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: Colors.white.withAlpha(26),
           borderRadius: BorderRadius.circular(16),
           border: ticket.unreadCount > 0
               ? Border.all(color: const Color(0xFF6C27FF), width: 2)
@@ -174,7 +174,7 @@ class _SupportScreenState extends State<SupportScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Color(ticket.statusColor).withValues(alpha: 0.2),
+                    color: Color(ticket.statusColor).withAlpha(51),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -209,7 +209,7 @@ class _SupportScreenState extends State<SupportScreen> {
                     child: Text(
                       lastMessage.message,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: Colors.white.withAlpha(179),
                         fontSize: 13,
                       ),
                       maxLines: 2,
@@ -226,7 +226,7 @@ class _SupportScreenState extends State<SupportScreen> {
                 Text(
                   _formatDate(ticket.updatedAt ?? ticket.createdAt),
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: Colors.white.withAlpha(128),
                     fontSize: 12,
                   ),
                 ),
@@ -311,16 +311,16 @@ class _SupportScreenState extends State<SupportScreen> {
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'Konu',
-                  labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                  labelStyle: TextStyle(color: Colors.white.withAlpha(179)),
                   hintText: 'Örn: Ödeme sorunu, Hesap problemi...',
-                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                  hintStyle: TextStyle(color: Colors.white.withAlpha(102)),
                   filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.1),
+                  fillColor: Colors.white.withAlpha(26),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
-                  prefixIcon: Icon(Icons.subject, color: Colors.white.withValues(alpha: 0.7)),
+                  prefixIcon: Icon(Icons.subject, color: Colors.white.withAlpha(179)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -330,11 +330,11 @@ class _SupportScreenState extends State<SupportScreen> {
                 maxLines: 4,
                 decoration: InputDecoration(
                   labelText: 'Mesajınız',
-                  labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                  labelStyle: TextStyle(color: Colors.white.withAlpha(179)),
                   hintText: 'Sorununuzu detaylı açıklayın...',
-                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                  hintStyle: TextStyle(color: Colors.white.withAlpha(102)),
                   filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.1),
+                  fillColor: Colors.white.withAlpha(26),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,

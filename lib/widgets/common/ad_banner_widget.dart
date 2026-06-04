@@ -6,7 +6,8 @@ import '../../models/premium.dart';
 
 // google_mobile_ads sadece mobil platformlarda çalışır
 import 'package:google_mobile_ads/google_mobile_ads.dart'
-    if (dart.library.html) 'ad_banner_web_stub.dart';
+    if (dart.library.html) 'ad_banner_web_stub.dart'
+    if (dart.library.js_util) 'ad_banner_web_stub.dart';
 
 /// Oyun sonu ekranlarında gösterilecek banner reklam widget'ı
 /// Chess.com tarzında alt kısımda sabit banner
@@ -62,9 +63,8 @@ class _AdBannerWidgetState extends State<AdBannerWidget> {
     // Web'de çalışmaz
     if (kIsWeb) return;
     
-    // Standart banner kullan (320x50)
-    // isMediumRectangle parametresi gelecekte kullanılabilir
-    const adSize = AdSize.banner;
+    // Eğer isMediumRectangle ise 300x250, değilse standart banner (320x50) kullan
+    final adSize = widget.isMediumRectangle ? AdSize.mediumRectangle : AdSize.banner;
     
     _bannerAd = BannerAd(
       adUnitId: AdService.instance.bannerAdUnitId,
@@ -102,9 +102,29 @@ class _AdBannerWidgetState extends State<AdBannerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Web'de reklam gösterme
+    // Web'de gerçek reklam yerine placeholder göster (Test amaçlı)
     if (kIsWeb) {
-      return const SizedBox.shrink();
+      return Container(
+        width: widget.isMediumRectangle ? 300 : double.infinity,
+        height: widget.isMediumRectangle ? 250 : widget.height,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white10,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white24, width: 1),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.ads_click, color: Colors.white24),
+            const SizedBox(height: 8),
+            Text(
+              'AD SPACE (${widget.isMediumRectangle ? "300x250" : "BANNER"})',
+              style: const TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      );
     }
     
     // Premium kullanıcı veya kapatıldıysa gösterme
@@ -115,83 +135,21 @@ class _AdBannerWidgetState extends State<AdBannerWidget> {
     // Standart banner yüksekliği
     final double adHeight = widget.height;
 
-    // Reklam yüklenmediyse placeholder göster
+    // Reklam yüklenmediyse yer kaplamasın (SizedBox.shrink döndür)
     if (!_isLoaded || _bannerAd == null) {
-      return Container(
-        height: adHeight,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.black45,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white12),
-        ),
-        child: Stack(
-          children: [
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.ad_units, 
-                    color: Colors.white30, 
-                    size: widget.isMediumRectangle ? 48 : 20,
-                  ),
-                  if (widget.isMediumRectangle) ...[
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Reklam Yükleniyor...',
-                      style: TextStyle(color: Colors.white30, fontSize: 14),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            // Premium rozetli köşe
-            Positioned(
-              right: 8,
-              top: 8,
-              child: GestureDetector(
-                onTap: () {
-                  _showPremiumDialog(context);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.star, color: Colors.amber, size: 12),
-                      SizedBox(width: 4),
-                      Text(
-                        'Reklamsız',
-                        style: TextStyle(
-                          color: Colors.amber,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
-    // Standart banner yüksekliği
-    final double realAdHeight = widget.height;
+    // Medium Rectangle için özel yükseklik veya standart banner yüksekliği
+    final double realAdHeight = widget.isMediumRectangle ? 250 : widget.height;
 
     // Gerçek reklam widget'ı
     return Container(
+      width: widget.isMediumRectangle ? 300 : double.infinity,
       height: realAdHeight,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
+        color: Colors.white.withAlpha(5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white12),
       ),

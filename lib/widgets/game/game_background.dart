@@ -2,8 +2,15 @@ import 'package:flutter/material.dart';
 
 class GameBackground extends StatelessWidget {
   final Widget child;
+  final String? backgroundImage;
+  final double imageOpacity;
 
-  const GameBackground({super.key, required this.child});
+  const GameBackground({
+    super.key, 
+    required this.child,
+    this.backgroundImage,
+    this.imageOpacity = 0.3,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +22,21 @@ class GameBackground extends StatelessWidget {
           end: Alignment.bottomCenter,
         ),
       ),
-      child: SafeArea(child: child),
+      child: Stack(
+        children: [
+          if (backgroundImage != null)
+            Positioned.fill(
+              child: Opacity(
+                opacity: imageOpacity,
+                child: Image.asset(
+                  backgroundImage!,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          SafeArea(child: child),
+        ],
+      ),
     );
   }
 }

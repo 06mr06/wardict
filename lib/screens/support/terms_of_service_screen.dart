@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 /// Kullanım Şartları Ekranı
 /// Play Store yayını için önerilen
@@ -112,8 +112,8 @@ Teknik sorunlardan kaynaklanan veri kayıplarından sorumlu değiliz.''',
               '10. İletişim',
               '''Sorularınız için bize ulaşın:
 
-📧 E-posta: support@wardict.app
-🌐 Web: https://wardict.app''',
+📧 E-posta: support@lugorena.app
+🌐 Web: https://lugorena.app''',
             ),
             const SizedBox(height: 40),
             Center(

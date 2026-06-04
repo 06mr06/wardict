@@ -223,18 +223,49 @@ class SupportService {
         });
   }
 
-  /// Kullanıcının tüm taleplerini izle (real-time)
-  Stream<List<SupportTicket>> watchMyTickets() {
-    final userId = AuthService.instance.userId;
-    if (userId == null) return Stream.value([]);
-
+  /// Tüm kullanıcıların tüm taleplerini izle (Admin için Real-time)
+  Stream<List<SupportTicket>> watchAllTickets() {
     return _firestore
         .collection(_collection)
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
+        .orderBy('updatedAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => SupportTicket.fromJson(doc.data(), docId: doc.id))
             .toList());
+  }
+
+  /// Admin olarak mesaj gönder
+  Future<bool> sendAdminMessage(String ticketId, String message) async {
+    try {
+      final now = DateTime.now();
+
+      final newMessage = SupportMessage(
+        id: '${ticketId}_admin_msg_${now.millisecondsSinceEpoch}',
+        senderId: 'admin_support',
+        senderName: 'Lugorena Destek',
+        isAdmin: true,
+        message: message,
+        createdAt: now,
+        isRead: false,
+      );
+
+      final ticketDoc = _firestore.collection(_collection).doc(ticketId);
+      final ticketSnap = await ticketDoc.get();
+      if (!ticketSnap.exists) return false;
+      
+      final currentUnread = (ticketSnap.data()?['unreadCount'] as int? ?? 0);
+
+      await ticketDoc.update({
+        'messages': FieldValue.arrayUnion([newMessage.toJson()]),
+        'updatedAt': Timestamp.fromDate(now),
+        'status': TicketStatus.answered.name,
+        'unreadCount': currentUnread + 1,
+      });
+
+      return true;
+    } catch (e) {
+      print('SupportService.sendAdminMessage error: $e');
+      return false;
+    }
   }
 }

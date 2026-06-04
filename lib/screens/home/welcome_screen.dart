@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/practice_provider.dart';
 import 'dart:async';
+import 'dart:math' as math;
 import '../../models/user_level.dart';
 import '../../models/premium.dart';
+import '../../models/quest.dart';
 import '../../services/user_profile_service.dart';
 import '../../services/word_pool_service.dart';
 import '../../services/shop_service.dart';
@@ -17,13 +20,26 @@ import '../../services/friend_service.dart';
 import '../../models/cosmetic_item.dart';
 import '../friends/friends_screen.dart';
 import '../shop/shop_screen.dart';
+import '../leaderboard/leaderboard_screen.dart';
 import '../../widgets/common/daily_reward_dialog.dart'; // Added import
+import '../../widgets/common/daily_quest_dialog.dart';
 
 import '../game/daily_123_intro_screen.dart';
+import '../game/daily_123_results_screen.dart';
 import '../game/matchmaking_screen.dart';
+import '../onboarding/intro_video_screen.dart';
 import '../onboarding/tutorial_screen.dart';
 import '../../services/online_duel_service.dart';
+import '../../services/weekly_practice_points_service.dart';
+import '../../models/online_duel.dart';
 import '../game/online_duel_screen.dart';
+import 'widgets/home_sheets.dart';
+import '../../providers/language_provider.dart';
+
+/// Alt gezinme: yan kareler ve orta pill aynı toplam yükseklik / hizada.
+const double _kBottomNavBoxSize = 72;
+const double _kBottomNavLabelGap = 6;
+const double _kBottomNavLabelHeight = 16;
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -41,11 +57,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   late AnimationController _bellAnimController;
   late Animation<double> _bellShakeAnim;
   Timer? _invitationTimer;
-  
+  StreamSubscription<DuelInvitation>? _invitationStreamSub;
+
   bool _isLoading = true;
   // ignore: unused_field - Test tamamlama durumu için saklanıyor
   final bool _hasCompletedTest = false;
-  bool _canPlayDaily123 = true;
   UserProfile? _userProfile;
   int _coins = 0;
   int _pendingInvitationsCount = 0;
@@ -56,9 +72,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      DailyRewardDialog.show(context);
-    });
+    WeeklyPracticePointsService.instance.refreshNotifier();
     WidgetsBinding.instance.addObserver(this);
     _pulseController = AnimationController(
       vsync: this,
@@ -92,10 +106,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     ]).animate(CurvedAnimation(parent: _bellAnimController, curve: Curves.easeInOut));
     
     _loadUserData().then((_) {
-      // Real-time davetleri dinle
-      OnlineDuelService.instance.listenForInvitations((match) {
+      _invitationStreamSub = OnlineDuelService.instance.onInvitationReceived.listen((invitation) {
         if (mounted) {
-          _showInvitationDialog(match);
+          _showInvitationDialog(invitation);
         }
       });
     });
@@ -108,9 +121,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // Uygulama ön plana geldiğinde coin'i güncelle
+    // Uygulama ön plana geldiğinde coin ve seri (profil) güncelle
     if (state == AppLifecycleState.resumed) {
       _refreshCoins();
+      unawaited(_refreshProfile());
     }
   }
   
@@ -155,22 +169,29 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     }
   }
 
-  void _showInvitationDialog(OnlineDuelMatch match) {
+  void _showInvitationDialog(DuelInvitation invitation) {
+    final lang = context.read<LanguageProvider>();
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2E5A8C),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Düello Daveti!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(
+          lang.getString('duel_invitation_title'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         content: Text(
-          '${match.hostUsername} seni düelloya davet ediyor! (Lig: ${match.leagueCode})',
+          lang.format('duel_invitation_message', {
+            'username': invitation.fromUser.username,
+            'leagueCode': invitation.leagueCode,
+          }),
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Reddet', style: TextStyle(color: Colors.white54)),
+            child: Text(lang.getString('decline'), style: const TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -182,7 +203,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
               navigator.pop();
               
               // Maça katıl
-              final joinedMatch = await OnlineDuelService.instance.joinMatch(match.matchId);
+              final joinedMatch = await OnlineDuelService.instance.acceptDuelInvitationAndGetMatch(invitation);
               
               if (joinedMatch != null && mounted) {
                 // Root navigator kullan (daha güvenli)
@@ -193,7 +214,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                 );
               } else if (mounted) {
                 scaffoldMessenger.showSnackBar(
-                  const SnackBar(content: Text('Maça katılamadı. Maç dolmuş veya silinmiş olabilir.')),
+                  SnackBar(content: Text(lang.getString('match_join_failed_snackbar'))),
                 );
               }
             },
@@ -201,7 +222,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
               backgroundColor: Colors.green,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Kabul Et', style: TextStyle(color: Colors.white)),
+            child: Text(lang.getString('accept'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -219,8 +240,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     await WordPoolService.instance.loadWordPool();
     await OnlineDuelService.instance.initialize(); // Eklendi
     var profile = await UserProfileService.instance.loadProfile();
-    final canPlayDaily = await Daily123Service.instance.canPlayToday();
-    
+    await UserProfileService.instance.fetchProfileFromFirestore();
+    profile = await UserProfileService.instance.loadProfile();
     // Firebase'den kullanıcı bilgilerini al ve lokal profili güncelle
     final authUser = AuthService.instance.user;
     if (authUser != null) {
@@ -249,9 +270,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     // Hoşgeldin hediyesi kontrolü
     final isNewUser = await ShopService.instance.checkAndGiveWelcomeGift();
     
-    // Günlük bonus
+    // Günlük bonus (profilde dailyStreak ve coin güncellenir)
     final dailyResult = await ShopService.instance.claimDailyBonus();
-    
+    profile = await UserProfileService.instance.loadProfile();
+
     final coins = await ShopService.instance.getCoins();
     final invitations = await FriendService.instance.getDuelInvitations();
     
@@ -261,7 +283,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     
     // Seçili çerçeveyi yükle
     final selectedFrame = await ShopService.instance.getSelectedCosmetic(CosmeticType.frame);
-    
+
+    if (!mounted) return;
     // Practice provider'ı profile'dan güncelle
     final practiceProvider = Provider.of<PracticeProvider>(context, listen: false);
     await practiceProvider.loadSessionFromProfile();
@@ -271,30 +294,39 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
         _userProfile = profile;
         _coins = coins;
         _pendingInvitationsCount = invitations.length;
-        _canPlayDaily123 = canPlayDaily;
         _isPremium = isPremium;
         _selectedFrameId = selectedFrame;
         _isLoading = false;
       });
       
-      // İlk girişte tutorial göster
+      final homeContext = context;
+      // İlk girişte: intro videosu, ardından tutorial
       final shouldShowTutorial = await TutorialScreen.shouldShowTutorial();
+      if (!mounted) return;
       if (shouldShowTutorial && mounted) {
-        await Navigator.of(context).push(
+        await Navigator.of(homeContext).push(
+          MaterialPageRoute<void>(
+            fullscreenDialog: true,
+            builder: (introContext) => IntroVideoScreen(
+              onComplete: () => Navigator.of(introContext).pop(),
+            ),
+          ),
+        );
+        if (!mounted) return;
+        await Navigator.of(homeContext).push(
           MaterialPageRoute(
-            builder: (context) => TutorialScreen(
+            builder: (tutorialContext) => TutorialScreen(
               onComplete: () async {
-                Navigator.of(context).pop();
-                // Tutorial bitince hoşgeldin hediyesi dialog'unu göster
+                Navigator.of(tutorialContext).pop();
+                if (!mounted) return;
+                // Tutorial bitince hoşgeldin (görsel diyalog; ödüller _loadUserData'da verildi)
                 if (isNewUser) {
-                  _showWelcomeGiftDialog();
+                  await DailyRewardDialog.showWelcomeGiftVisual(homeContext);
                 } else if (dailyResult['coins'] as int > 0) {
-                  _showDailyBonusDialog(dailyResult);
+                  await _showDailyBonusDialog(dailyResult);
                 }
-                // Sonra practice'e yönlendir
-                if (mounted) {
-                  Navigator.of(context).pushReplacementNamed('/7030');
-                }
+                if (!mounted) return;
+                Navigator.of(homeContext).pushReplacementNamed('/7030');
               },
             ),
           ),
@@ -302,9 +334,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       } else {
         // Tutorial gösterilmediyse normal şekilde dialog'ları göster
         if (isNewUser) {
-          _showWelcomeGiftDialog();
+          await DailyRewardDialog.showWelcomeGiftVisual(homeContext);
         } else if (dailyResult['coins'] as int > 0) {
-          _showDailyBonusDialog(dailyResult);
+          await _showDailyBonusDialog(dailyResult);
         }
       }
     }
@@ -313,57 +345,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     await UserProfileService.instance.syncProfileToFirestore();
   }
 
-  void _showWelcomeGiftDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2E5A8C),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Text('🎁', style: TextStyle(fontSize: 28)),
-            SizedBox(width: 10),
-            Text('Hoşgeldin Hediyesi!', style: TextStyle(color: Colors.white, fontSize: 20)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [const Color(0xFFFFD700).withValues(alpha: 0.3), const Color(0xFFFF8C00).withValues(alpha: 0.2)],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                'LUGORENA\'ya hoşgeldin! 🎉\n\n💰 100 Altın\n🃏 Tüm jokerlerden 2\'şer adet\n\nHediyeleriniz hesabınıza eklendi!',
-                style: TextStyle(color: Colors.white, fontSize: 16, height: 1.5),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2AA7FF),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Harika!', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _showDailyBonusDialog(Map<String, dynamic> result) async {
     final coins = result['coins'] as int;
     final streak = result['streak'] as int;
     final rewards = result['rewards'] as List<String>;
-    
+    final lang = context.read<LanguageProvider>();
+
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -373,7 +360,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
           children: [
             const Text('🔥', style: TextStyle(fontSize: 28)),
             const SizedBox(width: 10),
-            Text('$streak Gün Serisi!', style: const TextStyle(color: Colors.white, fontSize: 20)),
+            Text(
+              lang.format('daily_bonus_streak', {'streak': '$streak'}),
+              style: const TextStyle(color: Colors.white, fontSize: 20),
+            ),
           ],
         ),
         content: Column(
@@ -390,7 +380,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
               child: Column(
                 children: [
                   Text(
-                    '+$coins Altın 🪙',
+                    lang.format('coins_added', {'coins': '$coins'}),
                     style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   if (rewards.isNotEmpty) ...[
@@ -414,7 +404,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
               backgroundColor: const Color(0xFF2AA7FF),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Devam', style: TextStyle(color: Colors.white)),
+            child: Text(lang.getString('continue_btn'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -423,12 +413,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
 
   Future<void> _refreshProfile() async {
     final profile = await UserProfileService.instance.loadProfile();
+    final frame = await ShopService.instance.getSelectedCosmetic(CosmeticType.frame);
     if (mounted) {
       setState(() {
         _userProfile = profile;
-        // sessionsInRow ve diğer state güncelleniyor
+        _selectedFrameId = frame;
       });
     }
+  }
+
+  /// Mağazadan dönünce avatar/çerçeve ve coin ana ekranda güncellensin
+  Future<void> _refreshAfterShopVisit() async {
+    await _refreshProfile();
+    await _refreshCoins(animate: true);
   }
 
   @override
@@ -438,20 +435,28 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     _coinAnimController.dispose();
     _bellAnimController.dispose();
     _invitationTimer?.cancel();
+    _invitationStreamSub?.cancel();
     super.dispose();
   }
 
+  // ignore: unused_element - İleride duel kartı info ile bağlanabilir
   void _showDuelInfo() {
+    final lang = context.read<LanguageProvider>();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF2E5A8C),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Text('⚔️', style: TextStyle(fontSize: 28)),
-            SizedBox(width: 12),
-            Text('Duel Modu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            const Text('⚔️', style: TextStyle(fontSize: 28)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                lang.getString('duel_mode'),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -459,23 +464,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildInfoSection('🎯 Nasıl Oynanır?',
-                'Rakibinle 1v1 kelime yarışması! '
-                'Bot, online rakip veya arkadaşlarınla 10 soruluk maçlarda yarış. '
-                'En yüksek skoru alan kazanır!'),
+              _buildInfoSection(lang.getString('ws_duel_how_title'), lang.getString('ws_duel_how_body')),
               const SizedBox(height: 16),
-              _buildInfoSection('📊 ELO Puanlama Sistemi',
-                '• Standart ELO formülü kullanılır (Chess, Lichess gibi)\n'
-                '• Galibiyet: +5 ile +50 puan arası\n'
-                '• Mağlubiyet: -5 ile -50 puan arası\n'
-                '• Beraberlik: Beklenen sonuca göre değişir\n'
-                '• Güçlü rakibi yenmek: YÜKSEK kazanç (+25~+40)\n'
-                '• Zayıf rakibe kaybetmek: YÜKSEK kayıp (-25~-40)'),
+              _buildInfoSection(lang.getString('ws_duel_lp_title'), lang.getString('ws_duel_lp_body')),
               const SizedBox(height: 16),
-              _buildInfoSection('🤖 Mod Seçenekleri',
-                '• Online Rakip: Rastgele bir oyuncuyla eşleş\n'
-                '• Bot: AI rakibe karşı pratik yap (ELO: 1500)\n'
-                '• Arkadaş: Arkadaş listenden birini davet et'),
+              _buildInfoSection(lang.getString('ws_duel_modes_title'), lang.getString('ws_duel_modes_body')),
             ],
           ),
         ),
@@ -483,7 +476,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8FB6D9)),
-            child: const Text('Anladım!', style: TextStyle(color: Colors.white)),
+            child: Text(lang.getString('info_got_it'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -491,16 +484,22 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
   }
 
   void _showPracticeInfo() {
+    final lang = context.read<LanguageProvider>();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF2E5A8C),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Text('📚', style: TextStyle(fontSize: 28)),
-            SizedBox(width: 10),
-            Text('Practice (70/30)', style: TextStyle(color: Colors.white, fontSize: 20)),
+            const Text('📚', style: TextStyle(fontSize: 28)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                lang.getString('ws_practice_dialog_title'),
+                style: const TextStyle(color: Colors.white, fontSize: 20),
+              ),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -508,22 +507,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildInfoSection('🎯 Nasıl Oynanır?', 
-                'Her oturumda 10 soru cevaplayarak kelime bilginizi pekiştirirsiniz. '
-                'Sorular seviyenize göre otomatik olarak belirlenir.'),
+              _buildInfoSection(lang.getString('ws_practice_how_title'), lang.getString('ws_practice_how_body')),
               const SizedBox(height: 16),
-              _buildInfoSection('📊 Seviye Sistemi',
-                '• A2 seviyesinden başlarsınız\n'
-                '• %70+ başarı (7-10 doğru): Derhal üst seviyeye geçiş\n'
-                '• %30- başarı (0-3 doğru): Derhal alt seviyeye düşüş\n'
-                '• 4, 5 veya 6 doğru yaparsan aynı seviyede kalırsın.\n'
-                '• Seviyeler: A1 → A2 → B1 → B2 → C1 → C2'),
-              const SizedBox(height: 16),
-              _buildInfoSection('💰 Puanlama',
-                '• A seviyesi: +5 / -3 puan\n'
-                '• B seviyesi: +10 / -6 puan\n'
-                '• C seviyesi: +15 / -9 puan\n'
-                '• Hızlı cevaplar ekstra puan kazandırır!'),
+              _buildInfoSection(lang.getString('ws_practice_level_title'), lang.getString('ws_practice_level_body')),
             ],
           ),
         ),
@@ -531,24 +517,58 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF26A69A)),
-            child: const Text('Anladım!', style: TextStyle(color: Colors.white)),
+            child: Text(lang.getString('info_got_it'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
-  
+
+  /// Bugün oynanmışsa tam sonuç ekranı; değilse intro animasyonu.
+  Future<void> _navigateDaily123() async {
+    final latest = await Daily123Service.instance.getLatestResultForToday();
+    if (!mounted) return;
+    if (latest != null) {
+      final cached = await Daily123Service.instance.loadCachedAnswersForToday();
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Daily123ResultsScreen(
+            finalScore: latest.score,
+            timeSpent: latest.timeSeconds,
+            isWin: latest.isWin,
+            correctAnswers: cached.$1,
+            wrongAnswers: cached.$2,
+          ),
+        ),
+      );
+    } else {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const Daily123IntroScreen()),
+      );
+    }
+    if (mounted) _loadUserData();
+  }
+
   void _showDaily123Info() {
+    final lang = context.read<LanguageProvider>();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF2E5A8C),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Text('🎲', style: TextStyle(fontSize: 28)),
-            SizedBox(width: 10),
-            Text('Daily 123', style: TextStyle(color: Colors.white, fontSize: 20)),
+            const Text('🎲', style: TextStyle(fontSize: 28)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                lang.getString('daily_123'),
+                style: const TextStyle(color: Colors.white, fontSize: 20),
+              ),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -556,26 +576,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildInfoSection('🎯 Nasıl Oynanır?',
-                'Günde bir kez oynayabileceğin özel yarışma! '
-                'A1 seviyesinden başlarsın. Doğru cevaplarsan üst seviyeye, '
-                'yanlış cevaplarsan alt seviyeye geçersin.'),
+              _buildInfoSection(lang.getString('ws_daily_how_title'), lang.getString('ws_daily_how_body')),
               const SizedBox(height: 16),
-              _buildInfoSection('📊 Puanlama Sistemi (Doğru/Yanlış)',
-                '• A1: +2 / 0 puan\n'
-                '• A2: +3 / -1 puan\n'
-                '• B1: +5 / -2 puan\n'
-                '• B2: +7 / -3 puan\n'
-                '• C1: +9 / -5 puan\n'
-                '• C2: +11 / -7 puan'),
+              _buildInfoSection(lang.getString('ws_daily_score_title'), lang.getString('ws_daily_score_body')),
               const SizedBox(height: 16),
-              _buildInfoSection('⚠️ Önemli',
-                '• Ekstra puan bonusu YOK\n'
-                '• Seri puanı YOK\n'
-                '• Sadece seviye puanları geçerli!'),
+              _buildInfoSection(lang.getString('ws_daily_important_title'), lang.getString('ws_daily_important_body')),
               const SizedBox(height: 16),
-              _buildInfoSection('⏰ Günlük Sıfırlama',
-                'Her gün gece yarısı sıfırlanır. Yeni bir şans için yarını bekle!'),
+              _buildInfoSection(lang.getString('ws_daily_reset_title'), lang.getString('ws_daily_reset_body')),
             ],
           ),
         ),
@@ -583,7 +590,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF8A65)),
-            child: const Text('Anladım!', style: TextStyle(color: Colors.white)),
+            child: Text(lang.getString('info_got_it'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -615,76 +622,82 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     );
   }
 
-  void _startPractice({required bool hasCompletedPlacement}) {
-    // Artık her iki durumda da (/7030) SeventyThirtyScreen'e gidiyoruz.
-    // Tasarım birliği için PlacementTestScreen (Adaptif) kullanımı kaldırıldı.
-    Navigator.pushNamed(context, '/7030');
+  /// Kelime paketi seçim alt sayfası → Practice (/7030).
+  Future<void> _openPracticePackSelection() async {
+    final unlocked = await ShopService.instance.getUnlockedPacks();
+    if (!mounted) return;
+    final duelLevel = _userProfile?.level.code ?? 'A2';
+    final practiceLevel =
+        Provider.of<PracticeProvider>(context, listen: false).currentLevel;
+    HomeSheets.showCategorySelection(
+      context: context,
+      unlockedPacks: unlocked,
+      userLevel: duelLevel,
+      practiceLevelCode: practiceLevel,
+      onUserDataRefresh: _loadUserData,
+    );
   }
 
-  void _startDuel() {
-    // Kullanıcı ELO'su ile eşleşme başlat
+  /// Lugo (online) / Arkadaş / Bot alt menüsü.
+  void _openDuelSelection() {
     final userProfile = _userProfile;
     if (userProfile == null) return;
-    int userElo = 1000;
-    // Lig skorlarından uygun olanı seç
-    if (userProfile.level == UserLevel.a1 || userProfile.level == UserLevel.a2) {
-      userElo = userProfile.leagueScores.beginnerElo;
-    } else if (userProfile.level == UserLevel.b1 || userProfile.level == UserLevel.b2) {
-      userElo = userProfile.leagueScores.intermediateElo;
-    } else if (userProfile.level == UserLevel.c1 || userProfile.level == UserLevel.c2) {
-      userElo = userProfile.leagueScores.advancedElo;
-    }
-    // Online Düello
-    Navigator.push(context, MaterialPageRoute(
-      builder: (context) => MatchmakingScreen(
-        leagueCode: userProfile.level.code ?? 'A1', 
-        isBot: false,
-      ),
-    ));
-  }
-
-  void startBotDuel() {
-    // Kullanıcı seviyesine/ELO'suna göre lig kodunu otomatik belirle
-    final userProfile = _userProfile;
-    if (userProfile == null) return;
-
-    int userElo = 1000;
-    if (userProfile.level == UserLevel.a1 || userProfile.level == UserLevel.a2) {
-      userElo = userProfile.leagueScores.beginnerElo;
-    } else if (userProfile.level == UserLevel.b1 || userProfile.level == UserLevel.b2) {
-      userElo = userProfile.leagueScores.intermediateElo;
-    } else if (userProfile.level == UserLevel.c1 || userProfile.level == UserLevel.c2) {
-      userElo = userProfile.leagueScores.advancedElo;
-    }
-    Navigator.push(context, MaterialPageRoute(
-      builder: (context) => MatchmakingScreen(
-        leagueCode: userProfile.level.code ?? 'A1', 
-        isBot: true,
-      ),
-    ));
+    final league = userProfile.level.code;
+    HomeSheets.showDuelSelectionDialog(
+      context: context,
+      onLugoDuel: () {
+        Navigator.of(context).pop();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => MatchmakingScreen(
+              leagueCode: league,
+              isBot: false,
+            ),
+          ),
+        );
+      },
+      onBotDuel: () {
+        Navigator.of(context).pop();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => MatchmakingScreen(
+              leagueCode: league,
+              isBot: true,
+            ),
+          ),
+        );
+      },
+      onUserDataRefresh: _loadUserData,
+    );
   }
 
   // ignore: unused_element - Premium dialog için saklanıyor
   void _showPremiumRequiredDialog() {
+    final lang = context.read<LanguageProvider>();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF2E5A8C),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Text('👑', style: TextStyle(fontSize: 28)),
-            SizedBox(width: 10),
-            Text('Premium Gerekli', style: TextStyle(color: Colors.white)),
+            const Text('👑', style: TextStyle(fontSize: 28)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                lang.getString('premium_required_title'),
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'MaxiGame özelliği Premium üyelere özeldir!',
-              style: TextStyle(color: Colors.white70),
+            Text(
+              lang.getString('premium_required_body'),
+              style: const TextStyle(color: Colors.white70),
             ),
             const SizedBox(height: 16),
             Container(
@@ -693,15 +706,18 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                 color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Premium Avantajları:', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 8),
-                  Text('✓ 3-4 kişilik MaxiGame', style: TextStyle(color: Colors.white70)),
-                  Text('✓ Arkadaş odası oluşturma', style: TextStyle(color: Colors.white70)),
-                  Text('✓ Özel avatarlar ve çerçeveler', style: TextStyle(color: Colors.white70)),
-                  Text('✓ Reklamsız deneyim', style: TextStyle(color: Colors.white70)),
+                  Text(
+                    lang.getString('premium_benefits'),
+                    style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(lang.getString('benefit_maxigame'), style: const TextStyle(color: Colors.white70)),
+                  Text(lang.getString('benefit_friends'), style: const TextStyle(color: Colors.white70)),
+                  Text(lang.getString('benefit_cosmetics'), style: const TextStyle(color: Colors.white70)),
+                  Text(lang.getString('benefit_ads'), style: const TextStyle(color: Colors.white70)),
                 ],
               ),
             ),
@@ -710,44 +726,20 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Daha Sonra', style: TextStyle(color: Colors.white54)),
+            child: Text(lang.getString('later'), style: const TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              Navigator.pushNamed(context, '/shop');
+              Navigator.pushNamed(context, '/shop').then((_) => _refreshAfterShopVisit());
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFFD700),
             ),
-            child: const Text('Premium Ol', style: TextStyle(color: Colors.black87)),
+            child: Text(lang.getString('go_premium'), style: const TextStyle(color: Colors.black87)),
           ),
         ],
       ),
-    );
-  }
-
-
-
-  Widget _buildMenuCard({
-    required String title,
-    required String subtitle,
-    required String icon,
-    required Color color,
-    required VoidCallback onTap,
-    bool isLocked = false,
-    bool useGradient = true,
-    VoidCallback? onInfoTap,
-  }) {
-    return _MenuCard(
-      title: title,
-      subtitle: subtitle,
-      icon: icon,
-      color: color,
-      onTap: onTap,
-      isLocked: isLocked,
-      useGradient: useGradient,
-      onInfoTap: onInfoTap,
     );
   }
 
@@ -770,161 +762,148 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
       );
     }
 
-    return ChangeNotifierProvider(
-      create: (_) => PracticeProvider()..startSession(),
-      child: _buildMainScreen(),
-    );
+    // Kök uygulama [app.dart] PracticeProvider kullan; ikinci instance
+    // /7030 ile çakışıp boş oturum / sonsuz yüklenme yaratıyordu.
+    return _buildMainScreen();
   }
 
 
   Widget _buildMainScreen() {
     final practiceProvider = Provider.of<PracticeProvider>(context, listen: true);
+    final lang = context.watch<LanguageProvider>();
     final duelUnlocked = practiceProvider.duelUnlocked;
     final sessionsInRow = practiceProvider.sessionsInRow;
-    final hasCompletedPlacement = duelUnlocked || sessionsInRow >= 5;
+    const placementTarget = 3;
+    final hasCompletedPlacement = duelUnlocked || sessionsInRow >= placementTarget;
     final progressText = hasCompletedPlacement
-      ? 'Seviyene Göre Çalışmaya Devam Et'
-      : 'Seviye Tespiti: $sessionsInRow / 5';
-      
-    // Duel butonu için kalan yarış metni
-    String duelSubtitle;
-    if (hasCompletedPlacement) {
-      duelSubtitle = 'Arkadaşlarınla veya bota karşı yarış';
-    } else {
-      final kalan = 5 - sessionsInRow;
-      duelSubtitle = 'Seviye Tespiti: $sessionsInRow / 5';
-    }
-    // Motivasyon mesajı seçimi
-    // Motivasyon mesajı kaldırıldı
+        ? lang.getString('continue_practice')
+        : lang.format('level_test_progress_label', {
+            'current': '$sessionsInRow',
+            'total': '$placementTarget',
+          });
+    final duelSubtitle = hasCompletedPlacement
+        ? lang.getString('duel_desc')
+        : lang.format('level_test_progress_label', {
+            'current': '$sessionsInRow',
+            'total': '$placementTarget',
+          });
+    final levelCode = _userProfile?.level.code ?? 'A2';
+    final practiceLevelCode = practiceProvider.currentLevel;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF1A3A5C),
+      backgroundColor: const Color(0xFF102A57),
       body: Stack(
         children: [
-          // Arka plan gradyanı ve desen (opsiyonel)
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.topRight,
-                  radius: 1.5,
-                  colors: [Color(0xFF2E5A8C), Color(0xFF1A3A5C)],
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF193F78), Color(0xFF122B57), Color(0xFF0C1F43)],
                 ),
               ),
             ),
           ),
-          
+          Positioned.fill(
+            child: CustomPaint(painter: _HomeStarfieldPainter()),
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(0, -0.2),
+                    radius: 0.58,
+                    colors: [
+                      const Color(0xFF4D8DDF).withValues(alpha: 0.55),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
           SafeArea(
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
+                constraints: const BoxConstraints(maxWidth: 720),
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 16),
-                        // Üst Bar: Profil ve Para
-                        _buildTopBar(),
-                        const SizedBox(height: 24),
-                        
-                        // Karşılama Metni
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Master a new word every day!',
-                          style: TextStyle(
-                            color: Colors.white60,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        
-                        // Ana Menü Kartları (Grid)
-                        GridView.count(
-                          crossAxisCount: 1,
-                          childAspectRatio: 2.6,
-                          mainAxisSpacing: 12,
-                          physics: const NeverScrollableScrollPhysics(), // Kaydırma kaldırıldı
-                          shrinkWrap: true,
-                          children: [
-                            _buildMenuCard(
-                              title: hasCompletedPlacement ? 'Practice (70/30)' : 'LEVEL TEST',
-                              subtitle: hasCompletedPlacement ? 'Seviyene Göre Çalışmaya Devam Et' : progressText,
-                              icon: 'assets/images/menu_practice.jpg',
-                              color: const Color(0xFF26A69A), // Ocean Teal
-                              onTap: () => _startPractice(hasCompletedPlacement: hasCompletedPlacement),
-                              onInfoTap: _showPracticeInfo,
+                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
+                  child: Column(
+                    children: [
+                      _buildTopBar(),
+                      const SizedBox(height: 28),
+                      ValueListenableBuilder<int>(
+                        valueListenable:
+                            WeeklyPracticePointsService.instance.pointsNotifier,
+                        builder: (context, weeklyPts, _) {
+                          const cap = WeeklyPracticePointsService.displayMax;
+                          return _HomeShowcaseCard(
+                            title: lang.getString('home_showcase_practice'),
+                            subtitle: progressText,
+                            badgeText: practiceLevelCode,
+                            badgeTrailing: _WeeklyPracticeScoreBox(
+                              points: weeklyPts,
+                              cap: cap,
                             ),
-                            _buildMenuCard(
-                              title: 'Duel',
-                              subtitle: duelSubtitle,
-                              icon: 'assets/images/menu_duel.jpg',
-                              color: const Color(0xFF8FB6D9), // Soft Sky Blue
-                              onTap: duelUnlocked ? _startDuel : () {
+                            imagePath: 'assets/images/menu_practice.jpg',
+                            fallbackIcon: Icons.menu_book_rounded,
+                            accentColor: const Color(0xFF53D5D1),
+                            backgroundColors: const [
+                              Color(0xFF1C9EB5),
+                              Color(0xFF0C4878),
+                            ],
+                            imageSide: _CardImageSide.left,
+                            onTap: _openPracticePackSelection,
+                            onInfoTap: _showPracticeInfo,
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 18),
+                      _HomeShowcaseCard(
+                        title: lang.getString('home_showcase_duel'),
+                        subtitle: duelSubtitle,
+                        badgeText: levelCode,
+                        imagePath: 'assets/images/menu_duel.jpg',
+                        fallbackIcon: Icons.sports_kabaddi_rounded,
+                        accentColor: const Color(0xFF90AFFF),
+                        backgroundColors: const [Color(0xFF1D2E7E), Color(0xFF121D59)],
+                        imageSide: _CardImageSide.right,
+                        imageWidth: 0.44,
+                        imageContentScale: 0.84,
+                        isLocked: !duelUnlocked,
+                        onTap: duelUnlocked
+                            ? _openDuelSelection
+                            : () {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Duel modunu açmak için önce 5 adet Practice (70/30) oturumu tamamlamalısın.'),
-                                    duration: Duration(seconds: 3),
+                                  SnackBar(
+                                    content: Text(lang.getString('duel_locked_message')),
+                                    duration: const Duration(seconds: 3),
                                   ),
                                 );
                               },
-                              isLocked: !duelUnlocked,
-                              onInfoTap: _showDuelInfo,
-                              useGradient: false, // Gradyan kaldırıldı
-                            ),
-                            _buildMenuCard(
-                              title: 'Daily 123',
-                              subtitle: 'Günün rekorunu kırmak için yarış',
-                              icon: 'assets/images/menu_daily123.jpg',
-                              color: const Color(0xFFFF8A65), // Vibrant Coral (Davetlerin eski rengi)
-                              onTap: () async {
-                                if (_canPlayDaily123) {
-                                   await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const Daily123IntroScreen()),
-                                  );
-                                  _loadUserData();
-                                }
-                              },
-                              isLocked: !_canPlayDaily123,
-                              useGradient: false,
-                              onInfoTap: _showDaily123Info,
-                            ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 16),
-                        
-                        // Alt Butonlar (Daha canlı ve belirgin)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: _buildVibrantButton(
-                                icon: Icons.bookmark_rounded,
-                                label: 'My Words',
-                                color: const Color(0xFF4FC3F7), // Daha açık ve canlı bir mavi
-                                textColor: Colors.black87,
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedPoolScreen())),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildVibrantButton(
-                                icon: Icons.storefront_rounded,
-                                label: 'Market',
-                                color: const Color(0xFFFFD700), // Canlı Altın/Sarı
-                                textColor: Colors.black87,
-                                onTap: () => Navigator.pushNamed(context, '/shop').then((_) => _refreshCoins(animate: true)),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
+                        onInfoTap: _showDuelInfo,
+                      ),
+                      const SizedBox(height: 18),
+                      _HomeShowcaseCard(
+                        title: lang.getString('home_showcase_daily'),
+                        subtitle: lang.getString('daily_123_subtitle'),
+                        imagePath: 'assets/images/menu_daily123.jpg',
+                        fallbackIcon: Icons.emoji_events_rounded,
+                        accentColor: const Color(0xFFFFB254),
+                        backgroundColors: const [Color(0xFFE57E12), Color(0xFF8F4307)],
+                        imageSide: _CardImageSide.left,
+                        imageWidth: 0.62,
+                        imageContentScale: 0.84,
+                        imageAlignment: const Alignment(0, 0.16),
+                        onTap: _navigateDaily123,
+                        onInfoTap: _showDaily123Info,
+                      ),
+                      const SizedBox(height: 128),
+                      _buildBottomNavigation(),
+                    ],
                   ),
                 ),
               ),
@@ -935,168 +914,386 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     );
   }
 
-  /// Ana sayfada çerçeveli avatar widget'ı
-  Widget _buildAvatarWithFrame() {
-    // Çerçeve rengini belirle
+  /// Daire içini tam doldurur: kare görseller [BoxFit.cover] ile kırpılır, boşluk kalmaz.
+  Widget _buildHomeAvatarFill() {
+    const placeholder = Color(0xFF2E5A8C);
+    final avatarId = _userProfile?.avatarId;
+    if (avatarId == null || avatarId.isEmpty) {
+      return ColoredBox(
+        color: placeholder,
+        child: Center(
+          child: Text(
+            (_userProfile?.username.isNotEmpty == true)
+                ? _userProfile!.username[0].toUpperCase()
+                : 'P',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+        ),
+      );
+    }
+
+    String? assetPath;
+    if (avatarId.startsWith('assets/')) {
+      assetPath = avatarId;
+    } else {
+      final match =
+          CosmeticItem.availableItems.where((i) => i.id == avatarId).toList();
+      if (match.isNotEmpty) {
+        final preview = match.first.previewValue;
+        if (preview.startsWith('assets/')) assetPath = preview;
+      }
+    }
+
+    if (assetPath != null) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          const ColoredBox(color: placeholder),
+          Image.asset(
+            assetPath,
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            filterQuality: FilterQuality.medium,
+            errorBuilder: (_, __, ___) => const Center(
+              child: Text('👤', style: TextStyle(fontSize: 18)),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final match =
+        CosmeticItem.availableItems.where((i) => i.id == avatarId).toList();
+    if (match.isEmpty) {
+      return const ColoredBox(
+        color: placeholder,
+        child: Center(child: Text('👤', style: TextStyle(fontSize: 18))),
+      );
+    }
+
+    final preview = match.first.previewValue;
+    return ColoredBox(
+      color: placeholder,
+      child: Center(
+        child: Text(preview, style: const TextStyle(fontSize: 18)),
+      ),
+    );
+  }
+
+  /// Ana sayfada çerçeveli avatar — görsel dış daireyi [diameter] ile tam doldurur.
+  Widget _buildAvatarWithFrame(double diameter) {
     Color? frameColor;
-    double borderWidth = 0;
-    
+    double frameBorderWidth = 0;
+    bool isGradientFrame = false;
+
     if (_selectedFrameId != null && _selectedFrameId!.isNotEmpty) {
       final frames = CosmeticItem.availableItems.where((i) => i.id == _selectedFrameId);
       if (frames.isNotEmpty) {
         final frame = frames.first;
-        if (frame.previewValue != 'gradient') {
+        if (frame.previewValue == 'gradient') {
+          isGradientFrame = true;
+          frameBorderWidth = frame.borderWidth.toDouble();
+        } else {
           try {
-            // Hex rengi doğrula
             final hexValue = frame.previewValue.replaceAll('#', '');
             if (RegExp(r'^[0-9A-Fa-f]{6}$').hasMatch(hexValue)) {
               frameColor = Color(int.parse('FF$hexValue', radix: 16));
             }
           } catch (_) {}
+          frameBorderWidth = frame.borderWidth.toDouble();
         }
-        borderWidth = frame.borderWidth.toDouble();
       }
     }
-    
-    return Container(
-      padding: EdgeInsets.all(borderWidth > 0 ? borderWidth : 0),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: frameColor != null ? Border.all(color: frameColor, width: borderWidth) : null,
-      ),
-      child: CircleAvatar(
-        radius: 20,
-        backgroundColor: (_userProfile?.avatarId != null && _userProfile!.avatarId!.isNotEmpty)
-            ? Colors.transparent  // Avatar varsa şeffaf
-            : const Color(0xFF2E5A8C),  // Avatar yoksa koyu mavi
-        child: _userProfile?.avatarId != null && _userProfile!.avatarId!.isNotEmpty
-          ? Text(
-              CosmeticItem.availableItems.where((i) => i.id == _userProfile!.avatarId).isNotEmpty
-                  ? CosmeticItem.availableItems.firstWhere((i) => i.id == _userProfile!.avatarId).previewValue
-                  : '👤',
-              style: const TextStyle(fontSize: 18))
-          : Text(
-              (_userProfile?.username.isNotEmpty == true) 
-                  ? _userProfile!.username[0].toUpperCase() 
-                  : 'P',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-            ),
+
+    final fill = SizedBox(
+      width: diameter,
+      height: diameter,
+      child: ClipOval(
+        child: SizedBox.expand(
+          child: _buildHomeAvatarFill(),
+        ),
       ),
     );
+
+    if (isGradientFrame && frameBorderWidth > 0) {
+      return SizedBox(
+        width: diameter,
+        height: diameter,
+        child: Container(
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: SweepGradient(
+              colors: [
+                Color(0xFFFF0044),
+                Color(0xFFFF8C00),
+                Color(0xFFFFD600),
+                Color(0xFF00E676),
+                Color(0xFF00B0FF),
+                Color(0xFF7C4DFF),
+                Color(0xFFFF0044),
+              ],
+            ),
+          ),
+          padding: EdgeInsets.all(frameBorderWidth),
+          child: ClipOval(
+            child: SizedBox.expand(
+              child: _buildHomeAvatarFill(),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (frameColor != null && frameBorderWidth > 0) {
+      return SizedBox(
+        width: diameter,
+        height: diameter,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            fill,
+            IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: frameColor, width: frameBorderWidth),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return fill;
   }
 
   Widget _buildTopBar() {
+    final lang = context.watch<LanguageProvider>();
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Profil Bölümü
-        Flexible(
-          child: GestureDetector(
-            onTap: () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreenNew()));
-              _refreshProfile();
-              // Çerçeveyi de yeniden yükle
-              final frame = await ShopService.instance.getSelectedCosmetic(CosmeticType.frame);
-              if (mounted) {
-                setState(() => _selectedFrameId = frame);
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildAvatarWithFrame(),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      _userProfile?.username ?? 'Player',
-                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        
-        // Davet Bildirimi - Animasyonlu Zil
-        AnimatedBuilder(
-          animation: _bellShakeAnim,
-          builder: (context, child) => Transform.rotate(
-            angle: _bellShakeAnim.value,
-            child: child,
-          ),
-          child: Stack(
-            clipBehavior: Clip.none,
+        GestureDetector(
+          onTap: () async {
+            await Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreenNew()));
+            _refreshProfile();
+            final frame = await ShopService.instance.getSelectedCosmetic(CosmeticType.frame);
+            if (mounted) {
+              setState(() => _selectedFrameId = frame);
+            }
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                onPressed: () {
-                  // Bildirim sayısını sıfırla
-                  setState(() {
-                    _pendingInvitationsCount = 0;
-                  });
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const FriendsScreen()));
-                },
-                icon: const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 28),
-              ),
-              if (_pendingInvitationsCount > 0)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.redAccent,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                    child: Text(
-                      '$_pendingInvitationsCount',
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.45), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 14, offset: const Offset(0, 6)),
+                  ],
                 ),
+                child: ClipOval(
+                  clipBehavior: Clip.antiAlias,
+                  child: _buildAvatarWithFrame(70),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _userProfile?.username ?? 'Player',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  shadows: [Shadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 2))],
+                ),
+              ),
             ],
           ),
         ),
-
-        // Coin Göstergesi - Animasyonlu
-        AnimatedBuilder(
-          animation: _coinScaleAnim,
-          builder: (context, child) => Transform.scale(
-            scale: _coinScaleAnim.value,
-            child: child,
-          ),
+        const SizedBox(width: 12),
+        Expanded(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFD700).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
+              color: const Color(0xFF10244C).withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.18), width: 1.2),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.22), blurRadius: 16, offset: const Offset(0, 6)),
+              ],
             ),
             child: Row(
               children: [
-                const Text('🪙', style: TextStyle(fontSize: 16)),
-                const SizedBox(width: 6),
-                Text(
-                  '$_coins',
-                  style: const TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.w900, fontSize: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🔥', style: TextStyle(fontSize: 16)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${_userProfile?.dailyStreak ?? 0}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 8),
-                // Market coin sayfasına git butonu
-                GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ShopScreen(initialTabIndex: 2)),
-                  ).then((_) => _refreshCoins(animate: true)),
-                  child: const Icon(Icons.add_circle_outline, color: Color(0xFFFFD700), size: 20),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => DailyQuestDialog.show(
+                      context,
+                      onRefresh: () => _refreshCoins(animate: true),
+                      onNavigate: (QuestType type) {
+                        switch (type) {
+                          case QuestType.winDuels:
+                          case QuestType.buddyDuel:
+                            final duelUnlocked = context.read<PracticeProvider>().duelUnlocked;
+                            if (duelUnlocked) {
+                              _openDuelSelection();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(lang.getString('duel_locked_message')),
+                                  duration: const Duration(seconds: 3),
+                                ),
+                              );
+                            }
+                            break;
+                          case QuestType.daily123Play:
+                            unawaited(_navigateDaily123());
+                            break;
+                          case QuestType.buyItem:
+                          case QuestType.usePowerup:
+                          case QuestType.equipItem:
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const ShopScreen(initialTabIndex: 0)),
+                            ).then((_) => _refreshAfterShopVisit());
+                            break;
+                          default:
+                            unawaited(_openPracticePackSelection());
+                            break;
+                        }
+                      },
+                    ),
+                    child: Container(
+                      height: 42,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [Color(0xFF6CCB17), Color(0xFF2F8D0B)]),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFA9F55D), width: 1.4),
+                        boxShadow: [
+                          BoxShadow(color: const Color(0xFF88E230).withValues(alpha: 0.24), blurRadius: 10),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 10),
+                                child: Text(
+                                  context.watch<LanguageProvider>().getString('home_quest_pill'),
+                                  maxLines: 1,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.check_rounded, color: Color(0xFFD8FF89), size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                AnimatedBuilder(
+                  animation: _bellShakeAnim,
+                  builder: (context, child) => Transform.rotate(angle: _bellShakeAnim.value, child: child),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      _TopCapsuleIconButton(
+                        icon: Icons.notifications_none_rounded,
+                        onTap: () {
+                          setState(() {
+                            _pendingInvitationsCount = 0;
+                          });
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => const FriendsScreen()));
+                        },
+                      ),
+                      if (_pendingInvitationsCount > 0)
+                        Positioned(
+                          top: -4,
+                          right: -4,
+                          child: Container(
+                            width: 20,
+                            height: 20,
+                            decoration: const BoxDecoration(color: Color(0xFFF36C2E), shape: BoxShape.circle),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '$_pendingInvitationsCount',
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AnimatedBuilder(
+                  animation: _coinScaleAnim,
+                  builder: (context, child) => Transform.scale(scale: _coinScaleAnim.value, child: child),
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ShopScreen(initialTabIndex: 2)),
+                    ).then((_) => _refreshAfterShopVisit()),
+                    child: Container(
+                      height: 42,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0C1D3D),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.monetization_on_rounded, color: Color(0xFFFFC83D), size: 22),
+                          const SizedBox(width: 8),
+                          Text(
+                            '$_coins',
+                            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1106,6 +1303,37 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     );
   }
 
+  Widget _buildBottomNavigation() {
+    final lang = context.watch<LanguageProvider>();
+    final myWordsLabel = lang.getString('my_words').toUpperCase();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _BottomNavSquareButton(
+          icon: Icons.storefront_rounded,
+          label: lang.getString('shop'),
+          onTap: () => Navigator.pushNamed(context, '/shop').then((_) => _refreshAfterShopVisit()),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: _BottomNavPillButton(
+            icon: Icons.edit_note_rounded,
+            label: myWordsLabel,
+            badgeCount: 0,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedPoolScreen())),
+          ),
+        ),
+        const SizedBox(width: 14),
+        _BottomNavSquareButton(
+          icon: Icons.star_rounded,
+          label: lang.getString('ranking'),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LeaderboardScreen())),
+        ),
+      ],
+    );
+  }
+
+  // ignore: unused_element - Eski menü varyantı; tekrar kullanılabilir
   Widget _buildVibrantButton({
     required IconData icon,
     required String label,
@@ -1197,12 +1425,30 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     );
   }
 
+  String _levelRowDescription(UserLevel level, LanguageProvider lang) {
+    switch (level) {
+      case UserLevel.a1:
+        return lang.getString('level_row_a1');
+      case UserLevel.a2:
+        return lang.getString('level_row_a2');
+      case UserLevel.b1:
+        return lang.getString('level_row_b1');
+      case UserLevel.b2:
+        return lang.getString('level_row_b2');
+      case UserLevel.c1:
+        return lang.getString('level_row_c1');
+      case UserLevel.c2:
+        return lang.getString('level_row_c2');
+    }
+  }
+
   // ignore: unused_element - Level info dialog için saklanıyor
   void _showLevelInfo(BuildContext context) {
+    final lang = context.read<LanguageProvider>();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      builder: (modalContext) => Container(
         padding: const EdgeInsets.all(24),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -1224,35 +1470,34 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Seviye Bilgisi',
-              style: TextStyle(
+            Text(
+              lang.getString('level_info_title'),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 20),
-            _buildLevelRow(UserLevel.a1, 'Temel kelimeler'),
-            _buildLevelRow(UserLevel.a2, 'Günlük kelimeler'),
-            _buildLevelRow(UserLevel.b1, 'Orta düzey'),
-            _buildLevelRow(UserLevel.b2, 'İleri düzey'),
-            _buildLevelRow(UserLevel.c1, 'Akademik'),
-            _buildLevelRow(UserLevel.c2, 'Uzman'),
+            _buildLevelRow(UserLevel.a1, lang),
+            _buildLevelRow(UserLevel.a2, lang),
+            _buildLevelRow(UserLevel.b1, lang),
+            _buildLevelRow(UserLevel.b2, lang),
+            _buildLevelRow(UserLevel.c1, lang),
+            _buildLevelRow(UserLevel.c2, lang),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () async {
-                  Navigator.pop(context);
-                  // Seviye seçim ekranına git
+                  final rootContext = context;
+                  Navigator.pop(modalContext);
                   await UserProfileService.instance.resetAll();
-                  if (mounted) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LevelSelectionScreen()),
-                    );
-                  }
+                  if (!rootContext.mounted) return;
+                  Navigator.pushReplacement(
+                    rootContext,
+                    MaterialPageRoute(builder: (context) => const LevelSelectionScreen()),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
@@ -1261,9 +1506,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  'Seviyemi Değiştir',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                child: Text(
+                  lang.getString('level_change_button'),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -1274,7 +1519,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildLevelRow(UserLevel level, String description) {
+  Widget _buildLevelRow(UserLevel level, LanguageProvider lang) {
+    final description = _levelRowDescription(level, lang);
+    final levelName =
+        lang.currentLanguage == 'en' ? level.englishName : level.turkishName;
     final isCurrentLevel = _userProfile?.level == level;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -1309,7 +1557,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
           ),
           const SizedBox(width: 12),
           Text(
-            level.turkishName,
+            levelName,
             style: TextStyle(
               color: Colors.white,
               fontSize: 16,
@@ -1358,12 +1606,9 @@ class _MenuCard extends StatefulWidget {
   final String icon;
   final Color color;
   final VoidCallback onTap;
-  final bool isLocked;
   final bool isSmall;
   final IconData? customIcon;
   final Color textColor;
-  final bool useGradient;
-  final VoidCallback? onInfoTap;
 
   const _MenuCard({
     required this.title,
@@ -1371,13 +1616,10 @@ class _MenuCard extends StatefulWidget {
     required this.icon,
     required this.color,
     required this.onTap,
-    this.isLocked = false,
     this.isSmall = false,
     this.customIcon,
     this.textColor = Colors.white,
     this.badgeCount = 0,
-    this.useGradient = true,
-    this.onInfoTap,
   });
 
   final int badgeCount;
@@ -1395,24 +1637,22 @@ class _MenuCardState extends State<_MenuCard> {
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
-      onTap: widget.isLocked ? null : widget.onTap,
+      onTap: widget.onTap,
       child: AnimatedScale(
         scale: _isPressed ? 0.96 : 1.0,
         duration: const Duration(milliseconds: 100),
         child: Container(
           padding: EdgeInsets.all(widget.isSmall ? 16 : 20),
           decoration: BoxDecoration(
-            gradient: (widget.isLocked || !widget.useGradient)
-              ? null 
-              : LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color.alphaBlend(Colors.white.withValues(alpha: 0.15), widget.color),
-                    widget.color,
-                  ],
-                ),
-            color: widget.isLocked ? Colors.grey.shade900 : (widget.useGradient ? null : widget.color),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color.alphaBlend(Colors.white.withValues(alpha: 0.15), widget.color),
+                widget.color,
+              ],
+            ),
+            color: null,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: Colors.white.withValues(alpha: 0.1),
@@ -1421,7 +1661,7 @@ class _MenuCardState extends State<_MenuCard> {
             boxShadow: [
               // 3D Gölge Efekti
               BoxShadow(
-                color: (widget.isLocked ? Colors.black : widget.color).withValues(alpha: 0.35),
+                color: widget.color.withValues(alpha: 0.35),
                 offset: const Offset(0, 8),
                 blurRadius: 16,
                 spreadRadius: -4,
@@ -1468,9 +1708,7 @@ class _MenuCardState extends State<_MenuCard> {
             borderRadius: BorderRadius.circular(18),
           ),
           alignment: Alignment.center,
-          child: widget.isLocked 
-            ? const Text('🔒', style: TextStyle(fontSize: 32))
-            : widget.icon.startsWith('assets/')
+          child: widget.icon.startsWith('assets/')
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.asset(widget.icon, fit: BoxFit.cover, width: 44, height: 44),
@@ -1495,20 +1733,7 @@ class _MenuCardState extends State<_MenuCard> {
             ],
           ),
         ),
-        if (widget.onInfoTap != null)
-          GestureDetector(
-            onTap: widget.onInfoTap,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.info_outline, color: Colors.white70, size: 20),
-            ),
-          )
-        else
-          const Icon(Icons.chevron_right_rounded, color: Colors.white54),
+        const Icon(Icons.chevron_right_rounded, color: Colors.white54),
       ],
     );
   }
@@ -1526,4 +1751,586 @@ class _MenuCardState extends State<_MenuCard> {
       ],
     );
   }
+}
+
+enum _CardImageSide { left, right }
+
+/// Ana menü vitrin kartları — tüm köşe yarıçapları bu değerle (clip uyumu).
+const double _kShowcaseCardRadius = 28;
+
+/// Seviye rozeti (yeşil) ile aynı satırda; turkuaz zemin, beyaz yazı.
+class _WeeklyPracticeScoreBox extends StatelessWidget {
+  final int points;
+  final int cap;
+
+  const _WeeklyPracticeScoreBox({
+    required this.points,
+    required this.cap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2AB7C8), Color(0xFF1780A0)],
+        ),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.85),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        '$points/$cap',
+        style: GoogleFonts.firaCode(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+          height: 1.1,
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeShowcaseCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String? badgeText;
+  final Widget? badgeTrailing;
+  final String imagePath;
+  final IconData fallbackIcon;
+  final List<Color> backgroundColors;
+  final Color accentColor;
+  final _CardImageSide imageSide;
+  final double imageWidth;
+  final bool isLocked;
+  final VoidCallback onTap;
+  final VoidCallback? onInfoTap;
+  /// Kapak görselinin [BoxFit.cover] hizası; null ise sol/sağ panele göre merkezlenir.
+  final Alignment? imageAlignment;
+
+  /// 1.0 = düz cover. 0.94 gibi: gerçek zoom out (bitmap’te daha fazla alan görünür) — slot boyutu değişmez,
+  /// kenarda boşluk olmaz; içeride [SizedBox] w/s,h/s + [Transform.scale](s) ile dengelenir.
+  final double imageContentScale;
+
+  const _HomeShowcaseCard({
+    required this.title,
+    required this.subtitle,
+    this.badgeText,
+    this.badgeTrailing,
+    required this.imagePath,
+    required this.fallbackIcon,
+    required this.backgroundColors,
+    required this.accentColor,
+    required this.imageSide,
+    required this.onTap,
+    this.onInfoTap,
+    this.imageWidth = 0.5,
+    this.isLocked = false,
+    this.imageAlignment,
+    this.imageContentScale = 1.0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxW = constraints.maxWidth;
+        final isNarrow = maxW < 420;
+        // Dar ekranda kapak görselini daralt; başlık / alt başlık için alan aç
+        final effImageWidth = isNarrow ? math.min(imageWidth, 0.44) : imageWidth;
+        final imagePaneWidth = maxW * effImageWidth;
+        // Görseli metne hafif bindir; asıl yumuşak geçiş dar tutuldu (karakterler uzun soluk alanda kaybolmasın).
+        const seamOverlap = 12.0;
+        final imageSlotW = imagePaneWidth + seamOverlap;
+
+        Widget buildPhoto() {
+          final alignment = imageAlignment ??
+              (imageSide == _CardImageSide.right
+                  ? Alignment.centerRight
+                  : Alignment.centerLeft);
+
+          Widget imageLayer(BoxConstraints c) {
+            final w = c.maxWidth;
+            final h = c.maxHeight;
+            final img = Image.asset(
+              imagePath,
+              fit: BoxFit.cover,
+              alignment: alignment,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (context, error, stackTrace) => ColoredBox(
+                color: Colors.white.withValues(alpha: 0.08),
+                child: Center(
+                  child: Icon(fallbackIcon, color: Colors.white70, size: 42),
+                ),
+              ),
+            );
+            final s = imageContentScale;
+            if (s < 1.0 && s > 0.5) {
+              // Zoom out: daha büyük sanal tuval + scale(s) → çizilen alan w×h; kenarda boşluk yok.
+              // OverflowBox ile sıkı (tight) parent constraintlerini eziyoruz ki w/s gerçekten w/s olabilsin.
+              return ClipRect(
+                child: OverflowBox(
+                  minWidth: w / s,
+                  maxWidth: w / s,
+                  minHeight: h / s,
+                  maxHeight: h / s,
+                  child: Transform.scale(
+                    scale: s,
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                      width: w / s,
+                      height: h / s,
+                      child: img,
+                    ),
+                  ),
+                ),
+              );
+            }
+            return img;
+          }
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final layered = imageLayer(constraints);
+              return ShaderMask(
+                blendMode: BlendMode.dstIn,
+                shaderCallback: (Rect bounds) {
+                  if (imageSide == _CardImageSide.left) {
+                    return const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        Color(0xFFFFFFFF),
+                        Color(0xFFFFFFFF),
+                        Color(0xCCFFFFFF),
+                        Color(0x66FFFFFF),
+                        Color(0x00FFFFFF),
+                        Color(0x00FFFFFF),
+                      ],
+                      stops: [0.0, 0.50, 0.75, 0.90, 0.98, 1.0],
+                    ).createShader(bounds);
+                  }
+                  return const LinearGradient(
+                    begin: Alignment.centerRight,
+                    end: Alignment.centerLeft,
+                    colors: [
+                      Color(0xFFFFFFFF),
+                      Color(0xFFFFFFFF),
+                      Color(0xCCFFFFFF),
+                      Color(0x66FFFFFF),
+                      Color(0x00FFFFFF),
+                      Color(0x00FFFFFF),
+                    ],
+                    stops: [0.0, 0.50, 0.75, 0.90, 0.98, 1.0],
+                  ).createShader(bounds);
+                },
+                child: layered,
+              );
+            },
+          );
+        }
+
+        final image = Stack(
+          fit: StackFit.expand,
+          children: [
+            buildPhoto(),
+            if (isLocked)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  child: const Center(
+                    child: Icon(Icons.lock_rounded, color: Colors.white70, size: 34),
+                  ),
+                ),
+              ),
+          ],
+        );
+
+        final textBlock = Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isNarrow ? 19 : 24,
+                      fontWeight: FontWeight.w900,
+                      height: 1.05,
+                      shadows: const [
+                        Shadow(color: Colors.black38, blurRadius: 5, offset: Offset(0, 2)),
+                      ],
+                    ),
+                  ),
+                ),
+                if (onInfoTap != null) ...[
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: onInfoTap,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.15),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.info_outline, color: Colors.white, size: 16),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              maxLines: isNarrow ? 3 : 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.88),
+                fontSize: isNarrow ? 12.5 : 14,
+                fontWeight: FontWeight.w500,
+                height: 1.25,
+              ),
+            ),
+            if (badgeText != null || badgeTrailing != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (badgeText != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF66D143), Color(0xFF2D8A1F)],
+                        ),
+                        borderRadius: BorderRadius.circular(7),
+                        border: Border.all(color: const Color(0xFFA8F46E), width: 1),
+                      ),
+                      child: Text(
+                        badgeText!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  if (badgeText != null && badgeTrailing != null)
+                    const SizedBox(width: 8),
+                  if (badgeTrailing != null) badgeTrailing!,
+                ],
+              ),
+            ],
+          ],
+        );
+
+        return GestureDetector(
+          onTap: onTap,
+          child: Container(
+            height: isNarrow ? 136 : 128,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: backgroundColors,
+              ),
+              borderRadius: BorderRadius.circular(_kShowcaseCardRadius),
+              // Kontur çizgisi yok (referans tasarım); derinlik için gölge yeterli
+              boxShadow: [
+                BoxShadow(color: accentColor.withValues(alpha: 0.22), blurRadius: 20, offset: const Offset(0, 10)),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.22), blurRadius: 14, offset: const Offset(0, 5)),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(_kShowcaseCardRadius),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: backgroundColors,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white.withValues(alpha: 0.07),
+                            Colors.transparent,
+                            Colors.white.withValues(alpha: 0.03),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (imageSide == _CardImageSide.left)
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: imageSlotW,
+                      child: image,
+                    ),
+                  if (imageSide == _CardImageSide.right)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: imageSlotW,
+                      child: image,
+                    ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      imageSide == _CardImageSide.left ? imagePaneWidth + 16 : 18,
+                      14,
+                      imageSide == _CardImageSide.right
+                          ? imagePaneWidth + 18
+                          : 22,
+                      14,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: textBlock,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TopCapsuleIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _TopCapsuleIconButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: const Color(0xFF0C1D3D),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        alignment: Alignment.center,
+        child: Icon(icon, color: Colors.white, size: 24),
+      ),
+    );
+  }
+}
+
+class _BottomNavSquareButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _BottomNavSquareButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: _kBottomNavBoxSize,
+            height: _kBottomNavBoxSize,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFF122D59), Color(0xFF0B1A39)]),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.22), blurRadius: 10, offset: const Offset(0, 6)),
+              ],
+            ),
+            child: Icon(icon, color: const Color(0xFFFFC62D), size: 34),
+          ),
+          const SizedBox(height: _kBottomNavLabelGap),
+          SizedBox(
+            height: _kBottomNavLabelHeight,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 12, height: 1.1),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BottomNavPillButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final int badgeCount;
+  final VoidCallback onTap;
+
+  const _BottomNavPillButton({
+    required this.icon,
+    required this.label,
+    required this.badgeCount,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: _kBottomNavBoxSize,
+            child: Center(
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    height: 60,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [Color(0xFF162D64), Color(0xFF0A1735)]),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: const Color(0xFFE0B640), width: 2),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 6)),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, color: const Color(0xFFFFCF49), size: 24),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (badgeCount > 0)
+                    Positioned(
+                      top: 0,
+                      right: 8,
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFFC92D),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '$badgeCount',
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: _kBottomNavLabelGap),
+          const SizedBox(height: _kBottomNavLabelHeight),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeStarfieldPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    final stars = <Offset>[
+      const Offset(0.06, 0.08), const Offset(0.18, 0.12), const Offset(0.84, 0.1), const Offset(0.92, 0.18),
+      const Offset(0.12, 0.26), const Offset(0.28, 0.2), const Offset(0.74, 0.28), const Offset(0.88, 0.34),
+      const Offset(0.07, 0.42), const Offset(0.26, 0.5), const Offset(0.62, 0.46), const Offset(0.94, 0.54),
+      const Offset(0.1, 0.68), const Offset(0.23, 0.76), const Offset(0.76, 0.74), const Offset(0.9, 0.82),
+      const Offset(0.04, 0.92), const Offset(0.17, 0.88), const Offset(0.58, 0.9), const Offset(0.84, 0.96),
+    ];
+
+    for (var i = 0; i < stars.length; i++) {
+      final offset = Offset(stars[i].dx * size.width, stars[i].dy * size.height);
+      final radius = i.isEven ? 1.8 : 1.1;
+      final alpha = i % 3 == 0 ? 0.65 : 0.32;
+      paint.color = Colors.white.withValues(alpha: alpha);
+      canvas.drawCircle(offset, radius, paint);
+      if (i % 4 == 0) {
+        paint.color = const Color(0xFFB7D9FF).withValues(alpha: 0.2);
+        canvas.drawCircle(offset, radius * 2.8, paint);
+      }
+    }
+
+    final random = math.Random(7);
+    for (var i = 0; i < 90; i++) {
+      final offset = Offset(random.nextDouble() * size.width, random.nextDouble() * size.height);
+      final radius = random.nextDouble() * 1.2 + 0.35;
+      paint.color = Colors.white.withValues(alpha: 0.06 + random.nextDouble() * 0.14);
+      canvas.drawCircle(offset, radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

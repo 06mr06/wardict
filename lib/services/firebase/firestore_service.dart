@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../models/user_level.dart';
 import 'auth_service.dart';
+import '../online_duel_service.dart';
 
 /// Firestore kullanıcı profili modeli
 class CloudUserProfile {
@@ -22,6 +23,10 @@ class CloudUserProfile {
   final DateTime lastPlayedAt;
   final String? avatarId;
   final String? photoURL;
+  final int coins;
+  final String? frameId;
+  final bool isOnline;
+  final bool hasReceivedWelcomeGift;
 
   CloudUserProfile({
     required this.odlevel,
@@ -33,7 +38,7 @@ class CloudUserProfile {
     this.gamesPlayed = 0,
     this.duelWins = 0,
     this.duelLosses = 0,
-    this.leagueScores = const {},
+    this.leagueScores = const {'A': 1500, 'B': 1500, 'C': 1500},
     this.achievements = const [],
     this.friends = const [],
     this.weeklyGained = 0,
@@ -41,29 +46,46 @@ class CloudUserProfile {
     DateTime? lastPlayedAt,
     this.avatarId,
     this.photoURL,
+    this.coins = 0,
+    this.frameId,
+    this.isOnline = false,
+    this.hasReceivedWelcomeGift = false,
   })  : createdAt = createdAt ?? DateTime.now(),
         lastPlayedAt = lastPlayedAt ?? DateTime.now();
 
   factory CloudUserProfile.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final rawCreatedAt = data['createdAt'];
+    final rawLastPlayedAt = data['lastPlayedAt'];
+    
     return CloudUserProfile(
       odlevel: doc.id,
       level: data['level'] ?? 'A1',
       username: data['username'] ?? 'Player',
       email: data['email'],
-      totalScore: data['totalScore'] ?? 0,
-      practiceScore: data['practiceScore'] ?? 0,
-      gamesPlayed: data['gamesPlayed'] ?? 0,
-      duelWins: data['duelWins'] ?? 0,
-      duelLosses: data['duelLosses'] ?? 0,
-      leagueScores: Map<String, int>.from(data['leagueScores'] ?? {}),
+      totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
+      practiceScore: (data['practiceScore'] as num?)?.toInt() ?? 0,
+      gamesPlayed: (data['gamesPlayed'] as num?)?.toInt() ?? 0,
+      duelWins: (data['duelWins'] as num?)?.toInt() ?? 0,
+      duelLosses: (data['duelLosses'] as num?)?.toInt() ?? 0,
+      leagueScores: (data['leagueScores'] != null && (data['leagueScores'] as Map).isNotEmpty)
+          ? Map<String, int>.from(data['leagueScores'])
+          : const {'A': 1500, 'B': 1500, 'C': 1500},
       achievements: List<String>.from(data['achievements'] ?? []),
       friends: List<String>.from(data['friends'] ?? []),
-      weeklyGained: data['weeklyGained'] ?? 0,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
-      lastPlayedAt: (data['lastPlayedAt'] as Timestamp?)?.toDate(),
+      weeklyGained: (data['weeklyGained'] as num?)?.toInt() ?? 0,
+      createdAt: (rawCreatedAt is Timestamp) 
+          ? rawCreatedAt.toDate() 
+          : (rawCreatedAt is String ? DateTime.tryParse(rawCreatedAt) : null) ?? DateTime.now(),
+      lastPlayedAt: (rawLastPlayedAt is Timestamp) 
+          ? rawLastPlayedAt.toDate() 
+          : (rawLastPlayedAt is String ? DateTime.tryParse(rawLastPlayedAt) : null) ?? DateTime.now(),
       avatarId: data['avatarId'],
-      photoURL: data['photoURL'],
+      photoURL: data['photoURL'] ?? data['profileImagePath'],
+      coins: (data['coins'] as num?)?.toInt() ?? 0,
+      frameId: data['frameId'],
+      isOnline: false,
+      hasReceivedWelcomeGift: data['hasReceivedWelcomeGift'] ?? false,
     );
   }
 
@@ -85,6 +107,9 @@ class CloudUserProfile {
       'lastPlayedAt': Timestamp.fromDate(lastPlayedAt),
       'avatarId': avatarId,
       'photoURL': photoURL,
+      'coins': coins,
+      'frameId': frameId,
+      'hasReceivedWelcomeGift': hasReceivedWelcomeGift,
     };
   }
 
@@ -103,6 +128,10 @@ class CloudUserProfile {
     DateTime? lastPlayedAt,
     String? avatarId,
     String? photoURL,
+    int? coins,
+    String? frameId,
+    bool? isOnline,
+    bool? hasReceivedWelcomeGift,
   }) {
     return CloudUserProfile(
       odlevel: odlevel,
@@ -121,6 +150,10 @@ class CloudUserProfile {
       lastPlayedAt: lastPlayedAt ?? this.lastPlayedAt,
       avatarId: avatarId ?? this.avatarId,
       photoURL: photoURL ?? this.photoURL,
+      coins: coins ?? this.coins,
+      frameId: frameId ?? this.frameId,
+      isOnline: isOnline ?? this.isOnline,
+      hasReceivedWelcomeGift: hasReceivedWelcomeGift ?? this.hasReceivedWelcomeGift,
     );
   }
 }
@@ -141,6 +174,9 @@ class FirestoreService {
   // ignore: unused_element - Leaderboard için saklanıyor
   CollectionReference<Map<String, dynamic>> get _leaderboardCollection =>
       _db.collection('leaderboard');
+
+  CollectionReference<Map<String, dynamic>> get _daily123Collection =>
+      _db.collection('daily_123_results');
 
   // ==================== KULLANICI PROFİLİ ====================
 
@@ -196,23 +232,49 @@ class FirestoreService {
           .limit(1)
           .get();
       
-      // Eğer sonuç yoksa veya sadece mevcut kullanıcıya aitse unique
+      // Eğer sonuç yoksa unique
       if (query.docs.isEmpty) {
         return true;
       }
       
       // Mevcut kullanıcının kendisi mi kontrol et
       final currentUserId = AuthService.instance.userId;
-      if (query.docs.first.id == currentUserId) {
+      if (currentUserId != null && query.docs.first.id == currentUserId) {
         return true;
       }
       
       return false;
     } catch (e) {
       debugPrint('❌ Username kontrol hatası: $e');
-      // Firestore izin hatası durumunda kullanıcıya izin ver
-      // Firebase kuralları düzenlendikten sonra bu kontrol düzgün çalışacak
       return true;
+    }
+  }
+
+  /// Toplam kullanıcı sayısını getir
+  Future<int> getTotalUsersCount() async {
+    try {
+      final query = await _usersCollection.count().get();
+      return query.count ?? 1;
+    } catch (e) {
+      return 1; // Hata durumunda en az 1 oyuncu (sen)
+    }
+  }
+
+  /// Genel ortalama skoru hesapla
+  Future<int> getGlobalAverageScore() async {
+    try {
+      // Not: cloud_firestore aggregate desteği (average) kullanılabilir.
+      // Eğer mevcut değilse döküman sayısına bölerek basit bir hesaplama yapılır.
+      final totalScoreQuery = await _usersCollection.aggregate(sum('totalScore')).get();
+      final totalPlayers = await getTotalUsersCount();
+      
+      if (totalPlayers == 0) return 0;
+      final totalScore = (totalScoreQuery.getSum('totalScore') ?? 0).toInt();
+      
+      return (totalScore / totalPlayers).round();
+    } catch (e) {
+      debugPrint('⚠️ Ortalama skor hesaplanamadı (aggregate unsupported?), fallback: 72');
+      return 72;
     }
   }
 
@@ -227,6 +289,9 @@ class FirestoreService {
       return null;
     } catch (e) {
       debugPrint('❌ Username email getirme hatası: $e');
+      if (e.toString().contains('permission-denied')) {
+        rethrow; // AuthService'in bunu yakalayıp kullanıcıya doğru bilgi vermesini sağlarız
+      }
       return null;
     }
   }
@@ -266,7 +331,7 @@ class FirestoreService {
     required bool isDuel,
     bool? duelWon,
     String? leagueId,
-    int? eloChange,
+    int? lpChange,
   }) async {
     final odlevel = AuthService.instance.userId;
     if (odlevel == null) return;
@@ -284,8 +349,8 @@ class FirestoreService {
       }
     }
 
-    if (leagueId != null && eloChange != null) {
-      updates['leagueScores.$leagueId'] = FieldValue.increment(eloChange);
+    if (leagueId != null && lpChange != null) {
+      updates['leagueScores.$leagueId'] = FieldValue.increment(lpChange);
     }
 
     await updateUserProfile(odlevel, updates);
@@ -317,6 +382,20 @@ class FirestoreService {
     String sortBy = 'totalScore',
   }) async {
     try {
+      // MALİYET OPTİMİZASYONU: Yüzlerce kullanıcı dökümanı indirmek yerine tek bir cache dökümanı oku
+      final doc = await _leaderboardCollection.doc('global_$sortBy').get();
+      if (doc.exists && doc.data() != null && doc.data()!['topUsers'] != null) {
+        final List<dynamic> topUsers = doc.data()!['topUsers'];
+        return topUsers.take(limit).map((data) => CloudUserProfile(
+          odlevel: data['uid'] ?? '',
+          level: data['level'] ?? 'A1',
+          username: data['username'] ?? 'Player',
+          totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
+          weeklyGained: (data['weeklyGained'] as num?)?.toInt() ?? 0,
+          avatarId: data['avatarId'],
+        )).toList();
+      }
+
       final snapshot = await _usersCollection
           .orderBy(sortBy, descending: true)
           .limit(limit)
@@ -337,6 +416,20 @@ class FirestoreService {
     int limit = 50,
   }) async {
     try {
+      // MALİYET OPTİMİZASYONU: Tekil lig dökümanından oku
+      final doc = await _leaderboardCollection.doc('league_$leagueId').get();
+      if (doc.exists && doc.data() != null && doc.data()!['topUsers'] != null) {
+        final List<dynamic> topUsers = doc.data()!['topUsers'];
+        return topUsers.take(limit).map((data) => CloudUserProfile(
+          odlevel: data['uid'] ?? '',
+          level: data['level'] ?? 'A1',
+          username: data['username'] ?? 'Player',
+          totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
+          leagueScores: {leagueId: (data['score'] as num?)?.toInt() ?? 1500},
+          avatarId: data['avatarId'],
+        )).toList();
+      }
+
       final snapshot = await _usersCollection
           .orderBy('leagueScores.$leagueId', descending: true)
           .limit(limit)
@@ -376,6 +469,20 @@ class FirestoreService {
     int limit = 50,
   }) async {
     try {
+      // MALİYET OPTİMİZASYONU: Tekil haftalık dökümandan oku
+      final doc = await _leaderboardCollection.doc('weekly_top').get();
+      if (doc.exists && doc.data() != null && doc.data()!['topUsers'] != null) {
+        final List<dynamic> topUsers = doc.data()!['topUsers'];
+        return topUsers.take(limit).map((data) => CloudUserProfile(
+          odlevel: data['uid'] ?? '',
+          level: data['level'] ?? 'A1',
+          username: data['username'] ?? 'Player',
+          totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
+          weeklyGained: (data['weeklyGained'] as num?)?.toInt() ?? 0,
+          avatarId: data['avatarId'],
+        )).toList();
+      }
+
       final snapshot = await _usersCollection
           .orderBy('weeklyGained', descending: true)
           .where('weeklyGained', isGreaterThan: 0)
@@ -503,11 +610,18 @@ class FirestoreService {
     if (profile == null || profile.friends.isEmpty) return [];
 
     final friends = <CloudUserProfile>[];
-    for (final friendId in profile.friends) {
-      final friendProfile = await getUserProfile(friendId);
-      if (friendProfile != null) {
-        friends.add(friendProfile);
-      }
+    
+    // Firestore 'whereIn' sorgusu bir seferde maksimum 30 eleman kabul eder.
+    // N+1 sorgusu problemini çözmek için listeyi 30'lu parçalara bölerek tek sorgu atıyoruz.
+    for (var i = 0; i < profile.friends.length; i += 30) {
+      final end = (i + 30 < profile.friends.length) ? i + 30 : profile.friends.length;
+      final chunk = profile.friends.sublist(i, end);
+      
+      final snapshot = await _usersCollection
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+          
+      friends.addAll(snapshot.docs.map((doc) => CloudUserProfile.fromFirestore(doc)));
     }
 
     return friends;
@@ -524,9 +638,29 @@ class FirestoreService {
           .limit(20)
           .get();
 
-      return snapshot.docs
-          .map((doc) => CloudUserProfile.fromFirestore(doc))
-          .toList();
+      final results = await Future.wait(snapshot.docs
+          .map((doc) async {
+        final profile = CloudUserProfile.fromFirestore(doc);
+        final isOnline = await OnlineDuelService.instance.isUserOnline(doc.id);
+        return profile.copyWith(isOnline: isOnline);
+      }));
+
+      // Unique results by userId
+      final uniqueById = <String, CloudUserProfile>{};
+      for (var r in results) {
+        uniqueById[r.odlevel] = r;
+      }
+
+      // Unique results by (username + level + score) to hide potential data duplicates
+      final uniqueByStats = <String, CloudUserProfile>{};
+      for (var r in uniqueById.values) {
+        final key = '${r.username.toLowerCase()}_${r.level}_${r.totalScore}';
+        if (!uniqueByStats.containsKey(key)) {
+          uniqueByStats[key] = r;
+        }
+      }
+
+      return uniqueByStats.values.toList();
     } catch (e) {
       debugPrint('❌ Kullanıcı arama hatası: $e');
       return [];
@@ -568,20 +702,128 @@ class FirestoreService {
         'avatarId': localProfile.avatarId,
       });
     } else {
-      // Mevcut cloud profili lokal ile birleştir (en yüksek skorları tut)
-      await updateUserProfile(odlevel, {
-        'totalScore': cloudProfile.totalScore > localProfile.totalScore 
-            ? cloudProfile.totalScore 
-            : localProfile.totalScore,
-        'practiceScore': cloudProfile.practiceScore > localProfile.practiceScore
-            ? cloudProfile.practiceScore
-            : localProfile.practiceScore,
-        'gamesPlayed': cloudProfile.gamesPlayed > localProfile.gamesPlayed
-            ? cloudProfile.gamesPlayed
-            : localProfile.gamesPlayed,
-      });
+      // Güvenlik Düzeltmesi: Zaten cloud profili varsa cihazdaki veriyi
+      // buluta zorla (en yüksek diyerek) yazdırmak, skor manipülasyonuna ve
+      // senkronizasyon kayıplarına yol açar. Cloud verisi her zaman master kabul edilir.
     }
 
     debugPrint('✅ Lokal profil senkronize edildi');
+  }
+
+  // ==================== DAILY 123 GLOBAL ====================
+
+  /// Günlük 123 skorunu kaydet
+  Future<void> recordDaily123Result(int score, int seconds, bool isWin) async {
+    final userId = AuthService.instance.userId;
+    if (userId == null) return;
+
+    final now = DateTime.now();
+    final dateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    final docId = "${dateStr}_$userId";
+
+    try {
+      final profile = await getCurrentUserProfile();
+      final username = profile?.username ?? 'Anonim';
+
+      await _daily123Collection.doc(docId).set({
+        'userId': userId,
+        'username': username,
+        'score': score,
+        'seconds': seconds,
+        'isWin': isWin,
+        'date': dateStr,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      debugPrint('✅ Daily 123 skoru kaydedildi: $score ($dateStr)');
+    } catch (e) {
+      debugPrint('❌ Daily 123 skor kaydetme hatası: $e');
+    }
+  }
+
+  /// Günlük 123 sıralama ve istatistiklerini getir
+  Future<Map<String, dynamic>> getDaily123GlobalRanking(int currentScore, int currentSeconds) async {
+    final now = DateTime.now();
+    final dateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    final userId = AuthService.instance.userId;
+
+    try {
+      final snapshot = await _daily123Collection
+          .where('date', isEqualTo: dateStr)
+          .get();
+      
+      final docs = snapshot.docs;
+      final totalPlayers = docs.isEmpty ? 1 : docs.length;
+
+      // Tüm dökümanları bir listeye alalım ve sıralayalım
+      final List<Map<String, dynamic>> results = docs.map((d) => d.data()).toList();
+      
+      // Sıralama Kriteri: Önce süre (KÜÇÜK olan üstte), eşitse skor (BÜYÜK olan üstte)
+      results.sort((a, b) {
+        final tA = (a['seconds'] as num?)?.toInt() ?? 123;
+        final tB = (b['seconds'] as num?)?.toInt() ?? 123;
+        if (tA != tB) return tA.compareTo(tB);
+        final sA = (a['score'] as num?)?.toInt() ?? 0;
+        final sB = (b['score'] as num?)?.toInt() ?? 0;
+        return sB.compareTo(sA);
+      });
+
+      // Mevcut kullanıcının indexini bul (veya performansı iyileştirmek için tahmini)
+      int myIndex = results.indexWhere((r) => r['userId'] == userId);
+      
+      // Eğer kullanıcı listede yoksa (çok düşük ihtimal ama güvenli olsun), nerede olması gerektiğini bul
+      if (myIndex == -1) {
+         myIndex = results.length; // Sona ekle
+      }
+
+      int totalSum = 0;
+      for (var r in results) {
+        totalSum += (r['score'] as num?)?.toInt() ?? 0;
+      }
+
+      final rank = myIndex + 1;
+      final avgPoints = totalPlayers > 0 ? (totalSum / totalPlayers).round() : 75;
+
+      // Bir üstteki ve bir alttaki oyuncuları al
+      Map<String, dynamic>? prev;
+      Map<String, dynamic>? next;
+      
+      if (myIndex > 0) prev = results[myIndex - 1];
+      if (myIndex < results.length - 1) next = results[myIndex + 1];
+
+      return {
+        'rank': rank,
+        'totalPlayers': totalPlayers,
+        'avgPoints': avgPoints,
+        'prevPlayer': prev,
+        'nextPlayer': next,
+      };
+    } catch (e) {
+      debugPrint('❌ Daily 123 global ranking failed: $e');
+      return {
+        'rank': 1,
+        'totalPlayers': 1,
+        'avgPoints': 75,
+      };
+    }
+  }
+
+  /// Günlük 123 Liderlik Tablosunu getir (Top 50)
+  Future<List<Map<String, dynamic>>> getDaily123Leaderboard({int limit = 50}) async {
+    final now = DateTime.now();
+    final dateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
+    try {
+      final query = await _daily123Collection
+          .where('date', isEqualTo: dateStr)
+          .orderBy('seconds', descending: false)
+          .orderBy('score', descending: true)
+          .limit(limit)
+          .get();
+      
+      return query.docs.map((doc) => doc.data()).toList();
+    } catch (e) {
+      debugPrint('❌ Daily 123 leaderboard listeleme hatası: $e');
+      return [];
+    }
   }
 }

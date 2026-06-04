@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:confetti/confetti.dart';
@@ -14,6 +14,59 @@ import '../../services/user_profile_service.dart';
 import 'package:provider/provider.dart';
 import '../../providers/language_provider.dart';
 
+class _PromoHighlightStyle {
+  final List<Color> gradientColors;
+  final Color shadowColor;
+  final Color ctaTextColor;
+
+  const _PromoHighlightStyle({
+    required this.gradientColors,
+    required this.shadowColor,
+    required this.ctaTextColor,
+  });
+}
+
+_PromoHighlightStyle _promoHighlightStyle(String productId) {
+  if (productId == PurchaseService.starterPackId) {
+    return const _PromoHighlightStyle(
+      gradientColors: [
+        Color(0xFFFF006E),
+        Color(0xFFFF4D94),
+        Color(0xFFFFD60A),
+      ],
+      shadowColor: Color(0xFFFF006E),
+      ctaTextColor: Color(0xFFAD1457),
+    );
+  }
+  if (productId == PurchaseService.seasonPassId) {
+    return const _PromoHighlightStyle(
+      gradientColors: [
+        Color(0xFF4C1D95),
+        Color(0xFF7C3AED),
+        Color(0xFF22D3EE),
+      ],
+      shadowColor: Color(0xFF7C3AED),
+      ctaTextColor: Color(0xFF4C1D95),
+    );
+  }
+  if (productId == PurchaseService.allPacksBundleId) {
+    return const _PromoHighlightStyle(
+      gradientColors: [
+        Color(0xFF047857),
+        Color(0xFF10B981),
+        Color(0xFFFDE047),
+      ],
+      shadowColor: Color(0xFF059669),
+      ctaTextColor: Color(0xFF065F46),
+    );
+  }
+  return const _PromoHighlightStyle(
+    gradientColors: [Color(0xFFFFB347), Color(0xFFFF6A3D)],
+    shadowColor: Color(0xFFFF8A50),
+    ctaTextColor: Color(0xFFFF6A3D),
+  );
+}
+
 class ShopScreen extends StatefulWidget {
   final int initialTabIndex;
   final bool scrollToFrames;
@@ -27,8 +80,9 @@ class ShopScreen extends StatefulWidget {
 class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ScrollController _customizeScrollController = ScrollController();
-  final GlobalKey _framesKey = GlobalKey();
   late ConfettiController _confettiController;
+  /// 0: karakterler, 1: çerçeveler, 2: düello ifadeleri
+  int _customizeSectionIndex = 0;
   int _userCoins = 0;
   PowerupInventory _inventory = const PowerupInventory();
   PremiumSubscription _subscription = const PremiumSubscription();
@@ -53,26 +107,18 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
     _loadData().then((_) {
       if (widget.scrollToFrames && widget.initialTabIndex == 2) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _scrollToFrames();
+          if (!mounted) return;
+          setState(() => _customizeSectionIndex = 1);
         });
       }
     });
   }
 
-  void _scrollToFrames() {
-    // Biraz gecikme ekleyerek sayfanın tamamen render olduğundan emin olalım (lazy-loading için önemli)
-    for (int delay in [500, 1000, 1500]) {
-      Future.delayed(Duration(milliseconds: delay), () {
-        if (!mounted) return;
-        final ctx = _framesKey.currentContext;
-        if (ctx != null) {
-          Scrollable.ensureVisible(
-            ctx,
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOut,
-          );
-        }
-      });
+  void _setCustomizeSection(int index) {
+    if (index == _customizeSectionIndex) return;
+    setState(() => _customizeSectionIndex = index);
+    if (_customizeScrollController.hasClients) {
+      _customizeScrollController.jumpTo(0);
     }
   }
 
@@ -706,14 +752,18 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
     );
     
     // AdService üzerinden ödüllü reklam göster
-    final reward = await AdService.instance.showRewardedAd(defaultReward: 25);
+    final reward = await AdService.instance.showRewardedAd(
+      defaultReward: 50,
+      adUnitIdOverride: AdService.instance.coinRewardedAdUnitId,
+    );
     
     if (mounted) {
       Navigator.pop(context);
       
       if (reward > 0) {
-        // Ödül kazanıldı
-        await ShopService.instance.addCoins(reward, reason: 'ad_reward');
+        // Ödül kazanıldı (coin reklamında ödülü sabitliyoruz)
+        const fixedReward = 50;
+        await ShopService.instance.addCoins(fixedReward, reason: 'ad_reward');
         await _loadData();
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -722,7 +772,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
               children: [
                 const Text('🪙', style: TextStyle(fontSize: 18)),
                 const SizedBox(width: 8),
-                Text('+$reward altın kazandınız!'),
+                const Text('+$fixedReward altın kazandınız!'),
               ],
             ),
             backgroundColor: const Color(0xFF4CAF50),
@@ -1057,7 +1107,10 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                 ],
               ),
               child: Text(
-                _getLocalizedPrice(pkg.id, '\$${pkg.priceUSD}'),
+                _getLocalizedPrice(
+                  pkg.id,
+                  PurchaseService.coinPackUiFallbackPrice(pkg.id),
+                ),
                 style: GoogleFonts.firaCode(
                   color: pkg.isBestValue ? Colors.black : Colors.white,
                   fontWeight: FontWeight.w900,
@@ -1286,36 +1339,185 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
   Widget _buildCustomizeTab() {
     final avatars = CosmeticItem.availableItems.where((i) => i.type == CosmeticType.avatar).toList();
     final frames = CosmeticItem.availableItems.where((i) => i.type == CosmeticType.frame).toList();
-    final titles = CosmeticItem.availableItems.where((i) => i.type == CosmeticType.title).toList();
+    final emotes = CosmeticItem.availableItems.where((i) => i.type == CosmeticType.emote).toList();
 
-    return ListView(
-      controller: _customizeScrollController,
-      padding: const EdgeInsets.all(16),
+    final List<CosmeticItem> activeItems;
+    String title;
+    String subtitle;
+    switch (_customizeSectionIndex) {
+      case 1:
+        activeItems = frames;
+        title = 'Çerçeveler';
+        subtitle = 'Profil avatarının etrafındaki renkli çerçeveler — buradan seç ve uygula.';
+        break;
+      case 2:
+        activeItems = emotes;
+        title = 'Düello ifadeleri';
+        subtitle = 'Maç içinde rakibe gönderebileceğin kısa emojiler (ayrı koleksiyon).';
+        break;
+      default:
+        activeItems = avatars;
+        title = 'Karakterler';
+        subtitle = 'Ana menü ve profilde görünen avatar görselleri.';
+        break;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Karakterler',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+          child: Container(
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            padding: const EdgeInsets.all(4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildCustomizeSegment(
+                    index: 0,
+                    shortLabel: 'Avatar',
+                    icon: Icons.face_rounded,
+                    count: avatars.length,
+                  ),
+                ),
+                Expanded(
+                  child: _buildCustomizeSegment(
+                    index: 1,
+                    shortLabel: 'Çerçeve',
+                    icon: Icons.crop_square_rounded,
+                    count: frames.length,
+                  ),
+                ),
+                Expanded(
+                  child: _buildCustomizeSegment(
+                    index: 2,
+                    shortLabel: 'Düello',
+                    icon: Icons.emoji_emotions_rounded,
+                    count: emotes.length,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 12),
-        ...avatars.map((item) => _buildCosmeticCard(item)),
-
-        const SizedBox(height: 24),
-        Text(
-          'Çerçeveler',
-          key: _framesKey,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.65),
+                  fontSize: 13,
+                  height: 1.35,
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 12),
-        ...frames.map((item) => _buildCosmeticCard(item)),
+        Expanded(
+          child: activeItems.isEmpty
+              ? Center(
+                  child: Text(
+                    'Bu bölümde henüz ürün yok.',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                  ),
+                )
+              : ListView(
+                  controller: _customizeScrollController,
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  children: activeItems.map((item) => _buildCosmeticCard(item)).toList(),
+                ),
+        ),
       ],
+    );
+  }
+
+  /// Ana TabBar ile aynı görsel dil: seçilince mor gradient, Outfit 13.
+  Widget _buildCustomizeSegment({
+    required int index,
+    required String shortLabel,
+    required IconData icon,
+    required int count,
+  }) {
+    final selected = _customizeSectionIndex == index;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _setCustomizeSection(index),
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: selected
+                ? const LinearGradient(
+                    colors: [Color(0xFF6C27FF), Color(0xFFB392FF)],
+                  )
+                : null,
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF6C27FF).withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 15,
+                  color: selected ? Colors.white : Colors.white54,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  shortLabel,
+                  maxLines: 1,
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                    color: selected ? Colors.white : Colors.white54,
+                  ),
+                ),
+                Text(
+                  ' · $count',
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? Colors.white.withValues(alpha: 0.85) : Colors.white38,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1422,13 +1624,14 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                     ],
                   ],
                 ),
-                Text(
-                  item.description,
-                  style: TextStyle(
-                    color: Colors.white.withAlpha(128),
-                    fontSize: 12,
+                if (item.description.isNotEmpty)
+                  Text(
+                    item.description,
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(128),
+                      fontSize: 12,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -1620,11 +1823,8 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _buyCoinPackage(CoinPackage pkg) async {
-    // PurchaseService üzerinden ürün bul
-    final products = PurchaseService.instance.coinProducts;
-    final matchingProduct = products.where((p) => 
-      p.coinAmount != null && p.coinAmount! >= pkg.coins
-    ).firstOrNull;
+    // Aynı SKU (pkg.id); >= coinAmount eşlemesi yanlış paketi seçebilirdi.
+    final matchingProduct = PurchaseService.instance.getProduct(pkg.id);
 
     if (matchingProduct != null) {
       await _purchaseCoins(matchingProduct);
@@ -1664,7 +1864,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
               const Text('🪙', style: TextStyle(fontSize: 48)),
               const SizedBox(height: 12),
               Text(
-                '\$${pkg.priceUSD.toStringAsFixed(2)}',
+                PurchaseService.coinPackUiFallbackPrice(pkg.id),
                 style: const TextStyle(
                   color: Colors.amber,
                   fontSize: 24,
@@ -1853,6 +2053,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
 
   /// Öne çıkan teklif kartı (Starter / Bundle / Season Pass).
   Widget _buildHighlightCard(ProductInfo product, {required IconData icon}) {
+    final style = _promoHighlightStyle(product.id);
     final hasExpiry = product.offerExpiresAtMs != null;
     final remaining = hasExpiry
         ? Duration(
@@ -1864,17 +2065,27 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFB347), Color(0xFFFF6A3D)],
+        gradient: LinearGradient(
+          colors: style.gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.32),
+          width: 1.2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withAlpha(80),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
+            color: style.shadowColor.withValues(alpha: 0.55),
+            blurRadius: 22,
+            spreadRadius: 0,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -1982,10 +2193,10 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
+                  child: Text(
                     'SATIN AL',
                     style: TextStyle(
-                      color: Color(0xFFFF6A3D),
+                      color: style.ctaTextColor,
                       fontWeight: FontWeight.w900,
                       fontSize: 13,
                     ),

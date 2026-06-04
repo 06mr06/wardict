@@ -6,6 +6,7 @@ class Question {
   final int answerIndex;
   final QuestionMode mode;
   final int baseScore;
+  final String? turkishMeaning;
 
   Question({
     required this.prompt,
@@ -13,6 +14,7 @@ class Question {
     required this.answerIndex,
     required this.mode,
     this.baseScore = 10,
+    this.turkishMeaning,
   });
 
   int get correctIndex => answerIndex;

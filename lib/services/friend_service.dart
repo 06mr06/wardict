@@ -1,8 +1,12 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'firebase/auth_service.dart';
+import 'online_duel_service.dart';
 import '../models/friend.dart';
+import '../models/online_duel.dart';
 
 /// Arkadaş yönetim servisi
 /// Not: Bu şu anda offline simülasyon modunda çalışır.
@@ -11,79 +15,15 @@ class FriendService {
   static final FriendService instance = FriendService._();
   FriendService._();
 
-  static const String _friendsKey = 'wardict_friends';
-  static const String _invitationsKey = 'wardict_duel_invitations';
-  static const String _pendingRequestsKey = 'wardict_pending_requests';
+  static const String _friendsKey = 'lugorena_friends';
+  static const String _invitationsKey = 'lugorena_duel_invitations';
+  static const String _pendingRequestsKey = 'lugorena_pending_requests';
 
-  // Demo arkadaşlar (simülasyon için)
-  static final List<Friend> _demoFriends = [
-    Friend(
-      oderId: 'demo_1',
-      username: 'WordMaster42',
-      status: OnlineStatus.online,
-      friendStatus: FriendStatus.accepted,
-      eloRating: 1650,
-      currentLeague: 'Intermediate',
-      lastOnline: DateTime.now(),
-    ),
-    Friend(
-      oderId: 'demo_2',
-      username: 'VocabNinja',
-      status: OnlineStatus.away,
-      friendStatus: FriendStatus.accepted,
-      eloRating: 1420,
-      currentLeague: 'Beginner',
-      lastOnline: DateTime.now().subtract(const Duration(minutes: 15)),
-    ),
-    Friend(
-      oderId: 'demo_3',
-      username: 'EnglishPro',
-      status: OnlineStatus.offline,
-      friendStatus: FriendStatus.accepted,
-      eloRating: 1890,
-      currentLeague: 'Advanced',
-      lastOnline: DateTime.now().subtract(const Duration(hours: 3)),
-    ),
-    Friend(
-      oderId: 'demo_4',
-      username: 'LexiconLord',
-      status: OnlineStatus.online,
-      friendStatus: FriendStatus.accepted,
-      eloRating: 1550,
-      currentLeague: 'Intermediate',
-      lastOnline: DateTime.now(),
-    ),
-    Friend(
-      oderId: 'demo_5',
-      username: 'GrammarGuru',
-      status: OnlineStatus.busy,
-      friendStatus: FriendStatus.accepted,
-      eloRating: 1720,
-      currentLeague: 'Intermediate',
-      lastOnline: DateTime.now().subtract(const Duration(minutes: 5)),
-    ),
-  ];
 
-  // Demo gelen istekler
-  static final List<Friend> _demoPendingRequests = [
-    const Friend(
-      oderId: 'pending_1',
-      username: 'NewLearner2024',
-      status: OnlineStatus.online,
-      friendStatus: FriendStatus.requested,
-      eloRating: 1350,
-      currentLeague: 'Beginner',
-    ),
-    Friend(
-      oderId: 'pending_2',
-      username: 'WordWizard',
-      status: OnlineStatus.offline,
-      friendStatus: FriendStatus.requested,
-      eloRating: 1600,
-      currentLeague: 'Intermediate',
-      lastOnline: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-  ];
+
+  // Demo veriler tamamen kaldırıldı.
+  static final List<Friend> _demoFriends = [];
+  static final List<Friend> _demoPendingRequests = [];
 
   /// Arkadaş listesini getir
   Future<List<Friend>> getFriends() async {
@@ -92,12 +32,21 @@ class FriendService {
     
     if (json != null) {
       final List<dynamic> list = jsonDecode(json);
-      return list.map((e) => Friend.fromJson(e)).toList();
+      final friends = list
+          .map((e) => Friend.fromJson(e))
+          .where((f) => !f.userId.startsWith('demo_'))
+          .toList();
+          
+      // Online durumlarını güncelle
+      final updatedFriends = await Future.wait(friends.map((f) async {
+        final isOnline = await OnlineDuelService.instance.isUserOnline(f.userId);
+        return f.copyWith(status: isOnline ? OnlineStatus.online : OnlineStatus.offline);
+      }));
+      
+      return updatedFriends.toList();
     }
     
-    // İlk kullanımda demo arkadaşları kaydet
-    await _saveFriends(_demoFriends);
-    return _demoFriends;
+    return []; // Demo verisi yok, boş liste döndür.
   }
 
   /// Arkadaşları kaydet
@@ -117,9 +66,7 @@ class FriendService {
       return list.map((e) => Friend.fromJson(e)).toList();
     }
     
-    // İlk kullanımda demo istekleri kaydet
-    await _savePendingRequests(_demoPendingRequests);
-    return _demoPendingRequests;
+    return []; // Demo verisi yok, boş liste döndür.
   }
 
   /// Bekleyen istekleri kaydet
@@ -129,20 +76,27 @@ class FriendService {
     await prefs.setString(_pendingRequestsKey, json);
   }
 
-  /// Arkadaşlık isteği gönder
-  Future<bool> sendFriendRequest(String username) async {
-    // Simülasyon: İstek gönderildi
-    // Gerçek uygulamada backend'e API çağrısı yapılır
-    await Future.delayed(const Duration(milliseconds: 500));
-    return true;
+  /// Arkadaşlık isteği gönder / Arkadaş olarak ekle
+  Future<bool> sendFriendRequest(Friend friend) async {
+    try {
+      final friends = await getFriends();
+      if (!friends.any((f) => f.userId == friend.userId)) {
+        friends.add(friend.copyWith(friendStatus: FriendStatus.accepted, status: OnlineStatus.online));
+        await _saveFriends(friends);
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error adding friend: $e');
+      return false;
+    }
   }
 
   /// Arkadaşlık isteğini kabul et
-  Future<bool> acceptFriendRequest(String oderId) async {
+  Future<bool> acceptFriendRequest(String userId) async {
     final requests = await getPendingRequests();
     final friends = await getFriends();
     
-    final requestIndex = requests.indexWhere((r) => r.oderId == oderId);
+    final requestIndex = requests.indexWhere((r) => r.userId == userId);
     if (requestIndex == -1) return false;
     
     final request = requests[requestIndex];
@@ -160,17 +114,17 @@ class FriendService {
   }
 
   /// Arkadaşlık isteğini reddet
-  Future<bool> rejectFriendRequest(String oderId) async {
+  Future<bool> rejectFriendRequest(String userId) async {
     final requests = await getPendingRequests();
-    requests.removeWhere((r) => r.oderId == oderId);
+    requests.removeWhere((r) => r.userId == userId);
     await _savePendingRequests(requests);
     return true;
   }
 
   /// Arkadaşı sil
-  Future<bool> removeFriend(String oderId) async {
+  Future<bool> removeFriend(String userId) async {
     final friends = await getFriends();
-    friends.removeWhere((f) => f.oderId == oderId);
+    friends.removeWhere((f) => f.userId == userId);
     await _saveFriends(friends);
     return true;
   }
@@ -194,133 +148,128 @@ class FriendService {
 
       debugPrint('📦 Raw results: ${snapshot.docs.length} documents');
       
-      final results = snapshot.docs
+      final results = await Future.wait(snapshot.docs
           .where((doc) {
             final data = doc.data();
             final username = (data['username'] ?? '').toString();
-            
-            // Eski kayıtları (DocID == username) filtrele
-            final isOld = doc.id == username;
-            if (isOld) {
-              debugPrint('⏭️ Skipping old record: ${doc.id}');
-              return false;
-            }
-            
-            // Case-insensitive karşılaştırma
             final matches = username.toLowerCase().contains(lowerQuery);
-            if (!matches) {
-              debugPrint('⏭️ Skipping non-matching: $username');
-            }
             return matches;
           })
-          .map((doc) {
+          .map((doc) async {
         final data = doc.data();
-        debugPrint('✅ Found user: ${data['username']} (ID: ${doc.id})');
+        final userId = doc.id;
+        
+        // RTDB'den online durumunu çek
+        final isOnline = await OnlineDuelService.instance.isUserOnline(userId);
         
         // Level string veya map olabilir, güvenli şekilde işle
         String leagueName = 'Beginner';
         final levelData = data['level'];
         if (levelData != null) {
           if (levelData is String) {
-            // String ise direkt kullan (örn: "A2")
             leagueName = levelData;
           } else if (levelData is Map) {
-            // Map ise turkishName al
             leagueName = levelData['turkishName'] ?? 'Beginner';
           }
         }
         
         return Friend(
-          oderId: doc.id,
+          userId: userId,
           username: data['username'] ?? 'Unknown',
-          status: OnlineStatus.online,
+          status: isOnline ? OnlineStatus.online : OnlineStatus.offline,
           friendStatus: FriendStatus.none,
-          eloRating: (data['eloRating'] as num?)?.toInt() ?? 1000,
+          lpRating: (data['lpRating'] ?? data['eloRating'] as num?)?.toInt() ?? 1000,
           currentLeague: leagueName,
         );
-      }).toList();
+      }));
       
-      debugPrint('🎯 Returning ${results.length} users');
-      return results;
+      debugPrint('🎯 Raw results count: ${results.length}');
+      
+      // Filter unique users by userId first
+      final uniqueResults = <String, Friend>{};
+      for (var friend in results) {
+        uniqueResults[friend.userId] = friend;
+      }
+      
+      // Secondary filter: deduplicate by (username + league + LP) to hide accidental duplicates in case of data sync errors
+      final deduplicatedByStats = <String, Friend>{};
+      for (var friend in uniqueResults.values) {
+        final key = '${friend.username.toLowerCase()}_${friend.currentLeague}_${friend.lpRating}';
+        if (!deduplicatedByStats.containsKey(key)) {
+          deduplicatedByStats[key] = friend;
+        }
+      }
+      
+      final finalResults = deduplicatedByStats.values.toList();
+      debugPrint('🎯 Returning ${finalResults.length} unique users');
+      return finalResults;
     } catch (e) {
       debugPrint('❌ Search users error: $e');
       return [];
     }
   }
 
-  /// Bekleyen düello davetlerini getir
+  /// Bekleyen düello davetlerini getir (Gerçek Veri)
   Future<List<DuelInvitation>> getDuelInvitations() async {
-    final prefs = await SharedPreferences.getInstance();
-    final json = prefs.getString(_invitationsKey);
+    final userId = AuthService.instance.userId;
+    if (userId == null) return [];
     
-    if (json != null) {
-      // Not: DuelInvitation için toJson/fromJson eklenmesi gerekebilir 
-      // veya burada manuel eşleme yapılabilir. 
-      // Basitlik için şu an demo dönelim.
-      // final List<dynamic> list = jsonDecode(json);
+    try {
+      // Not: orderBy kullanmıyoruz çünkü compound index gerektirebilir. 
+      // Dart tarafında sıralama yapacağız.
+      final snapshot = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('toUserId', isEqualTo: userId)
+          .where('type', isEqualTo: 'duel_invite')
+          .where('read', isEqualTo: false)
+          .limit(10)
+          .get();
+          
+      final List<DuelInvitation> invitations = [];
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final fromUserId = (data['fromUserId'] ?? '').toString();
+        final fromUsername = (data['fromUsername'] ?? 'Rakip').toString();
+        final matchId = (data['matchId'] ?? '').toString();
+        final leagueCode = (data['leagueCode'] ?? 'A1').toString();
+        final rawCreatedAt = data['createdAt'];
+        final createdAt = (rawCreatedAt is Timestamp) 
+            ? rawCreatedAt.toDate() 
+            : (rawCreatedAt is String ? DateTime.tryParse(rawCreatedAt) : null) ?? DateTime.now();
+        
+        invitations.add(DuelInvitation(
+          id: matchId,
+          fromUser: Friend(
+            userId: fromUserId,
+            username: fromUsername,
+            status: OnlineStatus.online,
+            friendStatus: FriendStatus.accepted,
+          ),
+          leagueCode: leagueCode,
+          createdAt: createdAt,
+          expiresAt: createdAt.add(const Duration(minutes: 5)),
+        ));
+      }
+      
+      // En yeni daveti başa al
+      invitations.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      return invitations;
+    } catch (e) {
+      debugPrint('❌ FriendService: Error fetching invitations: $e');
+      return [];
     }
-    
-    // Simülasyon için bazen bir davet varmış gibi yapalım
-    final now = DateTime.now();
-    if (now.second % 10 == 0) { // Her 10 saniyede bir şans
-       return [
-         DuelInvitation(
-           id: 'demo_inv',
-           fromUser: _demoFriends[0],
-           leagueCode: 'B1',
-           createdAt: now,
-           expiresAt: now.add(const Duration(minutes: 2)),
-         )
-       ];
-    }
-    
-    return [];
   }
 
-  /// Yeni bir davet simüle et (test için)
-  Future<void> simulateIncomingInvitation() async {
-    // Bu metod UI'da bir bildirimi tetiklemek için kullanılabilir
-  }
 
-  /// Düello daveti gönder
-  Future<DuelInvitation?> sendDuelInvitation(Friend friend, String leagueCode) async {
-    // Simülasyon
-    await Future.delayed(const Duration(milliseconds: 300));
-    
-    final invitation = DuelInvitation(
-      id: 'inv_${DateTime.now().millisecondsSinceEpoch}',
-      fromUser: const Friend(
-        oderId: 'current_user',
-        username: 'Sen',
-        status: OnlineStatus.online,
-        friendStatus: FriendStatus.accepted,
-      ),
-      leagueCode: leagueCode,
-      createdAt: DateTime.now(),
-      expiresAt: DateTime.now().add(const Duration(seconds: 30)),
-    );
-    
-    return invitation;
-  }
-
-  /// Düello davetini kabul et (simülasyon)
-  Future<String?> acceptDuelInvitation(DuelInvitation invitation) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    // Gerçek uygulamada matchId döndürülür
-    return 'match_${DateTime.now().millisecondsSinceEpoch}';
-  }
-
-  /// Düello davetini reddet
-  Future<bool> declineDuelInvitation(DuelInvitation invitation) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    return true;
-  }
 
   /// Online arkadaşları getir
   Future<List<Friend>> getOnlineFriends() async {
     final friends = await getFriends();
     return friends.where((f) => f.status == OnlineStatus.online).toList();
   }
+
+
 
   /// Rastgele eşleşme ara (simülasyon)
   Future<Friend?> findRandomOpponent(String leagueCode) async {
@@ -329,11 +278,11 @@ class FriendService {
     
     // Demo rakip
     return Friend(
-      oderId: 'random_${DateTime.now().millisecondsSinceEpoch}',
+      userId: 'random_${DateTime.now().millisecondsSinceEpoch}',
       username: 'RandomPlayer${DateTime.now().second}',
       status: OnlineStatus.online,
       friendStatus: FriendStatus.none,
-      eloRating: 1450 + (DateTime.now().millisecond % 200),
+      lpRating: 1450 + (DateTime.now().millisecond % 200),
       currentLeague: leagueCode == 'A' ? 'Beginner' : leagueCode == 'B' ? 'Intermediate' : 'Advanced',
     );
   }

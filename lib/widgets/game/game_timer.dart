@@ -20,7 +20,7 @@ class GameTimer extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: (timeLeft <= 2 ? Colors.red : const Color(0xFF6C27FF))
-                .withValues(alpha: 0.5),
+                .withAlpha(128),
             blurRadius: 12,
             spreadRadius: 2,
           ),

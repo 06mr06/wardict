@@ -12,7 +12,7 @@ import 'package:lugorena/app.dart';
 void main() {
   testWidgets('WARDICT app test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const WardictApp());
+    await tester.pumpWidget(const LugorenaApp());
 
     // Verify that WARDICT title is displayed.
     expect(find.text('WARDICT'), findsOneWidget);

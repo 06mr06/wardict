@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +8,7 @@ import '../../models/cosmetic_item.dart';
 import '../../services/online_duel_service.dart';
 import '../../widgets/game/game_background.dart';
 import '../../widgets/common/ad_banner_widget.dart';
+import '../../services/ad_service.dart';
 
 enum MaxiGameMode {
   quickMatch,
@@ -325,6 +326,9 @@ class _MaxiGameScreenState extends State<MaxiGameScreen> with TickerProviderStat
     setState(() {
       _isGameEnded = true;
     });
+
+    // Reklam servisini bilgilendir (Her 4 oyunda bir reklam gösterir)
+    AdService.instance.onGameCompleted();
   }
 
   @override

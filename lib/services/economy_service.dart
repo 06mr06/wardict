@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -112,16 +112,25 @@ class EconomyService {
     return (res.data['balance'] as num?)?.toInt() ?? -1;
   }
 
-  /// AltÄ±n harcama. BaÅŸarÄ±lÄ± olursa yeni bakiye, yetersizse -1.
-  Future<int> spendCoins({required int amount, required String reason}) async {
+  /// Altın harcama. Başarılıysa yeni bakiye (≥0).
+  /// `-2` = sunucu yetersiz bakiye (`failed-precondition`); yerel düşüm yapılmamalı.
+  /// `-1` = ağ / App Check / iç hata; çağıran isterse yerel düşüm deneyebilir.
+  ///
+  /// [enqueueIfRetryableFailure]: false ise (ör. mağaza), tekrarlanabilir hatalarda
+  /// kuyruğa yazılmaz — çağıran yerel düşüm yapabilir; böylece çift düşüm olmaz.
+  Future<int> spendCoins({
+    required int amount,
+    required String reason,
+    bool enqueueIfRetryableFailure = true,
+  }) async {
     if (amount <= 0) return -1;
     try {
       return await _callSpendCoins(amount: amount, reason: reason);
     } on FirebaseFunctionsException catch (e) {
       debugPrint('âš ï¸ spendCoins error (${e.code}): ${e.message}');
-      // Yetersiz bakiye kuyruÄŸa atÄ±lmamalÄ±
-      if (e.code == 'failed-precondition') return -1;
-      if (_isRetryableError(e)) {
+      // Yetersiz bakiye — kuyruğa atma, yerel fallback yok
+      if (e.code == 'failed-precondition') return -2;
+      if (enqueueIfRetryableFailure && _isRetryableError(e)) {
         await OfflineQueueService.instance.enqueue('spendCoins', {
           'amount': amount,
           'reason': reason,
@@ -130,10 +139,12 @@ class EconomyService {
       return -1;
     } catch (e) {
       debugPrint('âš ï¸ spendCoins error: $e');
-      await OfflineQueueService.instance.enqueue('spendCoins', {
-        'amount': amount,
-        'reason': reason,
-      });
+      if (enqueueIfRetryableFailure) {
+        await OfflineQueueService.instance.enqueue('spendCoins', {
+          'amount': amount,
+          'reason': reason,
+        });
+      }
       return -1;
     }
   }

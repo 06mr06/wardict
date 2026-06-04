@@ -3,162 +3,300 @@
     {
       "word": "happy",
       "synonyms": ["glad", "joyful", "pleased"],
-      "antonyms": ["sad", "unhappy", "upset"]
+      "antonyms": ["sad", "unhappy", "upset"],
+      "turkishMeaning": "mutlu"
     },
     {
       "word": "big",
       "synonyms": ["large", "huge", "great"],
-      "antonyms": ["small", "little", "tiny"]
+      "antonyms": ["small", "little", "tiny"],
+      "turkishMeaning": "büyük"
     },
     {
       "word": "fast",
       "synonyms": ["quick", "rapid", "speedy"],
-      "antonyms": ["slow", "sluggish", "lazy"]
+      "antonyms": ["slow", "sluggish", "lazy"],
+      "turkishMeaning": "hızlı"
     },
     {
       "word": "good",
       "synonyms": ["nice", "fine", "great"],
-      "antonyms": ["bad", "poor", "awful"]
+      "antonyms": ["bad", "poor", "awful"],
+      "turkishMeaning": "iyi"
     },
     {
       "word": "hot",
       "synonyms": ["warm", "burning", "heated"],
-      "antonyms": ["cold", "cool", "freezing"]
+      "antonyms": ["cold", "cool", "freezing"],
+      "turkishMeaning": "sıcak"
+    },
+    {
+      "word": "easy",
+      "synonyms": ["simple", "painless", "straightforward"],
+      "antonyms": ["hard", "difficult", "tough"],
+      "turkishMeaning": "kolay"
+    },
+    {
+      "word": "new",
+      "synonyms": ["fresh", "modern", "recent"],
+      "antonyms": ["old", "ancient", "aged"],
+      "turkishMeaning": "yeni"
+    },
+    {
+      "word": "start",
+      "synonyms": ["begin", "commence", "launch"],
+      "antonyms": ["end", "finish", "stop"],
+      "turkishMeaning": "başlatmak"
     }
   ],
   "A2": [
     {
       "word": "beautiful",
       "synonyms": ["pretty", "lovely", "attractive"],
-      "antonyms": ["ugly", "plain", "unattractive"]
+      "antonyms": ["ugly", "plain", "unattractive"],
+      "turkishMeaning": "güzel"
     },
     {
       "word": "difficult",
       "synonyms": ["hard", "tough", "challenging"],
-      "antonyms": ["easy", "simple", "effortless"]
+      "antonyms": ["easy", "simple", "effortless"],
+      "turkishMeaning": "zor"
     },
     {
       "word": "important",
       "synonyms": ["significant", "essential", "vital"],
-      "antonyms": ["unimportant", "minor", "trivial"]
+      "antonyms": ["unimportant", "minor", "trivial"],
+      "turkishMeaning": "önemli"
     },
     {
       "word": "interesting",
       "synonyms": ["fascinating", "engaging", "exciting"],
-      "antonyms": ["boring", "dull", "tedious"]
+      "antonyms": ["boring", "dull", "tedious"],
+      "turkishMeaning": "ilginç"
     },
     {
       "word": "angry",
       "synonyms": ["mad", "furious", "annoyed"],
-      "antonyms": ["calm", "peaceful", "relaxed"]
+      "antonyms": ["calm", "peaceful", "relaxed"],
+      "turkishMeaning": "kızgın"
+    },
+    {
+      "word": "quiet",
+      "synonyms": ["silent", "still", "peaceful"],
+      "antonyms": ["noisy", "loud", "rowdy"],
+      "turkishMeaning": "sessiz"
+    },
+    {
+      "word": "strong",
+      "synonyms": ["powerful", "mighty", "sturdy"],
+      "antonyms": ["weak", "frail", "feeble"],
+      "turkishMeaning": "güçlü"
+    },
+    {
+      "word": "brave",
+      "synonyms": ["courageous", "fearless", "bold"],
+      "antonyms": ["cowardly", "timid", "fearful"],
+      "turkishMeaning": "cesur"
     }
   ],
   "B1": [
     {
       "word": "abundant",
       "synonyms": ["plentiful", "ample", "copious"],
-      "antonyms": ["scarce", "rare", "limited"]
-    },
-    {
-      "word": "brave",
-      "synonyms": ["courageous", "fearless", "bold"],
-      "antonyms": ["cowardly", "timid", "fearful"]
+      "antonyms": ["scarce", "rare", "limited"],
+      "turkishMeaning": "bol, bereketli"
     },
     {
       "word": "certain",
       "synonyms": ["sure", "definite", "confident"],
-      "antonyms": ["uncertain", "doubtful", "unsure"]
+      "antonyms": ["uncertain", "doubtful", "unsure"],
+      "turkishMeaning": "belirli, emin"
     },
     {
       "word": "decrease",
       "synonyms": ["reduce", "diminish", "lessen"],
-      "antonyms": ["increase", "grow", "expand"]
+      "antonyms": ["increase", "grow", "expand"],
+      "turkishMeaning": "azaltmak"
     },
     {
       "word": "genuine",
       "synonyms": ["real", "authentic", "true"],
-      "antonyms": ["fake", "false", "artificial"]
+      "antonyms": ["fake", "false", "artificial"],
+      "turkishMeaning": "hakiki, gerçek"
+    },
+    {
+      "word": "ancient",
+      "synonyms": ["old", "antique", "historic"],
+      "antonyms": ["modern", "new", "contemporary"],
+      "turkishMeaning": "antik, eski"
+    },
+    {
+      "word": "flexible",
+      "synonyms": ["adaptable", "adjustable", "pliable"],
+      "antonyms": ["rigid", "stiff", "inflexible"],
+      "turkishMeaning": "esnek"
+    },
+    {
+      "word": "precise",
+      "synonyms": ["exact", "accurate", "correct"],
+      "antonyms": ["vague", "inaccurate", "wrong"],
+      "turkishMeaning": "kesin, tam"
+    },
+    {
+      "word": "reliable",
+      "synonyms": ["dependable", "trustworthy", "stable"],
+      "antonyms": ["unreliable", "unstable", "shaky"],
+      "turkishMeaning": "güvenilir"
     }
   ],
   "B2": [
     {
       "word": "adequate",
       "synonyms": ["sufficient", "enough", "satisfactory"],
-      "antonyms": ["inadequate", "insufficient", "lacking"]
+      "antonyms": ["inadequate", "insufficient", "lacking"],
+      "turkishMeaning": "yeterli"
     },
     {
       "word": "ambiguous",
       "synonyms": ["unclear", "vague", "uncertain"],
-      "antonyms": ["clear", "obvious", "definite"]
+      "antonyms": ["clear", "obvious", "definite"],
+      "turkishMeaning": "belirsiz"
     },
     {
       "word": "beneficial",
       "synonyms": ["helpful", "advantageous", "useful"],
-      "antonyms": ["harmful", "detrimental", "damaging"]
+      "antonyms": ["harmful", "detrimental", "damaging"],
+      "turkishMeaning": "faydalı"
     },
     {
       "word": "concise",
       "synonyms": ["brief", "short", "succinct"],
-      "antonyms": ["lengthy", "verbose", "wordy"]
+      "antonyms": ["lengthy", "verbose", "wordy"],
+      "turkishMeaning": "kısa ve öz"
     },
     {
       "word": "diligent",
       "synonyms": ["hardworking", "industrious", "dedicated"],
-      "antonyms": ["lazy", "idle", "negligent"]
+      "antonyms": ["lazy", "idle", "negligent"],
+      "turkishMeaning": "çalışkan"
+    },
+    {
+      "word": "cautious",
+      "synonyms": ["careful", "wary", "watchful"],
+      "antonyms": ["reckless", "careless", "bold"],
+      "turkishMeaning": "tedbirli, dikkatli"
+    },
+    {
+      "word": "elaborate",
+      "synonyms": ["detailed", "complex", "intricate"],
+      "antonyms": ["simple", "plain", "basic"],
+      "turkishMeaning": "detaylı, ayrıntılı"
+    },
+    {
+      "word": "perplexed",
+      "synonyms": ["confused", "puzzled", "baffled"],
+      "antonyms": ["composed", "clear", "certain"],
+      "turkishMeaning": "şaşkın, kafası karışık"
     }
   ],
   "C1": [
     {
       "word": "ambivalent",
       "synonyms": ["uncertain", "conflicted", "undecided"],
-      "antonyms": ["certain", "decisive", "resolute"]
+      "antonyms": ["certain", "decisive", "resolute"],
+      "turkishMeaning": "kararsız"
     },
     {
       "word": "eloquent",
       "synonyms": ["articulate", "expressive", "fluent"],
-      "antonyms": ["inarticulate", "tongue-tied", "speechless"]
+      "antonyms": ["inarticulate", "tongue-tied", "speechless"],
+      "turkishMeaning": "etkili konuşan"
     },
     {
       "word": "ephemeral",
       "synonyms": ["temporary", "fleeting", "transient"],
-      "antonyms": ["permanent", "enduring", "lasting"]
+      "antonyms": ["permanent", "enduring", "lasting"],
+      "turkishMeaning": "geçici, ömürsüz"
     },
     {
       "word": "meticulous",
       "synonyms": ["careful", "thorough", "precise"],
-      "antonyms": ["careless", "sloppy", "negligent"]
+      "antonyms": ["careless", "sloppy", "negligent"],
+      "turkishMeaning": "titiz"
     },
     {
       "word": "pragmatic",
       "synonyms": ["practical", "realistic", "sensible"],
-      "antonyms": ["idealistic", "impractical", "unrealistic"]
+      "antonyms": ["idealistic", "impractical", "unrealistic"],
+      "turkishMeaning": "uygulamacı, gerçekçi"
+    },
+    {
+      "word": "adversary",
+      "synonyms": ["opponent", "enemy", "rival"],
+      "antonyms": ["ally", "friend", "partner"],
+      "turkishMeaning": "hasım, taraf"
+    },
+    {
+      "word": "resilient",
+      "synonyms": ["strong", "tough", "flexible"],
+      "antonyms": ["fragile", "weak", "delicate"],
+      "turkishMeaning": "dayanıklı"
+    },
+    {
+      "word": "spurious",
+      "synonyms": ["false", "fake", "counterfeit"],
+      "antonyms": ["authentic", "genuine", "real"],
+      "turkishMeaning": "sahte"
     }
   ],
   "C2": [
     {
       "word": "ameliorate",
       "synonyms": ["improve", "enhance", "better"],
-      "antonyms": ["worsen", "deteriorate", "aggravate"]
+      "antonyms": ["worsen", "deteriorate", "aggravate"],
+      "turkishMeaning": "iyileştirmek"
     },
     {
       "word": "capricious",
       "synonyms": ["unpredictable", "fickle", "changeable"],
-      "antonyms": ["stable", "constant", "steady"]
+      "antonyms": ["stable", "constant", "steady"],
+      "turkishMeaning": "kaprisli, değişken"
     },
     {
       "word": "ebullient",
       "synonyms": ["enthusiastic", "exuberant", "lively"],
-      "antonyms": ["subdued", "apathetic", "lethargic"]
+      "antonyms": ["subdued", "apathetic", "lethargic"],
+      "turkishMeaning": "coşkulu"
     },
     {
       "word": "perfunctory",
       "synonyms": ["cursory", "superficial", "hasty"],
-      "antonyms": ["thorough", "careful", "diligent"]
+      "antonyms": ["thorough", "careful", "diligent"],
+      "turkishMeaning": "üstünkörü, özensiz"
     },
     {
       "word": "ubiquitous",
       "synonyms": ["omnipresent", "widespread", "pervasive"],
-      "antonyms": ["rare", "scarce", "uncommon"]
+      "antonyms": ["rare", "scarce", "uncommon"],
+      "turkishMeaning": "her yerde bulunan"
+    },
+    {
+      "word": "alacrity",
+      "synonyms": ["eagerness", "readiness", "willingness"],
+      "antonyms": ["reluctance", "indifference", "delay"],
+      "turkishMeaning": "çeviklik, isteklilik"
+    },
+    {
+      "word": "exacerbate",
+      "synonyms": ["worsen", "inflame", "intensify"],
+      "antonyms": ["alleviate", "calm", "soothe"],
+      "turkishMeaning": "kötüleştirmek"
+    },
+    {
+      "word": "obsequious",
+      "synonyms": ["fawning", "subservient", "servile"],
+      "antonyms": ["domineering", "arrogant", "proud"],
+      "turkishMeaning": "yalaka"
     }
   ]
 }

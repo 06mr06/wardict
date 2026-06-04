@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/firebase/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../onboarding/tutorial_screen.dart';
 import '../../services/firebase/firestore_service.dart';
 import '../../services/user_profile_service.dart';
-import '../home/welcome_screen.dart';
 import '../support/privacy_policy_screen.dart';
 import '../support/terms_of_service_screen.dart';
 
@@ -24,6 +22,28 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _isLogin = true; // true = giriş, false = kayıt
   bool _obscurePassword = true;
+  bool _rememberMe = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedUser();
+  }
+
+  Future<void> _loadRememberedUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('remembered_email');
+    final rememberMe = prefs.getBool('remember_me') ?? true;
+    
+    if (mounted) {
+      setState(() {
+        if (savedEmail != null && savedEmail.isNotEmpty) {
+          _emailController.text = savedEmail;
+        }
+        _rememberMe = rememberMe;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -47,7 +67,15 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (credential != null && mounted) {
-          _navigateToHome();
+          debugPrint('✅ Giriş başarılı, AuthWrapper yönlendirmeyi yapacak');
+          // Beni hatırla tercihini kaydet
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('remember_me', _rememberMe);
+          if (_rememberMe) {
+            await prefs.setString('remembered_email', _emailController.text.trim());
+          } else {
+            await prefs.remove('remembered_email');
+          }
         } else {
           _showError(AuthService.instance.errorMessage ?? 'Giriş başarısız');
         }
@@ -69,28 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (credential != null && mounted) {
-          // Firestore'da profil oluştur (hata olursa devam et)
-          try {
-            await FirestoreService.instance.createUserProfile(
-              odlevel: credential.user!.uid,
-              username: username,
-              email: _emailController.text.trim(),
-            );
-            
-            // Lokal profili cloud'a senkronize et
-            final localProfile = await UserProfileService.instance.loadProfile();
-            final updatedProfile = localProfile.copyWith(username: username);
-            await UserProfileService.instance.saveProfile(updatedProfile);
-            await FirestoreService.instance.syncFromLocal(updatedProfile);
-          } catch (e) {
-            debugPrint('⚠️ Firestore profil oluşturulamadı (devam ediliyor): $e');
-            // Lokal profili güncelle - username'i kaydet
-            final localProfile = await UserProfileService.instance.loadProfile();
-            final updatedProfile = localProfile.copyWith(username: username);
-            await UserProfileService.instance.saveProfile(updatedProfile);
-          }
-
-          _navigateToHome();
+          debugPrint('✅ Kayıt başarılı, AuthWrapper yönlendirmeyi yapacak');
         } else {
           _showError(AuthService.instance.errorMessage ?? 'Kayıt başarısız');
         }
@@ -110,24 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final credential = await AuthService.instance.signInAnonymously();
       
       if (credential != null && mounted) {
-        final guestUsername = 'Misafir${DateTime.now().millisecondsSinceEpoch % 10000}';
-        
-        // Anonim kullanıcı için profil oluştur (hata olursa devam et)
-        try {
-          await FirestoreService.instance.createUserProfile(
-            odlevel: credential.user!.uid,
-            username: guestUsername,
-          );
-        } catch (e) {
-          debugPrint('⚠️ Firestore profil oluşturulamadı (devam ediliyor): $e');
-        }
-
-        // Lokal profili güncelle
-        final localProfile = await UserProfileService.instance.loadProfile();
-        final updatedProfile = localProfile.copyWith(username: guestUsername);
-        await UserProfileService.instance.saveProfile(updatedProfile);
-
-        _navigateToHome();
+        debugPrint('✅ Misafir girişi başarılı');
       } else {
         _showError('Misafir girişi başarısız');
       }
@@ -145,36 +135,10 @@ class _LoginScreenState extends State<LoginScreen> {
       final credential = await AuthService.instance.signInWithGoogle();
       
       if (credential != null && mounted) {
-        final user = credential.user!;
-        final username = user.displayName ?? user.email?.split('@').first ?? 'GoogleUser';
-        final email = user.email ?? '';
-        
-        debugPrint('🔥 Google Giriş - Username: $username, Email: $email');
-        
-        // Firestore'da profil oluştur (hata olursa devam et)
-        try {
-          await FirestoreService.instance.createUserProfile(
-            odlevel: user.uid,
-            username: username,
-            email: email,
-          );
-        } catch (e) {
-          debugPrint('⚠️ Firestore profil oluşturulamadı (devam ediliyor): $e');
-          // Firestore hatası olsa bile giriş devam etsin
-        }
-
-        // Lokal profili yükle ve güncelle
-        final localProfile = await UserProfileService.instance.loadProfile();
-        final updatedProfile = localProfile.copyWith(
-          username: username,
-          email: email,
-        );
-        await UserProfileService.instance.saveProfile(updatedProfile);
-        
-        // Profili yeniden yükle
-        await UserProfileService.instance.reloadProfile();
-
-        _navigateToHome();
+        debugPrint('✅ Google girişi başarılı');
+        // Bazı cihazlarda/AuthWrapper rebuild gecikebildiği için,
+        // giriş sonrası ana ekrana doğrudan geçiş yap.
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
       } else {
         _showError(AuthService.instance.errorMessage ?? 'Google girişi başarısız');
       }
@@ -198,7 +162,6 @@ class _LoginScreenState extends State<LoginScreen> {
         
         debugPrint('🍎 Apple Giriş - Username: $username, Email: $email');
         
-        // Firestore'da profil oluştur (hata olursa devam et)
         try {
           await FirestoreService.instance.createUserProfile(
             odlevel: user.uid,
@@ -209,7 +172,6 @@ class _LoginScreenState extends State<LoginScreen> {
           debugPrint('⚠️ Firestore profil oluşturulamadı (devam ediliyor): $e');
         }
 
-        // Lokal profili yükle ve güncelle
         final localProfile = await UserProfileService.instance.loadProfile();
         final updatedProfile = localProfile.copyWith(
           username: username,
@@ -217,10 +179,9 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         await UserProfileService.instance.saveProfile(updatedProfile);
         
-        // Profili yeniden yükle
         await UserProfileService.instance.reloadProfile();
 
-        _navigateToHome();
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
       } else {
         _showError(AuthService.instance.errorMessage ?? 'Apple girişi başarısız');
       }
@@ -228,21 +189,6 @@ class _LoginScreenState extends State<LoginScreen> {
       _showError('Bir hata oluştu: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _navigateToHome() async {
-    // Tutorial tamamlanmadıysa önce tutorial'a yönlendir
-    final prefs = await SharedPreferences.getInstance();
-    final showTutorial = !(prefs.getBool('tutorial_completed') ?? false);
-    if (showTutorial) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const TutorialScreen()),
-      );
-    } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-      );
     }
   }
 
@@ -317,9 +263,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 gradient: LinearGradient(
                   colors: [
                     Colors.transparent,
-                    Colors.black.withOpacity(0.3),
-                    Colors.black.withOpacity(0.7),
-                    Colors.black.withOpacity(0.9),
+                    Colors.black.withAlpha(77),
+                    Colors.black.withAlpha(179),
+                    Colors.black.withAlpha(230),
                   ],
                   stops: const [0.0, 0.3, 0.5, 0.7],
                   begin: Alignment.topCenter,
@@ -384,7 +330,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF6C27FF).withOpacity(0.4),
+                    color: const Color(0xFF6C27FF).withAlpha(102),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -417,7 +363,7 @@ class _LoginScreenState extends State<LoginScreen> {
           'Kelime Düello Oyunu',
           style: TextStyle(
             fontSize: 14,
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withAlpha(179),
           ),
         ),
       ],
@@ -428,9 +374,9 @@ class _LoginScreenState extends State<LoginScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withAlpha(26),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withAlpha(26)),
       ),
       child: Form(
         key: _formKey,
@@ -454,12 +400,43 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 16),
 
+            // Email veya Kullanıcı Adı (Giriş) / Sadece Email (Kayıt)
+            _buildTextField(
+              controller: _emailController,
+              label: _isLogin ? 'Kullanıcı Adı veya Email' : 'E-posta Adresi',
+              icon: _isLogin ? Icons.person_outline : Icons.email_outlined,
+              keyboardType: TextInputType.emailAddress,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Email veya kullanıcı adı gerekli';
+                }
+                if (_isLogin) {
+                  // Giriş ekranı - Email veya username olabilir
+                  if (value.contains('@')) {
+                    if (!value.contains('.') || value.length < 5) {
+                      return 'Geçerli bir email girin';
+                    }
+                  } else if (value.length < 3) {
+                    return 'Kullanıcı adı en az 3 karakter olmalı';
+                  }
+                } else {
+                  // Kayıt ekranı - Sadece email formatı
+                  if (!value.contains('@') || !value.contains('.')) {
+                    return 'Geçerli bir email adresi girin';
+                  }
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+
             // Kullanıcı adı (sadece kayıtta)
             if (!_isLogin) ...[
               _buildTextField(
                 controller: _usernameController,
                 label: 'Kullanıcı Adı',
                 icon: Icons.person_outline,
+                helperText: '⚠️ Kullanıcı adınız sonradan tamamen değiştirilemez, sadece büyük/küçük harf durumunu değiştirebilirsiniz.',
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Kullanıcı adı gerekli';
@@ -467,37 +444,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   if (value.length < 3) {
                     return 'En az 3 karakter';
                   }
+                  if (value.contains('@')) {
+                    return 'Kullanıcı adında @ olamaz';
+                  }
                   return null;
                 },
               ),
               const SizedBox(height: 12),
             ],
-
-            // Email veya Kullanıcı Adı
-            _buildTextField(
-              controller: _emailController,
-              label: 'Email veya Kullanıcı Adı',
-              icon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Email veya kullanıcı adı gerekli';
-                }
-                // Eğer @ içeriyorsa email olarak doğrula
-                if (value.contains('@')) {
-                  if (!value.contains('@') || !value.contains('.')) {
-                    return 'Geçerli bir email girin';
-                  }
-                } else {
-                  // Kullanıcı adı ise minimum uzunluk kontrolü
-                  if (value.length < 3) {
-                    return 'Kullanıcı adı en az 3 karakter olmalı';
-                  }
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
 
             // Şifre
             _buildTextField(
@@ -525,21 +479,49 @@ class _LoginScreenState extends State<LoginScreen> {
               },
             ),
 
-            // Şifremi unuttum (sadece girişte)
+            // Beni Hatırla (sadece girişte)
             if (_isLogin) ...[
               const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _handleForgotPassword,
-                  child: Text(
-                    'Şifremi Unuttum',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 12,
+              Row(
+                children: [
+                  Theme(
+                    data: ThemeData(unselectedWidgetColor: Colors.white54),
+                    child: Checkbox(
+                      value: _rememberMe,
+                      onChanged: (val) => setState(() => _rememberMe = val ?? false),
+                      activeColor: const Color(0xFF6C27FF),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                     ),
                   ),
-                ),
+                  GestureDetector(
+                    onTap: () => setState(() => _rememberMe = !_rememberMe),
+                    child: Text(
+                      'Beni Hatırla',
+                      style: TextStyle(
+                        color: Colors.white.withAlpha(179),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: _handleForgotPassword,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(50, 30),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Şifremi Unuttum?',
+                      style: TextStyle(
+                        color: Color(0xFF2AA7FF),
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
             const SizedBox(height: 16),
@@ -593,7 +575,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   colors: [Color(0xFF6C27FF), Color(0xFF2AA7FF)],
                 )
               : null,
-          color: isActive ? null : Colors.white.withOpacity(0.1),
+          color: isActive ? null : Colors.white.withAlpha(26),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Center(
@@ -618,37 +600,54 @@ class _LoginScreenState extends State<LoginScreen> {
     Widget? suffixIcon,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    String? helperText,
   }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      validator: validator,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-        prefixIcon: Icon(icon, color: Colors.white54),
-        suffixIcon: suffixIcon,
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.15),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.4), width: 1.5),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: controller,
+          obscureText: obscureText,
+          keyboardType: keyboardType,
+          validator: validator,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: TextStyle(color: Colors.white.withAlpha(179)),
+            prefixIcon: Icon(icon, color: Colors.white54),
+            suffixIcon: suffixIcon,
+            filled: true,
+            fillColor: Colors.white.withAlpha(38),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withAlpha(102), width: 1.5),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withAlpha(102), width: 1.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF6C27FF), width: 2.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.4), width: 1.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF6C27FF), width: 2.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
-        ),
-      ),
+        if (helperText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              helperText,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 11,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -657,26 +656,26 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Row(
           children: [
-            Expanded(child: Divider(color: Colors.white.withOpacity(0.3))),
+            Expanded(child: Divider(color: Colors.white.withAlpha(77))),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'veya',
-                style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                style: TextStyle(color: Colors.white.withAlpha(128)),
               ),
             ),
-            Expanded(child: Divider(color: Colors.white.withOpacity(0.3))),
+            Expanded(child: Divider(color: Colors.white.withAlpha(77))),
           ],
         ),
         const SizedBox(height: 16),
         
-        // Google ve Apple ile Giriş - Yan yana simge butonları
+        // Google & Apple ile Giriş
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Google butonu - Apple gibi beyaz çerçeveli siyah zemin
+            // Google butonu
             Container(
-              width: 60,
+              width: 80,
               height: 50,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
@@ -699,11 +698,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     startAngle: 0.5,
                     endAngle: 6.0,
                     colors: [
-                      Color(0xFF4285F4), // Mavi
-                      Color(0xFF34A853), // Yeşil
-                      Color(0xFFFBBC05), // Sarı
-                      Color(0xFFEA4335), // Kırmızı
-                      Color(0xFF4285F4), // Mavi (döngü)
+                      Color(0xFF4285F4),
+                      Color(0xFF34A853),
+                      Color(0xFFFBBC05),
+                      Color(0xFFEA4335),
+                      Color(0xFF4285F4),
                     ],
                   ).createShader(bounds),
                   child: const Text(
@@ -718,9 +717,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(width: 16),
-            // Apple butonu - Her platformda göster
+            // Apple butonu
             Container(
-              width: 60,
+              width: 80,
               height: 50,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
@@ -737,7 +736,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   elevation: 0,
                 ),
-                child: const Icon(Icons.apple, size: 28),
+                child: const Text(
+                  '🍎',
+                  style: TextStyle(fontSize: 28),
+                ),
               ),
             ),
           ],
@@ -755,7 +757,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Text(
                 'Gizlilik',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withAlpha(153),
                   fontSize: 11,
                   decoration: TextDecoration.underline,
                 ),
@@ -763,7 +765,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             Text(
               ' • ',
-              style: TextStyle(color: Colors.white.withOpacity(0.4)),
+              style: TextStyle(color: Colors.white.withAlpha(102)),
             ),
             GestureDetector(
               onTap: () => Navigator.push(
@@ -773,7 +775,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Text(
                 'Kullanım Şartları',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withAlpha(153),
                   fontSize: 11,
                   decoration: TextDecoration.underline,
                 ),

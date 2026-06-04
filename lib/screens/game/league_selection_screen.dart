@@ -1,11 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/league.dart';
-import '../../models/user_level.dart';
-import '../../providers/game_provider.dart';
+import '../../providers/language_provider.dart';
 import '../../services/user_profile_service.dart';
-import '../../services/word_pool_service.dart';
-import '../friends/find_match_screen.dart';
+import '../game/matchmaking_screen.dart';
 
 class LeagueSelectionScreen extends StatefulWidget {
   const LeagueSelectionScreen({super.key});
@@ -50,30 +48,15 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
   }
 
   void _startDuelWithBot(League league) {
-    // Seçilen lige göre seviyeler belirle
-    UserLevel level;
-    switch (league) {
-      case League.beginner:
-        level = UserLevel.a1;
-        break;
-      case League.intermediate:
-        level = UserLevel.b1;
-        break;
-      case League.advanced:
-        level = UserLevel.c1;
-        break;
-    }
-
-    // Soruları oluştur
-    final questions = WordPoolService.instance.generateQuestions(level);
-    final gameProvider = context.read<GameProvider>();
-    gameProvider.startPracticeWithGenerated(questions);
-    
-    // Duel ekranına git (lig bilgisiyle)
-    Navigator.pushReplacementNamed(
-      context, 
-      '/duel',
-      arguments: league,
+    // MatchmakingScreen'i isBot: true ile çağırarak konsolidasyon sağla
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MatchmakingScreen(
+          leagueCode: league.code,
+          isBot: true,
+        ),
+      ),
     );
   }
 
@@ -81,9 +64,8 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => FindMatchScreen(
+        builder: (_) => MatchmakingScreen(
           leagueCode: league.code,
-          leagueName: league.name,
         ),
       ),
     );
@@ -111,9 +93,9 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Devam Eden Oyunlar',
-              style: TextStyle(
+            Text(
+              context.watch<LanguageProvider>().getString('ongoing_games'),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -128,7 +110,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                     Icon(Icons.games_outlined, size: 60, color: Colors.white.withValues(alpha: 0.3)),
                     const SizedBox(height: 12),
                     Text(
-                      'Devam eden oyun yok',
+                      context.watch<LanguageProvider>().getString('no_ongoing_games'),
                       style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 16),
                     ),
                   ],
@@ -140,9 +122,9 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundColor: Colors.blue,
-                    child: Text(game['opponent'][0]),
+                    child: Text(game['opponent'].isNotEmpty ? game['opponent'][0] : '?'),
                   ),
-                  title: Text(game['opponent'], style: const TextStyle(color: Colors.white)),
+                  title: Text(game['opponent'].isNotEmpty ? game['opponent'] : 'No Name', style: const TextStyle(color: Colors.white)),
                   subtitle: Text(game['league'], style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
                   trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
                   onTap: () {
@@ -180,11 +162,11 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Düello Modu',
+                        context.watch<LanguageProvider>().getString('duel_mode_title'),
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -228,7 +210,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Seviye seç ve rakibini bul!',
+                  context.watch<LanguageProvider>().getString('select_level_and_find_opponent'),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 16,
@@ -392,14 +374,14 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                       ),
                       elevation: 4,
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.person_search, color: Colors.white, size: 20),
-                        SizedBox(width: 8),
+                        const Icon(Icons.person_search, color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
                         Text(
-                          'Rakip Bul',
-                          style: TextStyle(
+                          context.watch<LanguageProvider>().getString('find_opponent_button'),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -428,7 +410,7 @@ class _LeagueSelectionScreenState extends State<LeagueSelectionScreen>
                       Text(botEmoji, style: const TextStyle(fontSize: 18)),
                       const SizedBox(width: 4),
                       Text(
-                        'Bot',
+                        context.watch<LanguageProvider>().getString('bot_button'),
                         style: TextStyle(
                           color: color,
                           fontSize: 14,

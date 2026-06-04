@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_level.dart';
 import '../models/question_mode.dart';
 import '../services/word_pool_service.dart';
-import '../services/quest_service.dart';
-import '../models/quest.dart';
+import '../services/word_category_service.dart';
+import '../services/user_profile_service.dart';
 import 'base_game_provider.dart';
 
 /// Cevaplanan soru bilgisi
@@ -15,12 +14,14 @@ class AnsweredQuestion {
   final String correctAnswer;
   final String? userAnswer;
   final bool isCorrect;
+  final String? turkishMeaning;
   
   AnsweredQuestion({
     required this.prompt,
     required this.correctAnswer,
     this.userAnswer,
     required this.isCorrect,
+    this.turkishMeaning,
   });
 }
 
@@ -28,6 +29,7 @@ class Daily123Provider extends BaseGameProvider {
   UserLevel _currentLevel = UserLevel.a1;
   int _timeLeft = 123;
   Timer? _timer;
+  DateTime? _targetEndTime;
   bool _isGameOver = false;
 
   GeneratedQuestion? _currentQuestion;
@@ -97,11 +99,9 @@ class Daily123Provider extends BaseGameProvider {
     _isGameOver = (_timeLeft <= 0 || score >= 123);
     
     if (!_isGameOver) {
+      await WordPoolService.instance.loadWordPool();
       _startTimer();
       await _loadNextQuestion();
-      
-      // Görev: Günün Sorusu (Daily 123 oynamaya başladığında ilerler)
-       QuestService.instance.updateProgress(QuestType.daily123Play, 1);
     } else {
       notifyListeners();
     }
@@ -125,6 +125,7 @@ class Daily123Provider extends BaseGameProvider {
     _correctAnswers.clear();
     _wrongAnswers.clear();
     
+    await WordPoolService.instance.loadWordPool();
     _startTimer();
     await _loadNextQuestion();
   }
@@ -139,22 +140,34 @@ class Daily123Provider extends BaseGameProvider {
 
   void _startTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      if (_timeLeft > 0 && !_isGameOver) {
-        _timeLeft--;
+    _targetEndTime = DateTime.now().add(Duration(seconds: _timeLeft));
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_isGameOver) {
+        timer.cancel();
+        return;
+      }
+
+      final now = DateTime.now();
+      final remaining = _targetEndTime!.difference(now).inSeconds;
+
+      if (remaining > 0) {
+        _timeLeft = remaining;
         
         // Son 5 saniyede titreşim
         if (_timeLeft <= 5 && _timeLeft > 0) {
-          final prefs = await SharedPreferences.getInstance();
-          final vibrationEnabled = prefs.getBool('vibration_enabled') ?? true;
-          if (vibrationEnabled) {
-            HapticFeedback.heavyImpact();
-          }
+          SharedPreferences.getInstance().then((prefs) {
+            final vibrationEnabled = prefs.getBool('vibration_enabled') ?? true;
+            if (vibrationEnabled) {
+              HapticFeedback.heavyImpact();
+            }
+          });
         }
         
         _saveState();
         notifyListeners();
       } else {
+        _timeLeft = 0;
         _endGame();
       }
     });
@@ -164,6 +177,7 @@ class Daily123Provider extends BaseGameProvider {
   void pauseTimer() {
     _timer?.cancel();
     _timer = null;
+    _targetEndTime = null;
   }
 
   /// Network bağlandıktan sonra timer'ı devam ettir
@@ -225,6 +239,7 @@ class Daily123Provider extends BaseGameProvider {
         correctAnswer: _currentQuestion!.options[_currentQuestion!.correctIndex],
         userAnswer: _shuffledOptions[selectedIndex],
         isCorrect: isCorrect,
+        turkishMeaning: _currentQuestion!.turkishMeaning,
       );
       
       if (isCorrect) {
@@ -232,6 +247,10 @@ class Daily123Provider extends BaseGameProvider {
       } else {
         _wrongAnswers.add(answered);
       }
+
+      // Kategori bazlı istatistikleri güncelle
+      final category = WordCategoryService.instance.getCategory(_currentQuestion!.options[_currentQuestion!.correctIndex]);
+      UserProfileService.instance.updateCategoryStats(category, isCorrect);
     }
     
     int points = 0;

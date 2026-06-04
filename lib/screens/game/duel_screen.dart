@@ -13,6 +13,7 @@ import '../../services/network_service.dart';
 import '../../services/feed_service.dart';
 import '../../models/quest.dart';
 import '../../models/achievement.dart';
+import '../../models/user_level.dart';
 import '../../models/feed_item.dart';
 import '../../services/shop_service.dart';
 import '../../services/ranking_service.dart';
@@ -29,10 +30,20 @@ import '../../widgets/game/game_confetti.dart';
 import 'package:confetti/confetti.dart';
 import '../../widgets/game/game_background.dart';
 import '../../models/match_history_item.dart'; // Added import
+import '../../widgets/game/lottie_answer_overlay.dart';
 import '../../widgets/common/connection_lost_dialog.dart';
 
 class DuelScreen extends BaseGameScreen {
-  const DuelScreen({super.key});
+  final Map<String, String>? wordOfTheDay;
+  final String? botName;
+  final String? botAvatar;
+
+  const DuelScreen({
+    super.key,
+    this.wordOfTheDay,
+    this.botName,
+    this.botAvatar,
+  });
 
   @override
   State<DuelScreen> createState() => _DuelScreenState();
@@ -44,6 +55,12 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
   int? _botSelection;
   bool _locked = false;
   League? _currentLeague;
+
+  @override
+  String? get backgroundImage => 'assets/images/welcome.png';
+  
+  @override
+  double get imageOpacity => 0.15;
   
   // VS Animation State
   bool _showVsAnim = true;
@@ -64,6 +81,10 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
   Set<int> _eliminatedOptions = {};
   String? _selectedAvatarEmoji;
   String? _myPhotoUrl;
+  UserProfile? _userProfile;
+
+  bool _showAnswerAnimation = false;
+  bool _answerIsCorrect = false;
 
   // Animations
   late AnimationController _userPulseController;
@@ -89,30 +110,21 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
     NetworkService.instance.startMonitoring();
     _networkSubscription = NetworkService.instance.connectionStream.listen((isConnected) {
       if (!isConnected && mounted) {
-        // Timer'ı duraklat
-        timer?.cancel();
-        showConnectionLostDialog(
-          onRetry: () async {
-            final connected = await NetworkService.instance.checkConnection();
-            if (connected && mounted) {
-              // Timer'ı yeniden başlat
-              startTimer();
-            } else if (mounted) {
-              _startNetworkMonitoring();
-            }
-          },
-          onExit: () {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          },
-        );
+        // Bot düellosu olduğu için oyunu duraklatmıyoruz, sadece debug log basıyoruz.
+        debugPrint('📡 DuelScreen: Connection lost, but continuing bot duel offline.');
       }
     });
   }
 
   void _initBotIdentity() {
-    final names = ['Can', 'Ayşe', 'Mehmet', 'Zeynep', 'Ali', 'Fatma', 'Cem', 'Elif'];
-    _botName = names[_rng.nextInt(names.length)];
-    _botAvatar = UserProfileService.avatars[_rng.nextInt(UserProfileService.avatars.length)];
+    if (widget.botName != null && widget.botAvatar != null) {
+      _botName = widget.botName!;
+      _botAvatar = widget.botAvatar!;
+    } else {
+      final names = ['Bot Can', 'Bot Ayşe', 'Bot Mehmet', 'Bot Zeynep', 'Bot Ali', 'Bot Fatma', 'Bot Cem', 'Bot Elif'];
+      _botName = names[_rng.nextInt(names.length)];
+      _botAvatar = UserProfileService.avatars[_rng.nextInt(UserProfileService.avatars.length)];
+    }
   }
   
   void _initPulseAnimations() {
@@ -146,6 +158,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
   }
 
   Future<void> _initDuel() async {
+    final profile = await UserProfileService.instance.loadProfile();
     // Get user's photo URL from Firebase Auth (Google profile picture)
     final photoUrl = AuthService.instance.photoURL;
     if (photoUrl != null && photoUrl.isNotEmpty && mounted) {
@@ -164,6 +177,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
 
     if (mounted) {
       setState(() {
+        _userProfile = profile;
         _inventory = inventory;
         _selectedAvatarEmoji = emoji;
       });
@@ -229,12 +243,20 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
         if (!_showVsAnim) super.build(context), // Only show game after VS
         GameConfetti(controller: _confettiController),
         
+        if (_showAnswerAnimation)
+          LottieAnswerOverlay(
+            isCorrect: _answerIsCorrect,
+            onComplete: () {
+              if (mounted) setState(() => _showAnswerAnimation = false);
+            },
+          ),
+          
         // Interstitial Overlay (Between Questions)
         if (_interstitialStep > 0)
           Material(
             color: Colors.transparent,
             child: Container(
-              color: Colors.black.withValues(alpha: 0.85),
+              color: Colors.black.withAlpha(217),
               alignment: Alignment.center,
               child: TweenAnimationBuilder<double>(
                 duration: const Duration(milliseconds: 600),
@@ -264,7 +286,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF6C27FF).withValues(alpha: 0.5),
+                                  color: const Color(0xFF6C27FF).withAlpha(128),
                                   blurRadius: 40,
                                   spreadRadius: 10,
                                 ),
@@ -305,9 +327,26 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
             botScore: botScore,
             userName: AuthService.instance.displayName ?? 'You',
             botName: _botName,
+            userLevel: _userProfile?.level.order ?? 1,
+            botLevel: (_userProfile?.level.order ?? 1) + _rng.nextInt(3) - 1,
+            userTier: _userProfile?.level.code ?? 'A1',
+            botTier: _userProfile?.level.code ?? 'A1',
+            userLp: _userProfile?.leagueScores.getScore(_currentLeague ?? League.beginner) ?? 1500,
+            botLp: (_userProfile?.leagueScores.getScore(_currentLeague ?? League.beginner) ?? 1500) + _rng.nextInt(200) - 100,
+            userWinRate: _calcWinRate(_userProfile),
+            botWinRate: 50 + _rng.nextInt(20),
+            arenaName: _currentLeague != null ? 'Arena ${_currentLeague!.code}: ${_currentLeague!.name}' : 'Arena 01: Training Ground',
+            wordOfTheDay: widget.wordOfTheDay,
           ),
       ],
     );
+  }
+
+  int _calcWinRate(UserProfile? profile) {
+    if (profile == null) return 50;
+    final total = profile.duelWins + profile.duelLosses;
+    if (total == 0) return 50;
+    return ((profile.duelWins / total) * 100).round();
   }
 
   void _resetRoundState() {
@@ -329,7 +368,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
 
   void _submitAnswer(int index) {
      if (_locked || _userSelection != null || timeLeft == 0) return;
-    
+
     // Double Chance Logic
     if (_doubleChanceUsed && !_firstChanceWrong) {
          final gp = context.read<GameProvider>();
@@ -381,6 +420,8 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
 
     setState(() {
       _locked = true;
+      _answerIsCorrect = _userSelection != null && _userSelection == correctIndex;
+      _showAnswerAnimation = true;
       if (gp.lastScore > 0) _userPulseController.forward(from: 0).then((_) => _userPulseController.reverse());
       if (botPoints > 0) _botPulseController.forward(from: 0).then((_) => _botPulseController.reverse());
     });
@@ -423,9 +464,8 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
     final optionsLen = gp.currentOptions.length;
     final correctIndex = gp.currentCorrectIndex;
     
-    // Bot reaction time ~600-2500ms
-    final reactMs = _rng.nextInt(1900) + 600; 
-    const correctProb = 0.7; 
+    final reactMs = _rng.nextInt(1900) + 600; // 600-2500ms arası
+    const correctProb = 0.7; // %70 oranında doğru bilir
 
     Future.delayed(Duration(milliseconds: reactMs), () {
       if (!mounted || _locked) return;
@@ -470,60 +510,56 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
 
   void _showResult() async {
     final gp = context.read<GameProvider>();
-    int eloChange = 0;
-    int userEloBeforeMatch = 1500;
-    const int botElo = 1500;
+    int lpChange = 0;
+    int userLpBeforeMatch = 1500;
+    const int botLp = 1500;
+
+    final int finalUserScore = gp.score;
+    final int finalBotScore = botScore;
 
     if (_currentLeague != null) {
-        final isWin = gp.score > botScore;
-        final isDraw = gp.score == botScore;
+        final isWin = finalUserScore > finalBotScore;
+        final isDraw = finalUserScore == finalBotScore;
         final profile = await UserProfileService.instance.loadProfile();
-        userEloBeforeMatch = profile.leagueScores.getScore(_currentLeague!);
+        userLpBeforeMatch = profile.leagueScores.getScore(_currentLeague!);
         
-        // Oyun sayısını al (dinamik K-Factor için)
         final gamesPlayed = profile.gamesPlayed;
         
-        // ELO hesaplama (beraberlik dahil)
-        // result: 1.0 = galibiyet, 0.5 = beraberlik, 0.0 = mağlubiyet
         final double result = isDraw ? 0.5 : (isWin ? 1.0 : 0.0);
-        eloChange = League.calculateEloChange(
-          currentElo: userEloBeforeMatch, 
-          opponentElo: botElo, 
+        lpChange = League.calculateLpChange(
+          currentLp: userLpBeforeMatch, 
+          opponentLp: botLp, 
           result: result,
           gamesPlayed: gamesPlayed,
         );
-        await UserProfileService.instance.updateLeagueScore(_currentLeague!, eloChange);
+        await UserProfileService.instance.updateLeagueScore(_currentLeague!, lpChange);
         
-        // Update history item with calculated elo change
         await UserProfileService.instance.addMatchHistory(MatchHistoryItem(
             opponentName: _botName,
-            userScore: gp.score,
-            opponentScore: botScore,
+            userScore: finalUserScore,
+            opponentScore: finalBotScore,
             isWin: isWin,
             date: DateTime.now(),
             league: _currentLeague,
-            eloChange: eloChange,
+            eloChange: lpChange,
         ));
         
         if (isWin) {
-           // _confettiController.play();
            QuestService.instance.updateProgress(QuestType.winDuels, 1);
            AchievementService.instance.updateProgress(AchievementCategory.career, 1);
            FeedService.instance.logUserActivity(FeedType.duelWin, 'Bir düello kazandın! ⚔️');
            
-           // Haftalık sıralama için puan ekle (Örn: "kullanıcı" yerine gerçek isim gelecek)
            final profile = await UserProfileService.instance.loadProfile();
-           await RankingService.instance.addScore(profile.username, eloChange);
+           await RankingService.instance.addScore(profile.username, lpChange);
            
            await Future.delayed(const Duration(seconds: 2)); 
         }
     } else {
-        // Save practice duel history too? Yes.
         await UserProfileService.instance.addMatchHistory(MatchHistoryItem(
             opponentName: _botName,
-            userScore: gp.score,
-            opponentScore: botScore,
-            isWin: gp.score > botScore,
+            userScore: finalUserScore,
+            opponentScore: finalBotScore,
+            isWin: finalUserScore > finalBotScore,
             date: DateTime.now(),
             league: null,
             eloChange: 0,
@@ -533,13 +569,15 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
     if (!mounted) return;
     Navigator.pushReplacement(context, MaterialPageRoute(
         builder: (_) => DuelResultsScreen(
-            userScore: gp.score,
-            botScore: botScore,
+            userScore: finalUserScore,
+            botScore: finalBotScore,
             items: gp.history,
             league: _currentLeague,
-            eloChange: eloChange,
-            userElo: userEloBeforeMatch,
-            botElo: botElo,
+            lpChange: lpChange,
+            userLp: userLpBeforeMatch,
+            botLp: botLp,
+            botName: _botName,
+            botAvatar: _botAvatar,
         )
     ));
   }
@@ -552,7 +590,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
     // Mode Text
     String modeText = 'TR - EN';
     if (gp.currentMode == QuestionMode.enToTr) modeText = 'EN - TR';
-    if (gp.currentMode == QuestionMode.engToEng) modeText = 'Eş Anlam';
+    if (gp.currentMode == QuestionMode.engToEng) modeText = 'ENG - ENG';
 
     return Column(
       children: [
@@ -560,7 +598,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.3),
+            color: Colors.black.withAlpha(77),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -605,49 +643,132 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
         FittedBox(
           fit: BoxFit.scaleDown,
           child: Row(
-            children: [
-                  ScaleTransition(
-                      scale: _userPulseAnim,
-                      child: _scoreTile('${_selectedAvatarEmoji ?? "👤"} You', gp.score, gp.streak, const Color(0xFF2AA7FF))
+            mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ScaleTransition(
+                        scale: _userPulseAnim,
+                        child: _compactPlayerCircle(
+                          name: 'Sen',
+                          score: gp.score,
+                          avatarUrl: _myPhotoUrl,
+                          avatarEmoji: _selectedAvatarEmoji,
+                          color: const Color(0xFF2AA7FF),
+                          isUser: true,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Image.asset(
+                        'assets/images/vs_emblem.png',
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(width: 16),
+                      ScaleTransition(
+                        scale: _botPulseAnim,
+                        child: _compactPlayerCircle(
+                          name: _botName,
+                          score: botScore,
+                          avatarEmoji: '🤖',
+                          color: const Color(0xFFFF9800),
+                          isUser: false,
+                        ),
+                      ),
+                    ],
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16), 
-                    child: Text(
-                      'VS', 
-                      style: TextStyle(
-                        fontSize: 24, 
-                        fontWeight: FontWeight.w900, 
-                        color: Colors.white,
-                        shadows: [Shadow(color: Colors.purple, blurRadius: 10)]
-                      )
-                    )
-                  ),
-                  ScaleTransition(
-                      scale: _botPulseAnim,
-                      child: _scoreTile('$_botAvatar $_botName', botScore, botStreak, const Color(0xFFE91E63))
-                  ),
-            ],
-          ),
         )
       ],
     );
   }
-  
-  Widget _scoreTile(String label, int score, int streak, Color color) {
-    return Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withValues(alpha: 0.5))
+
+  Widget _duelCompactAvatarFallback(double size, String? avatarEmoji) {
+    if (avatarEmoji != null && avatarEmoji.startsWith('assets/')) {
+      return Image.asset(
+        avatarEmoji,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        alignment: Alignment.center,
+      );
+    }
+    return Center(
+      child: Text(
+        avatarEmoji ?? '👤',
+        style: TextStyle(fontSize: (size * 0.44).clamp(18.0, 28.0)),
+      ),
+    );
+  }
+
+  Widget _compactPlayerCircle({
+    required String name,
+    required int score,
+    String? avatarUrl,
+    String? avatarEmoji,
+    required Color color,
+    required bool isUser,
+  }) {
+    const double size = 54;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: color, width: 2),
+                boxShadow: [
+                  BoxShadow(color: color.withAlpha(51), blurRadius: 10, spreadRadius: 1),
+                ],
+              ),
+              child: ClipOval(
+                child: SizedBox(
+                  width: size,
+                  height: size,
+                  child: avatarUrl != null && avatarUrl.isNotEmpty
+                      ? Image.network(
+                          avatarUrl,
+                          width: size,
+                          height: size,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                          errorBuilder: (_, __, ___) =>
+                              _duelCompactAvatarFallback(size, avatarEmoji),
+                        )
+                      : _duelCompactAvatarFallback(size, avatarEmoji),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withAlpha(128), blurRadius: 4),
+                  ],
+                ),
+                child: Text(
+                  '$score',
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+          ],
         ),
-        child: Column(
-            children: [
-                Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
-                Text('$score', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                if (streak > 1) Text('🔥 $streak', style: const TextStyle(color: Colors.orangeAccent, fontSize: 12)),
-            ],
+        const SizedBox(height: 12),
+        Text(
+          name,
+          style: TextStyle(color: Colors.white.withAlpha(204), fontSize: 11, fontWeight: FontWeight.bold),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
+      ],
     );
   }
 
@@ -694,7 +815,7 @@ class _DuelScreenState extends BaseGameScreenState<DuelScreen> with NetworkAware
       case QuestionMode.enToTr:
         return 'EN → TR';
       case QuestionMode.engToEng:
-        return 'Eş Anlam';
+        return 'ENG - ENG';
     }
   }
 

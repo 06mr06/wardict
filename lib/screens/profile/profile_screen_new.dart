@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../../models/league.dart';
 import '../../models/user_level.dart';
 import '../../services/user_profile_service.dart';
 import '../../services/firebase/auth_service.dart';
@@ -12,10 +10,22 @@ import '../../models/cosmetic_item.dart';
 import '../../models/achievement.dart';
 import '../../services/shop_service.dart';
 import '../../services/achievement_service.dart';
+import '../../providers/language_provider.dart';
 import '../support/support_screen.dart';
+import 'package:provider/provider.dart';
 import '../onboarding/tutorial_screen.dart';
 import 'settings_screen.dart';
-import '../../widgets/common/referral_dialog.dart';
+import '../shop/shop_screen.dart';
+import 'widgets/activity_chart.dart';
+import 'widgets/duel_performance_card.dart';
+import 'widgets/stats_grid.dart';
+import 'widgets/language_passport.dart';
+import 'widgets/match_history_section.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../services/ad_service.dart';
+import '../../services/firebase/storage_service.dart';
+import '../support/admin_support_list_screen.dart';
+import '../news/news_screen.dart';
 
 class ProfileScreenNew extends StatefulWidget {
   const ProfileScreenNew({super.key});
@@ -32,6 +42,146 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
   bool _isLoading = true;
   bool _isPremium = false;
 
+  Future<void> _pickAndUploadImage() async {
+    if (!_isPremium) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF2E5A8C),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Text('⭐', style: TextStyle(fontSize: 24)),
+              const SizedBox(width: 10),
+              Text(
+                  context.read<LanguageProvider>().getString('premium_feature'),
+                  style: const TextStyle(color: Colors.white, fontSize: 18)),
+            ],
+          ),
+          content: Text(
+            context.read<LanguageProvider>().getString('premium_info'),
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(context.read<LanguageProvider>().getString('close'),
+                  style: const TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            const ShopScreen(initialTabIndex: 4)));
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+              child: Text(
+                  context.read<LanguageProvider>().getString('go_premium'),
+                  style: const TextStyle(color: Colors.black)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 75,
+    );
+
+    if (image == null) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) =>
+          const Center(child: CircularProgressIndicator(color: Colors.white)),
+    );
+
+    try {
+      debugPrint('📸 Fotoğraf seçme işlemi başladı...');
+      final bytes = await image.readAsBytes();
+      debugPrint('📸 Fotoğraf bytes okundu. Boyut: ${bytes.length} bytes');
+
+      debugPrint('📤 StorageService yükleme başlıyor...');
+      final String? downloadUrl =
+          await StorageService.instance.uploadProfileImageBytes(bytes);
+      debugPrint('📥 StorageService cevabı: $downloadUrl');
+
+      if (mounted) {
+        Navigator.pop(context); // Yükleme animasyonunu kapat
+        debugPrint('🔄 Loading dialog kapatıldı.');
+      }
+
+      if (downloadUrl != null) {
+        debugPrint('✅ Fotoğraf başarıyla yüklendi: $downloadUrl');
+
+        // Firestore güncellemesi
+        try {
+          debugPrint('📝 Firestore profil güncelleniyor...');
+          await UserProfileService.instance.updateProfileImage(downloadUrl);
+          await UserProfileService.instance.updateAvatar(null);
+          await UserProfileService.instance.syncProfileToFirestore();
+          debugPrint('✅ Firestore senkronizasyonu tamam.');
+        } catch (syncError) {
+          debugPrint(
+              '⚠️ Fotoğraf yüklendi ama Firestore senkronizasyonunda hata: $syncError');
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(context
+                  .read<LanguageProvider>()
+                  .getString('profile_updated')),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _loadProfile();
+        }
+      } else {
+        debugPrint('❌ Fotoğraf yükleme başarısız (downloadUrl null)');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  context.read<LanguageProvider>().getString('upload_failed')),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Hata: Fotoğraf yüklenemedi: $e');
+      if (mounted) {
+        // Hata durumunda dialog'un açık kalmadığından emin ol
+        try {
+          Navigator.pop(context);
+        } catch (_) {}
+
+        String errorMsg =
+            'Fotoğraf yüklenirken bir hata oluştu: ${e.toString()}';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      debugPrint('🏁 Fotoğraf yükleme işlemi bitti.');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -42,15 +192,16 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
     final profile = await UserProfileService.instance.loadProfile();
     final achievements = await AchievementService.instance.getAchievements();
     final unlockedCosmetics = await ShopService.instance.getUnlockedCosmetics();
-    final selectedFrame = await ShopService.instance.getSelectedCosmetic(CosmeticType.frame);
+    final selectedFrame =
+        await ShopService.instance.getSelectedCosmetic(CosmeticType.frame);
     final subscription = await ShopService.instance.getSubscription();
-    
+
     setState(() {
       _profile = profile;
       _achievements = achievements;
       _unlockedCosmetics = unlockedCosmetics;
       _selectedFrameId = selectedFrame;
-      _isPremium = subscription.isActive;
+      _isPremium = subscription.isActive || (profile.isPremium);
       _isLoading = false;
     });
   }
@@ -88,14 +239,14 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
             children: [
               // Header with back and settings
               _buildHeader(),
-              
+
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
                       const SizedBox(height: 16),
-                      
+
                       // Profile Picture
                       _buildProfilePicture(),
                       const SizedBox(height: 12),
@@ -105,16 +256,26 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                       const SizedBox(height: 20),
 
                       // İstatistikler Header
-                      _buildSectionHeaderNoAction('İstatistikler'),
+                      _buildSectionHeader(context
+                          .watch<LanguageProvider>()
+                          .getString('statistics')),
                       const SizedBox(height: 12),
-                      
+
                       // Statistics Cards
                       _buildStatisticsGrid(),
                       const SizedBox(height: 24),
 
                       // Ödüller
-                      _buildAwardsSection(),
+                      _buildSectionHeader(context
+                          .watch<LanguageProvider>()
+                          .getString('awards')),
                       const SizedBox(height: 24),
+
+                      // Maç Geçmişi
+                      if (_profile != null) ...[
+                        MatchHistorySection(profile: _profile!),
+                        const SizedBox(height: 32),
+                      ],
                     ],
                   ),
                 ),
@@ -172,45 +333,97 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
               ),
             ),
             const SizedBox(height: 20),
-            _buildMenuItem(Icons.settings, 'AYARLAR', Colors.deepPurple, () {
+            _buildMenuItem(
+                Icons.settings,
+                context
+                    .watch<LanguageProvider>()
+                    .getString('settings')
+                    .toUpperCase(),
+                Colors.deepPurple, () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()));
             }),
-            _buildMenuItem(Icons.people, 'ARKADAŞLAR', Colors.pink, () {
+            _buildMenuItem(
+                Icons.people,
+                context
+                    .watch<LanguageProvider>()
+                    .getString('friends')
+                    .toUpperCase(),
+                Colors.pink, () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const FriendsScreen()));
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const FriendsScreen()));
             }),
-            _buildMenuItem(Icons.leaderboard, 'LİDERLER SIRALAMASI', Colors.green, () {
+            _buildMenuItem(
+                Icons.leaderboard,
+                context
+                    .watch<LanguageProvider>()
+                    .getString('leaderboard')
+                    .toUpperCase(),
+                Colors.green, () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen()));
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const LeaderboardScreen()));
             }),
             _buildMenuItem(Icons.newspaper, 'HABERLER', Colors.orange, () {
               Navigator.pop(context);
-              // TODO: News screen
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const NewsScreen()));
             }),
-            _buildMenuItem(Icons.menu_book, 'REHBER', Colors.teal, () {
+            _buildMenuItem(
+                Icons.menu_book,
+                context
+                    .watch<LanguageProvider>()
+                    .getString('guide')
+                    .toUpperCase(),
+                Colors.teal, () {
               Navigator.pop(context);
               _showGuide();
             }),
-            _buildMenuItem(Icons.play_circle_outline, 'TUTORIAL', Colors.cyan, () {
+            _buildMenuItem(Icons.play_circle_outline, 'TUTORIAL', Colors.cyan,
+                () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => TutorialScreen(
-                onComplete: () => Navigator.of(context).pop(),
-              )));
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const TutorialScreen()));
             }),
-            _buildMenuItem(Icons.card_giftcard, 'PROMOSYON KODU', Colors.amber, () {
+            _buildMenuItem(
+                Icons.card_giftcard,
+                context
+                    .watch<LanguageProvider>()
+                    .getString('promo_code_title')
+                    .toUpperCase(),
+                Colors.amber, () {
               Navigator.pop(context);
               _showPromoCodeDialog();
             }),
-            _buildMenuItem(Icons.group_add, 'ARKADAŞ DAVET ET', Colors.blue, () {
+            _buildMenuItem(
+                Icons.support_agent,
+                context
+                    .watch<LanguageProvider>()
+                    .getString('support')
+                    .toUpperCase(),
+                Colors.indigo, () {
               Navigator.pop(context);
-              showDialog(context: context, builder: (context) => const ReferralDialog());
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const SupportScreen()));
             }),
-            _buildMenuItem(Icons.support_agent, 'DESTEK', Colors.indigo, () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen()));
-            }),
-            _buildMenuItem(Icons.logout, 'ÇIKIŞ', Colors.red, () {
+            if (AuthService.instance.isAdmin) ...[
+              _buildMenuItem(Icons.admin_panel_settings, 'YÖNETİCİ PANELİ',
+                  Colors.amber.shade900, () {
+                Navigator.pop(context);
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const AdminSupportListScreen()));
+              }),
+            ],
+            _buildMenuItem(
+                Icons.logout,
+                context
+                    .watch<LanguageProvider>()
+                    .getString('logout')
+                    .toUpperCase(),
+                Colors.red, () {
               Navigator.pop(context);
               _handleLogout();
             }),
@@ -221,7 +434,8 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String title, Color color, VoidCallback onTap) {
+  Widget _buildMenuItem(
+      IconData icon, String title, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -255,26 +469,28 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
     // Seçili frame'i bul
     CosmeticItem? selectedFrame;
     if (_selectedFrameId != null) {
-      final frames = CosmeticItem.availableItems.where((i) => i.id == _selectedFrameId);
+      final frames =
+          CosmeticItem.availableItems.where((i) => i.id == _selectedFrameId);
       if (frames.isNotEmpty) {
         selectedFrame = frames.first;
       }
     }
-    
+
     // Frame rengi ve kalınlığı - varsayılan mor
     Color frameColor = const Color(0xFF6C27FF);
     double borderWidth = 3.0;
     bool isRainbow = false;
-    
+
     if (selectedFrame != null) {
       if (selectedFrame.previewValue == 'gradient') {
         isRainbow = true;
       } else {
-        frameColor = Color(int.parse('FF${selectedFrame.previewValue}', radix: 16));
+        frameColor =
+            Color(int.parse('FF${selectedFrame.previewValue}', radix: 16));
       }
       borderWidth = selectedFrame.borderWidth.toDouble();
     }
-    
+
     return GestureDetector(
       onTap: () => _showOwnedAvatars(),
       child: Stack(
@@ -284,19 +500,29 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
             height: 100 + borderWidth * 2,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: isRainbow ? const LinearGradient(
-                colors: [Colors.red, Colors.orange, Colors.yellow, Colors.green, Colors.blue, Colors.purple],
-              ) : null,
+              gradient: isRainbow
+                  ? const LinearGradient(
+                      colors: [
+                        Colors.red,
+                        Colors.orange,
+                        Colors.yellow,
+                        Colors.green,
+                        Colors.blue,
+                        Colors.purple
+                      ],
+                    )
+                  : null,
               color: isRainbow ? null : frameColor,
               boxShadow: [
                 BoxShadow(
-                  color: (isRainbow ? Colors.purple : frameColor).withOpacity(0.5),
+                  color:
+                      (isRainbow ? Colors.purple : frameColor).withAlpha(128),
                   blurRadius: 15,
                   spreadRadius: 3,
                 ),
                 if (selectedFrame != null) ...[
                   BoxShadow(
-                    color: (isRainbow ? Colors.cyan : frameColor).withOpacity(0.5),
+                    color: (isRainbow ? Colors.cyan : frameColor).withAlpha(77),
                     blurRadius: 25,
                     spreadRadius: 5,
                   ),
@@ -304,35 +530,103 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
               ],
             ),
             child: Center(
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFF1A3A5C),
-                ),
-                child: ClipOval(
-                  child: _profile?.avatarId != null && _profile!.avatarId!.isNotEmpty
-                      ? Center(
-                          child: Text(
-                            CosmeticItem.availableItems.where((i) => i.id == _profile!.avatarId).isNotEmpty
-                                ? CosmeticItem.availableItems.firstWhere((i) => i.id == _profile!.avatarId).previewValue
-                                : '👤',
-                            style: const TextStyle(fontSize: 52),
+              child: ClipOval(
+                child: SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: Builder(builder: (context) {
+                    const placeholder = Color(0xFF1A3A5C);
+                    final profile = _profile;
+                    if (profile == null) {
+                      return const ColoredBox(
+                        color: placeholder,
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    final hasPhoto = profile.profileImagePath != null &&
+                        profile.profileImagePath!.isNotEmpty;
+                    if (hasPhoto) {
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          const ColoredBox(color: placeholder),
+                          Image.network(
+                            profile.profileImagePath!,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.person,
+                                    size: 50, color: Colors.white),
                           ),
-                        )
-                      : Center(
-                          child: Text(
-                            _profile?.username.isNotEmpty == true
-                                ? _profile!.username[0].toUpperCase()
-                                : 'P',
-                            style: const TextStyle(
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                        ],
+                      );
+                    }
+
+                    final avatarId = profile.avatarId;
+                    if (avatarId != null && avatarId.isNotEmpty) {
+                      String? assetPath;
+                      if (avatarId.startsWith('assets/')) {
+                        assetPath = avatarId;
+                      } else {
+                        final items = CosmeticItem.availableItems
+                            .where((i) => i.id == avatarId);
+                        if (items.isNotEmpty) {
+                          final pv = items.first.previewValue;
+                          if (pv.startsWith('assets/')) assetPath = pv;
+                        }
+                      }
+                      if (assetPath != null) {
+                        return Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            const ColoredBox(color: placeholder),
+                            Image.asset(
+                              assetPath,
+                              fit: BoxFit.cover,
+                              alignment: Alignment.center,
+                              filterQuality: FilterQuality.medium,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.person,
+                                      size: 50, color: Colors.white),
                             ),
+                          ],
+                        );
+                      }
+                      final items = CosmeticItem.availableItems
+                          .where((i) => i.id == avatarId);
+                      if (items.isNotEmpty) {
+                        final previewValue = items.first.previewValue;
+                        if (!previewValue.startsWith('assets/')) {
+                          return ColoredBox(
+                            color: placeholder,
+                            child: Center(
+                              child: Text(
+                                previewValue,
+                                style: const TextStyle(fontSize: 52),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    }
+
+                    return ColoredBox(
+                      color: placeholder,
+                      child: Center(
+                        child: Text(
+                          profile.username.isNotEmpty == true
+                              ? profile.username[0].toUpperCase()
+                              : 'P',
+                          style: const TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
+                      ),
+                    );
+                  }),
                 ),
               ),
             ),
@@ -352,7 +646,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                   border: Border.all(color: Colors.white, width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFFD700).withOpacity(0.5),
+                      color: const Color(0xFFFFD700).withAlpha(128),
                       blurRadius: 8,
                       spreadRadius: 2,
                     ),
@@ -379,18 +673,22 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
       ),
     );
   }
-  
+
   void _showOwnedAvatars() {
     // Sahip olunan avatarları filtrele
     final ownedAvatars = CosmeticItem.availableItems
-        .where((item) => item.type == CosmeticType.avatar && _unlockedCosmetics.contains(item.id))
+        .where((item) =>
+            item.type == CosmeticType.avatar &&
+            _unlockedCosmetics.contains(item.id))
         .toList();
-    
+
     // Sahip olunan frame'leri filtrele
     final ownedFrames = CosmeticItem.availableItems
-        .where((item) => item.type == CosmeticType.frame && _unlockedCosmetics.contains(item.id))
+        .where((item) =>
+            item.type == CosmeticType.frame &&
+            _unlockedCosmetics.contains(item.id))
         .toList();
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -416,20 +714,20 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withAlpha(77),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              // Header
-              const Padding(
-                padding: EdgeInsets.all(20),
+              Padding(
+                padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
-                    Icon(Icons.person, color: Colors.white, size: 28),
-                    SizedBox(width: 12),
+                    const Icon(Icons.person, color: Colors.white, size: 28),
+                    const SizedBox(width: 12),
                     Text(
-                      'Görünümünü Değiştir',
-                      style: TextStyle(
+                      Provider.of<LanguageProvider>(context, listen: false)
+                          .getString('change_appearance'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -438,27 +736,123 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                   ],
                 ),
               ),
-              // Content
               Expanded(
                 child: ListView(
                   controller: scrollController,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
-                    // Avatarlar Bölümü
-                    const Text(
-                      '👤 Avatarlar',
-                      style: TextStyle(
+                    // Banner Reklam
+                    const Center(child: BannerAdWidget()),
+                    const SizedBox(height: 16),
+
+                    // Avatarlar Bölümü (Profil Fotoğrafı Yükleme dahil)
+                    Text(
+                      '👤 ${context.read<LanguageProvider>().getString('profile_view')}',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 12),
+
+                    // Profil Fotoğrafı Yükleme (Her zaman görünür, premium kontrolü tıklamada)
+                    GestureDetector(
+                      onTap: () => _pickAndUploadImage(),
+                      child: Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: _isPremium
+                              ? const Color(0xFF6C27FF).withAlpha(26)
+                              : Colors.white.withAlpha(13),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: _isPremium
+                                  ? const Color(0xFF6C27FF).withAlpha(128)
+                                  : Colors.white10),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.camera_alt,
+                                color: _isPremium
+                                    ? const Color(0xFF6C27FF)
+                                    : Colors.white24),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    context
+                                        .read<LanguageProvider>()
+                                        .getString('upload_profile_photo'),
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  if (!_isPremium)
+                                    Text(
+                                      context
+                                          .read<LanguageProvider>()
+                                          .getString('only_premium'),
+                                      style: TextStyle(
+                                          color: Colors.white.withAlpha(102),
+                                          fontSize: 11),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            if (!_isPremium)
+                              const Icon(Icons.lock_rounded,
+                                  color: Colors.amber, size: 16)
+                            else if (_profile?.profileImagePath != null)
+                              const Icon(Icons.check_circle,
+                                  color: Colors.green, size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '🎭 ${context.watch<LanguageProvider>().getString('purchased_avatars')}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ShopScreen(initialTabIndex: 2)));
+                          },
+                          icon: const Icon(Icons.shopping_cart,
+                              size: 14, color: Colors.amber),
+                          label: Text(
+                            context
+                                .read<LanguageProvider>()
+                                .getString('go_to_market'),
+                            style: const TextStyle(
+                                color: Colors.amber, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     if (ownedAvatars.isEmpty)
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withAlpha(13),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
@@ -466,19 +860,28 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                             const Text('😢', style: TextStyle(fontSize: 40)),
                             const SizedBox(height: 8),
                             Text(
-                              'Henüz avatar satın almadınız',
-                              style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                              context
+                                  .read<LanguageProvider>()
+                                  .getString('no_avatars'),
+                              style:
+                                  TextStyle(color: Colors.white.withAlpha(128)),
                             ),
                             const SizedBox(height: 12),
                             ElevatedButton(
                               onPressed: () {
                                 Navigator.pop(context);
-                                Navigator.pushNamed(context, '/shop');
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => const ShopScreen(
+                                            initialTabIndex: 2)));
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF6C27FF),
                               ),
-                              child: const Text('Markete Git'),
+                              child: Text(context
+                                  .read<LanguageProvider>()
+                                  .getString('go_to_market')),
                             ),
                           ],
                         ),
@@ -491,8 +894,10 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                           final isSelected = _profile?.avatarId == avatar.id;
                           return GestureDetector(
                             onTap: () async {
-                              await ShopService.instance.setSelectedCosmetic(avatar.id, CosmeticType.avatar);
-                              await UserProfileService.instance.updateAvatar(avatar.id);
+                              await ShopService.instance.setSelectedCosmetic(
+                                  avatar.id, CosmeticType.avatar);
+                              await UserProfileService.instance
+                                  .updateAvatar(avatar.id);
                               Navigator.pop(context);
                               _loadProfile();
                             },
@@ -500,40 +905,83 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                               width: 70,
                               height: 70,
                               decoration: BoxDecoration(
-                                color: isSelected 
-                                    ? Colors.green.withOpacity(0.5)
-                                    : Colors.white.withOpacity(0.5),
+                                color: isSelected
+                                    ? Colors.green.withAlpha(77)
+                                    : Colors.white.withAlpha(26),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: isSelected ? Colors.green : Colors.transparent,
+                                  color: isSelected
+                                      ? Colors.green
+                                      : Colors.transparent,
                                   width: 3,
                                 ),
                               ),
-                              child: Center(
-                                child: Text(avatar.previewValue, style: const TextStyle(fontSize: 36)),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: avatar.previewValue.startsWith('assets/')
+                                    ? ColoredBox(
+                                        color: const Color(0xFF1A3A5C),
+                                        child: Image.asset(
+                                          avatar.previewValue,
+                                          fit: BoxFit.cover,
+                                          width: 70,
+                                          height: 70,
+                                          alignment: Alignment.center,
+                                        ),
+                                      )
+                                    : Center(
+                                        child: Text(avatar.previewValue,
+                                            style:
+                                                const TextStyle(fontSize: 36)),
+                                      ),
                               ),
                             ),
                           );
                         }).toList(),
                       ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Çerçeveler Bölümü
-                    const Text(
-                      '🖼️ Çerçeveler',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '🖼️ ${context.watch<LanguageProvider>().getString('frames')}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => const ShopScreen(
+                                        initialTabIndex: 2,
+                                        scrollToFrames: true)));
+                          },
+                          icon: const Icon(Icons.shopping_cart,
+                              size: 14, color: Colors.amber),
+                          label: Text(
+                            context
+                                .read<LanguageProvider>()
+                                .getString('go_to_market'),
+                            style: const TextStyle(
+                                color: Colors.amber, fontSize: 12),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     if (ownedFrames.isEmpty)
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withAlpha(13),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
@@ -541,14 +989,22 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                             const Text('🖼️', style: TextStyle(fontSize: 40)),
                             const SizedBox(height: 8),
                             Text(
-                              'Henüz çerçeve satın almadınız',
-                              style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                              context
+                                  .read<LanguageProvider>()
+                                  .getString('no_frames'),
+                              style:
+                                  TextStyle(color: Colors.white.withAlpha(128)),
                             ),
                             const SizedBox(height: 12),
                             ElevatedButton(
                               onPressed: () {
                                 Navigator.pop(context);
-                                Navigator.pushNamed(context, '/shop');
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => const ShopScreen(
+                                            initialTabIndex: 2,
+                                            scrollToFrames: true)));
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF6C27FF),
@@ -568,7 +1024,9 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                               // Çerçeve yok seçeneği
                               GestureDetector(
                                 onTap: () async {
-                                  await ShopService.instance.setSelectedCosmetic('', CosmeticType.frame);
+                                  await ShopService.instance
+                                      .setSelectedCosmetic(
+                                          '', CosmeticType.frame);
                                   Navigator.pop(context);
                                   _loadProfile();
                                 },
@@ -576,19 +1034,22 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                                   width: 70,
                                   height: 70,
                                   decoration: BoxDecoration(
-                                    color: _selectedFrameId == null || _selectedFrameId!.isEmpty
-                                        ? Colors.green.withOpacity(0.5)
-                                        : Colors.white.withOpacity(0.5),
+                                    color: _selectedFrameId == null ||
+                                            _selectedFrameId!.isEmpty
+                                        ? Colors.green.withAlpha(77)
+                                        : Colors.white.withAlpha(26),
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: _selectedFrameId == null || _selectedFrameId!.isEmpty
+                                      color: _selectedFrameId == null ||
+                                              _selectedFrameId!.isEmpty
                                           ? Colors.green
                                           : Colors.transparent,
                                       width: 3,
                                     ),
                                   ),
                                   child: const Center(
-                                    child: Icon(Icons.block, color: Colors.white54, size: 32),
+                                    child: Icon(Icons.block,
+                                        color: Colors.white54, size: 32),
                                   ),
                                 ),
                               ),
@@ -598,11 +1059,15 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                                 if (frame.previewValue == 'gradient') {
                                   frameColor = Colors.purple;
                                 } else {
-                                  frameColor = Color(int.parse('FF${frame.previewValue}', radix: 16));
+                                  frameColor = Color(int.parse(
+                                      'FF${frame.previewValue}',
+                                      radix: 16));
                                 }
                                 return GestureDetector(
                                   onTap: () async {
-                                    await ShopService.instance.setSelectedCosmetic(frame.id, CosmeticType.frame);
+                                    await ShopService.instance
+                                        .setSelectedCosmetic(
+                                            frame.id, CosmeticType.frame);
                                     Navigator.pop(context);
                                     _loadProfile();
                                   },
@@ -612,18 +1077,31 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                                     decoration: BoxDecoration(
                                       gradient: frame.previewValue == 'gradient'
                                           ? const LinearGradient(
-                                              colors: [Colors.red, Colors.orange, Colors.yellow, Colors.green, Colors.blue, Colors.purple],
+                                              colors: [
+                                                Colors.red,
+                                                Colors.orange,
+                                                Colors.yellow,
+                                                Colors.green,
+                                                Colors.blue,
+                                                Colors.purple
+                                              ],
                                             )
                                           : null,
-                                      color: frame.previewValue != 'gradient' ? Colors.white.withOpacity(0.5) : null,
+                                      color: frame.previewValue != 'gradient'
+                                          ? Colors.white.withAlpha(26)
+                                          : null,
                                       borderRadius: BorderRadius.circular(16),
                                       border: Border.all(
-                                        color: isSelected ? Colors.green : frameColor,
-                                        width: isSelected ? 4 : frame.borderWidth.toDouble(),
+                                        color: isSelected
+                                            ? Colors.green
+                                            : frameColor,
+                                        width: isSelected
+                                            ? 4
+                                            : frame.borderWidth.toDouble(),
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: frameColor.withOpacity(0.5),
+                                          color: frameColor.withAlpha(128),
                                           blurRadius: 8,
                                           spreadRadius: 1,
                                         ),
@@ -646,7 +1124,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                           ),
                         ],
                       ),
-                    
+
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -658,10 +1136,29 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
     );
   }
 
+  /// Profil kaydı ile Firebase hesap açılışından erken olanı göster (üye olma tarihi).
+  DateTime? _effectiveJoinDate() {
+    final p = _profile?.createdAt;
+    final a = AuthService.instance.accountCreatedAt;
+    if (p != null && a != null) {
+      return p.isBefore(a) ? p : a;
+    }
+    return p ?? a;
+  }
+
   Widget _buildUserInfo() {
-    final joinDate = _profile?.createdAt ?? DateTime.now();
-    final formattedDate = '${joinDate.day} ${_getMonthName(joinDate.month)} ${joinDate.year}';
-    
+    final lang = context.watch<LanguageProvider>();
+    final joinDate = _effectiveJoinDate();
+    final String joinSubtitle;
+    if (joinDate != null) {
+      final formattedDate =
+          '${joinDate.day} ${_getMonthName(joinDate.month)} ${joinDate.year}';
+      joinSubtitle =
+          lang.getString('joining_date').replaceAll('{date}', formattedDate);
+    } else {
+      joinSubtitle = lang.getString('joining_date_unknown');
+    }
+
     return Column(
       children: [
         GestureDetector(
@@ -681,7 +1178,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withAlpha(26),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Icon(Icons.edit, color: Colors.white54, size: 16),
@@ -691,27 +1188,28 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
         ),
         const SizedBox(height: 4),
         Text(
-          '$formattedDate tarihinde katıldı',
+          joinSubtitle,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withAlpha(179),
             fontSize: 14,
           ),
         ),
       ],
     );
   }
-  
+
   void _showEditUsernameDialog() {
     final controller = TextEditingController(text: _profile?.username ?? '');
     String? errorText;
     bool isChecking = false;
-    
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF2E5A8C),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Row(
             children: [
               Icon(Icons.edit, color: Colors.white, size: 24),
@@ -729,24 +1227,25 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                 maxLength: 20,
                 decoration: InputDecoration(
                   hintText: 'Yeni kullanıcı adı',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                  hintStyle: TextStyle(color: Colors.white.withAlpha(77)),
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.5),
+                  fillColor: Colors.white.withAlpha(26),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
                   errorText: errorText,
                   errorStyle: const TextStyle(color: Colors.redAccent),
-                  counterStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                  counterStyle: TextStyle(color: Colors.white.withAlpha(128)),
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                '• En az 3, en fazla 20 karakter\n• Özel karakterler kullanılamaz\n• Benzersiz olmalı',
+                '⚠️ Kullanıcı adınızı tamamen değiştiremezsiniz.\n• Sadece harflerin büyük/küçük durumunu değiştirebilirsiniz.\n• Örnek: "player" -> "Player"',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withAlpha(200),
                   fontSize: 12,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -754,78 +1253,95 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+              child:
+                  const Text('İptal', style: TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
-              onPressed: isChecking ? null : () async {
-                final newName = controller.text.trim();
-                
-                // Validasyon
-                if (newName.length < 3) {
-                  setDialogState(() => errorText = 'En az 3 karakter olmalı');
-                  return;
-                }
-                if (newName.length > 20) {
-                  setDialogState(() => errorText = 'En fazla 20 karakter olabilir');
-                  return;
-                }
-                // Sadece harf, rakam ve alt çizgi
-                final validChars = RegExp(r'^[a-zA-Z0-9_\u00C0-\u017F]+$');
-                if (!validChars.hasMatch(newName)) {
-                  setDialogState(() => errorText = 'Geçersiz karakterler içeriyor');
-                  return;
-                }
-                // Aynı isimse
-                if (newName == _profile?.username) {
-                  Navigator.pop(ctx);
-                  return;
-                }
-                
-                setDialogState(() {
-                  isChecking = true;
-                  errorText = null;
-                });
-                
-                // Benzersizlik kontrolü (Firebase'den)
-                final isUnique = await FirestoreService.instance.isUsernameUnique(newName);
-                
-                if (!isUnique) {
-                  setDialogState(() {
-                    isChecking = false;
-                    errorText = 'Bu kullanıcı adı zaten alınmış';
-                  });
-                  return;
-                }
-                
-                // İsmi güncelle
-                await UserProfileService.instance.updateUsername(newName);
-                await FirestoreService.instance.updateUsername(newName);
-                
-                if (mounted) {
-                  Navigator.pop(ctx);
-                  _loadProfile();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Row(
-                        children: [
-                          Icon(Icons.check_circle, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text('Kullanıcı adı güncellendi!'),
-                        ],
-                      ),
-                      backgroundColor: Color(0xFF2E5A8C),
-                    ),
-                  );
-                }
-              },
+              onPressed: isChecking
+                  ? null
+                  : () async {
+                      final newName = controller.text.trim();
+
+                      // Validasyon
+                      if (newName.length < 3) {
+                        setDialogState(
+                            () => errorText = 'En az 3 karakter olmalı');
+                        return;
+                      }
+                      if (newName.length > 20) {
+                        setDialogState(
+                            () => errorText = 'En fazla 20 karakter olabilir');
+                        return;
+                      }
+                      // Sadece harf, rakam ve alt çizgi (Eski Regex'e dönüldü)
+                      final validChars =
+                          RegExp(r'^[a-zA-Z0-9_\u00C0-\u017F]+$');
+                      if (!validChars.hasMatch(newName)) {
+                        setDialogState(
+                            () => errorText = 'Özel karakterler kullanılamaz');
+                        return;
+                      }
+                      // Aynı isimse (harf harf kontrolü)
+                      if (newName == _profile?.username) {
+                        Navigator.pop(ctx);
+                        return;
+                      }
+
+                      // Sadece büyük/küçük harf değişikliğine izin ver
+                      if (newName.toLowerCase() !=
+                          _profile?.username.toLowerCase()) {
+                        setDialogState(() => errorText =
+                            'Sadece harf büyüklüğünü değiştirebilirsiniz (Örn: isim -> İsim)');
+                        return;
+                      }
+
+                      setDialogState(() {
+                        isChecking = true;
+                        errorText = null;
+                      });
+
+                      // Benzersizlik kontrolü (Firebase'den)
+                      final isUnique = await FirestoreService.instance
+                          .isUsernameUnique(newName);
+
+                      if (!isUnique) {
+                        setDialogState(() {
+                          isChecking = false;
+                          errorText = 'Bu kullanıcı adı zaten alınmış';
+                        });
+                        return;
+                      }
+
+                      // İsmi güncelle
+                      await UserProfileService.instance.updateUsername(newName);
+                      await FirestoreService.instance.updateUsername(newName);
+
+                      if (mounted) {
+                        Navigator.pop(ctx);
+                        _loadProfile();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(Icons.check_circle, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text('Kullanıcı adı güncellendi!'),
+                              ],
+                            ),
+                            backgroundColor: Color(0xFF2E5A8C),
+                          ),
+                        );
+                      }
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6C27FF),
               ),
-              child: isChecking 
+              child: isChecking
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
                     )
                   : const Text('Kaydet'),
             ),
@@ -836,7 +1352,20 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
   }
 
   String _getMonthName(int month) {
-    const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    const months = [
+      'Oca',
+      'Şub',
+      'Mar',
+      'Nis',
+      'May',
+      'Haz',
+      'Tem',
+      'Ağu',
+      'Eyl',
+      'Eki',
+      'Kas',
+      'Ara'
+    ];
     return months[month - 1];
   }
 
@@ -845,7 +1374,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.cyan.withOpacity(0.5),
+        color: Colors.cyan.withAlpha(51),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.cyan, width: 1),
       ),
@@ -873,50 +1402,24 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const FriendsScreen()));
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const FriendsScreen()));
         },
         icon: const Icon(Icons.person_add, size: 20),
-        label: const Text('Add Friends', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text('Add Friends',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF3D7AB8),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
     );
   }
 
-  // ignore: unused_element - Section header için saklanıyor
-  Widget _buildSectionHeader(String title, String action) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        TextButton(
-          onPressed: () {
-            // TODO: Show all stats
-          },
-          child: Text(
-            action,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildSectionHeaderNoAction(String title) {
+  Widget _buildSectionHeader(String title) {
     return Row(
       children: [
         Text(
@@ -932,322 +1435,38 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
   }
 
   Widget _buildStatisticsGrid() {
-    final leagueScores = _profile?.leagueScores ?? const LeagueScores();
-    final practiceScore = _profile?.practiceScore ?? 0;
-    
-    // Duel stats
-    final matchHistory = _profile?.matchHistory ?? [];
-    final totalMatches = matchHistory.length;
-    final wins = matchHistory.where((m) => m.userScore > m.opponentScore).length;
-    final winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toStringAsFixed(0) : '0';
-    
+    if (_profile == null) return const SizedBox.shrink();
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Duel Puanı
-        _buildSectionTitle('Duel Puanı'),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [const Color(0xFF6C27FF).withOpacity(0.5), const Color(0xFF6C27FF).withOpacity(0.3)],
-            ),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF6C27FF), width: 1),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.emoji_events, color: Color(0xFF6C27FF), size: 22),
-              const SizedBox(width: 10),
-              Text(
-                '${_profile?.eloRating ?? 0}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                'ELO',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-            ],
-          ),
-        ),
+        // 1. StatsGrid (2x2 Layout) - PUANLAR ARTIK EN ÜSTTE
+        StatsGrid(profile: _profile!),
+        const SizedBox(height: 24),
+
+        // Dil Pasaportu (Öğrenme Haritası)
+        LanguagePassport(profile: _profile!),
+        const SizedBox(height: 24),
+
+        // 2. ActivityChart (Weekly Activity)
+        ActivityChart(profile: _profile!),
         const SizedBox(height: 16),
-        
-        // Practice Puanı
-        _buildSectionTitle('70/30 Puanı'),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [const Color(0xFFFF9800).withOpacity(0.5), const Color(0xFFFF9800).withOpacity(0.5)],
-            ),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFFF9800), width: 1),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.school, color: Color(0xFFFF9800), size: 22),
-              const SizedBox(width: 10),
-              Text(
-                '$practiceScore',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                'puan',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Practice Seviyesi
-        _buildSectionTitle('70/30 Seviyesi'),
-        const SizedBox(height: 8),
-        _buildPracticeLevelCard(),
-        const SizedBox(height: 16),
-        
-        // Duel İstatistikleri
-        _buildSectionTitle('Duel İstatistikleri'),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                icon: Icons.sports_esports,
-                iconColor: Colors.blue,
-                value: '$totalMatches',
-                label: 'Toplam Maç',
-                bgColor: const Color(0xFF3D7AB8),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildStatCard(
-                icon: Icons.emoji_events,
-                iconColor: Colors.amber,
-                value: '$wins',
-                label: 'Galibiyet',
-                bgColor: const Color(0xFF4A8C5C),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildStatCard(
-                icon: Icons.percent,
-                iconColor: Colors.orange,
-                value: '%$winRate',
-                label: 'Kazanım',
-                bgColor: const Color(0xFF8C5A4A),
-              ),
-            ),
-          ],
-        ),
+
+        // 3. DuelPerformanceCard (Win Rate & Circular Indicators)
+        DuelPerformanceCard(profile: _profile!),
       ],
-    );
-  }
-  
-  Widget _buildSectionTitle(String title) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPracticeLevelCard() {
-    final currentLevel = _profile?.practiceSession.currentLevel ?? 'A2';
-    
-    // Seviye rengi
-    Color levelColor;
-    if (currentLevel.startsWith('A')) {
-      levelColor = Colors.green;
-    } else if (currentLevel.startsWith('B')) {
-      levelColor = Colors.orange;
-    } else {
-      levelColor = Colors.red;
-    }
-    
-    // Seviye açıklaması
-    String levelDescription;
-    switch (currentLevel) {
-      case 'A1':
-        levelDescription = 'Başlangıç';
-        break;
-      case 'A2':
-        levelDescription = 'Temel';
-        break;
-      case 'B1':
-        levelDescription = 'Orta Öncesi';
-        break;
-      case 'B2':
-        levelDescription = 'Orta';
-        break;
-      case 'C1':
-        levelDescription = 'İleri';
-        break;
-      case 'C2':
-        levelDescription = 'Uzman';
-        break;
-      default:
-        levelDescription = 'Temel';
-    }
-    
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [levelColor.withOpacity(0.5), levelColor.withOpacity(0.5)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: levelColor, width: 1),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: levelColor.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: levelColor, width: 1),
-            ),
-            child: Text(
-              currentLevel,
-              style: TextStyle(
-                color: levelColor,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                levelDescription,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                'Mevcut seviye',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildLeagueCard(String league, int score, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [color.withOpacity(0.5), color.withOpacity(0.5)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color, width: 1),
-      ),
-      child: Column(
-        children: [
-          Text(
-            league,
-            style: TextStyle(
-              color: color,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$score',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required Color iconColor,
-    required String value,
-    required String label,
-    required Color bgColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: iconColor, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildAwardsSection() {
-    final unlockedAchievements = _achievements.where((a) => a.isUnlocked).toList();
-    
+    final unlockedAchievements =
+        _achievements.where((a) => a.isUnlocked).toList();
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.5),
+        color: Colors.white.withAlpha(26),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -1275,7 +1494,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                   Text(
                     '${unlockedAchievements.length} / ${_achievements.length}',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withAlpha(179),
                       fontSize: 14,
                     ),
                   ),
@@ -1283,11 +1502,12 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                   GestureDetector(
                     onTap: () => _showAllAchievements(),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.5),
+                        color: Colors.amber.withAlpha(51),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                        border: Border.all(color: Colors.amber.withAlpha(128)),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1301,7 +1521,8 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                             ),
                           ),
                           SizedBox(width: 4),
-                          Icon(Icons.arrow_forward_ios, color: Colors.amber, size: 12),
+                          Icon(Icons.arrow_forward_ios,
+                              color: Colors.amber, size: 12),
                         ],
                       ),
                     ),
@@ -1315,7 +1536,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
             Center(
               child: Text(
                 'Henüz ödül kazanılmadı',
-                style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                style: TextStyle(color: Colors.white.withAlpha(128)),
               ),
             )
           else
@@ -1325,7 +1546,17 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
               children: unlockedAchievements.take(8).map((achievement) {
                 return GestureDetector(
                   onTap: () => _showAchievementDetail(achievement),
-                  child: _buildAchievementBadge(achievement, size: 52),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _getTierColor(achievement.tier).withAlpha(51),
+                      borderRadius: BorderRadius.circular(12),
+                      border:
+                          Border.all(color: _getTierColor(achievement.tier)),
+                    ),
+                    child: Text(achievement.badgeIcon,
+                        style: const TextStyle(fontSize: 28)),
+                  ),
                 );
               }).toList(),
             ),
@@ -1333,7 +1564,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
       ),
     );
   }
-  
+
   void _showAchievementDetail(Achievement achievement) {
     showDialog(
       context: context,
@@ -1344,14 +1575,27 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Badge icon büyük
-            _buildAchievementBadge(achievement, size: 100),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: _getTierColor(achievement.tier).withAlpha(77),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: _getTierColor(achievement.tier), width: 3),
+              ),
+              child: Center(
+                child: Text(achievement.badgeIcon,
+                    style: const TextStyle(fontSize: 44)),
+              ),
+            ),
             const SizedBox(height: 16),
             // Başlık
             Text(
               achievement.title,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 22,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
@@ -1361,57 +1605,49 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
             Text(
               achievement.description,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 15,
+                color: Colors.white.withAlpha(179),
+                fontSize: 14,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             // Ödül bilgisi
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.amber.withOpacity(0.4)),
+                color: Colors.amber.withAlpha(51),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.withAlpha(128)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('🪙', style: TextStyle(fontSize: 20)),
+                  const Text('🪙', style: TextStyle(fontSize: 18)),
                   const SizedBox(width: 8),
                   Text(
-                    '${achievement.rewardCoins} Altın Kazandın!',
+                    '+${achievement.rewardCoins} altın kazandınız!',
                     style: const TextStyle(
                       color: Colors.amber,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             // Tier badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: _getTierColor(achievement.tier),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: _getTierColor(achievement.tier).withOpacity(0.4),
-                    blurRadius: 8,
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                achievement.tier.toString().split('.').last.toUpperCase(),
+                achievement.tier.name.toUpperCase(),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
@@ -1426,7 +1662,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
       ),
     );
   }
-  
+
   void _showAllAchievements() {
     showModalBottomSheet(
       context: context,
@@ -1453,7 +1689,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withAlpha(77),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1462,7 +1698,8 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                 padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
-                    const Icon(Icons.emoji_events, color: Colors.amber, size: 28),
+                    const Icon(Icons.emoji_events,
+                        color: Colors.amber, size: 28),
                     const SizedBox(width: 12),
                     const Text(
                       'Tüm Rozetler',
@@ -1476,7 +1713,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                     Text(
                       '${_achievements.where((a) => a.isUnlocked).length} / ${_achievements.length}',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withAlpha(179),
                         fontSize: 14,
                       ),
                     ),
@@ -1496,20 +1733,39 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: isUnlocked 
-                            ? _getTierColor(achievement.tier).withOpacity(0.2)
-                            : Colors.white.withOpacity(0.05),
+                        color: isUnlocked
+                            ? _getTierColor(achievement.tier).withAlpha(51)
+                            : Colors.white.withAlpha(13),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isUnlocked 
+                          color: isUnlocked
                               ? _getTierColor(achievement.tier)
-                              : Colors.white.withOpacity(0.1),
+                              : Colors.white.withAlpha(26),
                         ),
                       ),
                       child: Row(
                         children: [
                           // Badge icon
-                          _buildAchievementBadge(achievement, isUnlocked: isUnlocked, size: 64),
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: isUnlocked
+                                  ? _getTierColor(achievement.tier)
+                                      .withAlpha(77)
+                                  : Colors.white.withAlpha(26),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text(
+                                achievement.badgeIcon,
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  color: isUnlocked ? null : Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ),
                           const SizedBox(width: 16),
                           // Details
                           Expanded(
@@ -1519,7 +1775,9 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                                 Text(
                                   achievement.title,
                                   style: TextStyle(
-                                    color: isUnlocked ? Colors.white : Colors.white54,
+                                    color: isUnlocked
+                                        ? Colors.white
+                                        : Colors.white54,
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -1528,8 +1786,8 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                                 Text(
                                   achievement.description,
                                   style: TextStyle(
-                                    color: isUnlocked 
-                                        ? Colors.white.withOpacity(0.7)
+                                    color: isUnlocked
+                                        ? Colors.white.withAlpha(179)
                                         : Colors.white38,
                                     fontSize: 12,
                                   ),
@@ -1540,10 +1798,13 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(4),
                                     child: LinearProgressIndicator(
-                                      value: achievement.currentProgress / achievement.goal,
-                                      backgroundColor: Colors.white.withOpacity(0.1),
+                                      value: achievement.currentProgress /
+                                          achievement.goal,
+                                      backgroundColor:
+                                          Colors.white.withAlpha(26),
                                       valueColor: AlwaysStoppedAnimation(
-                                        _getTierColor(achievement.tier).withOpacity(0.7),
+                                        _getTierColor(achievement.tier)
+                                            .withAlpha(179),
                                       ),
                                       minHeight: 6,
                                     ),
@@ -1552,7 +1813,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                                   Text(
                                     '${achievement.currentProgress} / ${achievement.goal}',
                                     style: TextStyle(
-                                      color: Colors.white.withOpacity(0.5),
+                                      color: Colors.white.withAlpha(128),
                                       fontSize: 10,
                                     ),
                                   ),
@@ -1563,13 +1824,14 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                           // Tier badge
                           if (isUnlocked)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: _getTierColor(achievement.tier),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                achievement.tier.toString().split('.').last.toUpperCase(),
+                                achievement.tier.name.toUpperCase(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
@@ -1580,7 +1842,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                           else
                             Icon(
                               Icons.lock_outline,
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withAlpha(77),
                               size: 24,
                             ),
                         ],
@@ -1596,85 +1858,16 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
     );
   }
 
-  Widget _buildAchievementBadge(Achievement achievement, {bool isUnlocked = true, double size = 48}) {
-    String badgeAsset;
-    ColorFilter? colorFilter;
-    
-    switch (achievement.tier) {
-      case AchievementTier.bronze:
-        badgeAsset = 'assets/images/badges/bronze.png';
-        break;
-      case AchievementTier.silver:
-        badgeAsset = 'assets/images/badges/silver.png';
-        break;
-      case AchievementTier.gold:
-        badgeAsset = 'assets/images/badges/gold.png';
-        break;
-      case AchievementTier.platinum:
-        badgeAsset = 'assets/images/badges/gold.png';
-        colorFilter = const ColorFilter.mode(Colors.cyanAccent, BlendMode.modulate);
-        break;
-    }
-
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: isUnlocked ? [
-          BoxShadow(
-            color: _getTierColor(achievement.tier).withOpacity(0.4),
-            blurRadius: size * 0.3,
-            spreadRadius: 2,
-          )
-        ] : null,
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // 3D Rozet Resmi
-          Opacity(
-            opacity: isUnlocked ? 1.0 : 0.3,
-            child: ColorFiltered(
-              colorFilter: isUnlocked 
-                  ? (colorFilter ?? const ColorFilter.mode(Colors.transparent, BlendMode.dst))
-                  : const ColorFilter.mode(Colors.grey, BlendMode.saturation),
-              child: Image.asset(
-                badgeAsset, 
-                fit: BoxFit.contain, 
-                width: size, 
-                height: size,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  width: size,
-                  height: size,
-                  decoration: BoxDecoration(
-                    color: _getTierColor(achievement.tier).withOpacity(0.3),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // Emoji (Küçültülmüş ve merkeze yakın)
-          if (isUnlocked)
-            Padding(
-              padding: EdgeInsets.only(bottom: size * 0.08), // Yıldızın biraz üzerine
-              child: Text(
-                achievement.badgeIcon,
-                style: TextStyle(fontSize: size * 0.38),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   Color _getTierColor(AchievementTier tier) {
     switch (tier) {
-      case AchievementTier.bronze: return const Color(0xFFCD7F32);
-      case AchievementTier.silver: return const Color(0xFFC0C0C0);
-      case AchievementTier.gold: return const Color(0xFFFFD700);
-      case AchievementTier.platinum: return const Color(0xFFE5E4E2);
+      case AchievementTier.bronze:
+        return const Color(0xFFCD7F32);
+      case AchievementTier.silver:
+        return const Color(0xFFC0C0C0);
+      case AchievementTier.gold:
+        return const Color(0xFFFFD700);
+      case AchievementTier.platinum:
+        return const Color(0xFFE5E4E2);
     }
   }
 
@@ -1684,25 +1877,28 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A3A5C),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Çıkış Yap',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          context.watch<LanguageProvider>().getString('logout'),
+          style:
+              const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        content: const Text(
-          'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
-          style: TextStyle(color: Colors.white70),
+        content: Text(
+          context.watch<LanguageProvider>().getString('confirm_logout'),
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('İptal', style: TextStyle(color: Colors.white70)),
+            child: Text(context.watch<LanguageProvider>().getString('cancel'),
+                style: const TextStyle(color: Colors.white70)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.shade700,
             ),
-            child: const Text('Çıkış Yap', style: TextStyle(color: Colors.white)),
+            child: Text(context.watch<LanguageProvider>().getString('logout'),
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1711,8 +1907,9 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
     if (confirm == true && mounted) {
       await AuthService.instance.signOut();
       if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
           (route) => false,
         );
       }
@@ -1779,45 +1976,45 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                         'Nasıl Oynanır?',
                         Icons.games,
                         '• Her turda bir İngilizce kelime ve 4 Türkçe seçenek görürsün\n'
-                        '• Doğru Türkçe anlamı 10 saniye içinde seç\n'
-                        '• Hızlı ve doğru cevaplar daha çok puan kazandırır\n'
-                        '• Arka arkaya doğru cevaplar combo yapar',
+                            '• Doğru Türkçe anlamı 10 saniye içinde seç\n'
+                            '• Hızlı ve doğru cevaplar daha çok puan kazandırır\n'
+                            '• Arka arkaya doğru cevaplar combo yapar',
                       ),
                       _buildGuideSection(
                         'Duel Modu',
                         Icons.sports_kabaddi,
                         '• Bot rakibe karşı yarış\n'
-                        '• Her oyun 10 soru içerir\n'
-                        '• Kazanan WP (War Points) kazanır\n'
-                        '• Kaybeden WP kaybeder',
+                            '• Her oyun 10 soru içerir\n'
+                            '• Kazanan WP (War Points) kazanır\n'
+                            '• Kaybeden WP kaybeder',
                       ),
                       _buildGuideSection(
                         'Online Duel',
                         Icons.wifi,
                         '• Gerçek oyunculara karşı yarış\n'
-                        '• Arkadaşlarını davet edebilirsin\n'
-                        '• Eşleşme rastgele de olabilir',
+                            '• Arkadaşlarını davet edebilirsin\n'
+                            '• Eşleşme rastgele de olabilir',
                       ),
                       _buildGuideSection(
                         'Ligler & Sıralama',
                         Icons.emoji_events,
                         '• Bronz → Gümüş → Altın → Platin → Elmas → Efsane\n'
-                        '• Her lig belirli WP aralığına sahip\n'
-                        '• Lider tablosunda en iyiler görünür',
+                            '• Her lig belirli WP aralığına sahip\n'
+                            '• Lider tablosunda en iyiler görünür',
                       ),
                       _buildGuideSection(
                         'Mağaza',
                         Icons.store,
                         '• Altın ile yeni avatarlar, çerçeveler, temalar satın al\n'
-                        '• Özel efektler ve güç artırıcıları keşfet\n'
-                        '• Premium üyelik ile reklamsız oyna',
+                            '• Özel efektler ve güç artırıcıları keşfet\n'
+                            '• Premium üyelik ile reklamsız oyna',
                       ),
                       _buildGuideSection(
                         'Günlük Görevler',
                         Icons.task_alt,
                         '• Her gün yeni görevler\n'
-                        '• Görevleri tamamla, altın kazan\n'
-                        '• Streak bonusu ile ekstra ödüller',
+                            '• Görevleri tamamla, altın kazan\n'
+                            '• Streak bonusu ile ekstra ödüller',
                       ),
                       const SizedBox(height: 32),
                     ],
@@ -1836,9 +2033,9 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.5),
+        color: Colors.white.withAlpha(26),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.5)),
+        border: Border.all(color: Colors.white.withAlpha(51)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1877,26 +2074,27 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
+      builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF1A3A5C),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
             children: [
-              Icon(Icons.card_giftcard, color: Colors.amber, size: 28),
-              SizedBox(width: 8),
+              const Icon(Icons.card_giftcard, color: Colors.amber, size: 28),
+              const SizedBox(width: 8),
               Text(
-                'Promosyon Kodu',
-                style: TextStyle(color: Colors.white),
+                context.read<LanguageProvider>().getString('promo_code_title'),
+                style: const TextStyle(color: Colors.white),
               ),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Premium kazanmak için promosyon kodunuzu girin:',
-                style: TextStyle(color: Colors.white70),
+              Text(
+                context.read<LanguageProvider>().getString('promo_code_body'),
+                style: const TextStyle(color: Colors.white70),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -1904,10 +2102,11 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                 textCapitalization: TextCapitalization.characters,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Kodu girin...',
+                  hintText:
+                      context.read<LanguageProvider>().getString('enter_code'),
                   hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.5),
+                  fillColor: Colors.white.withAlpha(26),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -1919,8 +2118,9 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(context.read<LanguageProvider>().getString('cancel'),
+                  style: const TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
               onPressed: isLoading
@@ -1931,19 +2131,20 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
 
                       setDialogState(() => isLoading = true);
 
-                      final result = await ShopService.instance.redeemPromoCode(code);
+                      final result =
+                          await ShopService.instance.redeemPromoCode(code);
 
                       setDialogState(() => isLoading = false);
 
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
+                      if (!mounted) return;
+                      Navigator.pop(dialogContext);
 
                       // Sonucu göster
-                      ScaffoldMessenger.of(this.context).showSnackBar(
+                      ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(result['message'] as String),
                           backgroundColor: result['success'] == true
-                              ? const Color(0xFF2E5A8C)
+                              ? Colors.green
                               : Colors.red.shade700,
                           behavior: SnackBarBehavior.floating,
                         ),
@@ -1962,7 +2163,7 @@ class _ProfileScreenNewState extends State<ProfileScreenNew> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Uygula'),
+                  : Text(context.read<LanguageProvider>().getString('apply')),
             ),
           ],
         ),

@@ -1,4 +1,3 @@
-import 'user_level.dart';
 import 'league.dart';
 
 class MatchHistoryItem {
@@ -9,6 +8,9 @@ class MatchHistoryItem {
   final DateTime date;
   final League? league;
   final int eloChange;
+
+  /// Backward compat: profile_screen 'lpChange' kullanıyor
+  int get lpChange => eloChange;
 
   const MatchHistoryItem({
     required this.opponentName,

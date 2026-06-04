@@ -1,21 +1,30 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'league.dart';
 import 'practice_session.dart';
 import 'match_history_item.dart';
 
+DateTime? _parseCreatedAtField(dynamic raw) {
+  if (raw == null) return null;
+  if (raw is Timestamp) return raw.toDate();
+  if (raw is DateTime) return raw;
+  return DateTime.tryParse(raw.toString());
+}
+
 /// Kullanıcı seviyesini temsil eder
 enum UserLevel {
-  a1('A1', 'Harf', 0),
-  a2('A2', 'Hece', 1),
-  b1('B1', 'Kelime', 2),
-  b2('B2', 'Cümle', 3),
-  c1('C1', 'Roman', 4),
-  c2('C2', 'Yazar', 5);
+  a1('A1', 'Harf', 'Letter', 0),
+  a2('A2', 'Hece', 'Syllable', 1),
+  b1('B1', 'Kelime', 'Word', 2),
+  b2('B2', 'Cümle', 'Sentence', 3),
+  c1('C1', 'Roman', 'Novel', 4),
+  c2('C2', 'Yazar', 'Author', 5);
 
   final String code;
   final String turkishName;
+  final String englishName;
   final int order;
 
-  const UserLevel(this.code, this.turkishName, this.order);
+  const UserLevel(this.code, this.turkishName, this.englishName, this.order);
 
   /// Seviyeye özel ana renk
   dynamic get color {
@@ -94,7 +103,7 @@ class UserProfile {
   final String? profileImagePath;
   final String? avatarId; // For selected avatar icon/emoji
   final List<String> awards;
-  final int eloRating; // TEK PUAN SİSTEMİ - Duel için kullanılacak
+  final int lpRating; // TEK PUAN SİSTEMİ - Duel için kullanılacak
   final LeagueScores leagueScores;
   final int practiceScore; // Pratik modu skoru
   final PracticeSession practiceSession;
@@ -102,6 +111,18 @@ class UserProfile {
   final DateTime? createdAt; // Kayıt tarihi
   final int dailyStreak; // Günlük seri
   final int practiceGamesPlayed; // İlk 5 oyun takibi için
+  final int duelWinStreak; // Düello galibiyet serisi
+  final int coins; // Kullanıcı bakiyesi (Güvenlik için buraya taşındı)
+  final int duelWins;
+  final int duelLosses;
+  final bool isPremium;
+  final String? frameId;
+  final List<String> unlockedCosmetics;
+  final bool hasReceivedWelcomeGift; // Yeni: Mükerrer hediye önleme
+  final DateTime? lastDailyBonusClaimed; // Yeni: 25 coinlik bonus takibi
+  final DateTime? lastDailyRewardClaimed; // Yeni: Seri (streak) ödülü takibi
+  final Map<String, Map<String, int>> categoryStats; // Yeni: Kategori bazlı istatistikler {'verbs': {'correct': 10, 'wrong': 5}}
+  final List<String> wrongWords; // Yeni: Tekrar edilmesi gereken yanlış kelimeler
 
   UserProfile({
     this.level = UserLevel.a1,
@@ -113,7 +134,7 @@ class UserProfile {
     this.profileImagePath,
     this.avatarId,
     this.awards = const [],
-    this.eloRating = 0, // TEK PUAN SİSTEMİ - Duel için kullanılacak
+    this.lpRating = 0, // TEK PUAN SİSTEMİ - Duel için kullanılacak
     this.leagueScores = const LeagueScores(), // Lig puanları
     this.practiceScore = 0, // Pratik skoru
     this.practiceSession = const PracticeSession(),
@@ -122,10 +143,22 @@ class UserProfile {
     this.createdAt,
     this.dailyStreak = 0,
     this.practiceGamesPlayed = 0,
+    this.duelWinStreak = 0,
+    this.coins = 0,
+    this.duelWins = 0,
+    this.duelLosses = 0,
+    this.isPremium = false,
+    this.frameId,
+    this.unlockedCosmetics = const [],
+    this.hasReceivedWelcomeGift = false,
+    this.lastDailyBonusClaimed,
+    this.lastDailyRewardClaimed,
+    this.categoryStats = const {},
+    this.wrongWords = const [],
   });
 
   /// Seviyeye göre başlangıç puanı
-  static int getInitialEloForLevel(UserLevel level) {
+  static int getInitialLpForLevel(UserLevel level) {
     switch (level) {
       case UserLevel.a1: return 1000;
       case UserLevel.a2: return 1250;
@@ -147,8 +180,10 @@ class UserProfile {
     String? profileImagePath,
     String? avatarId,
     bool clearAvatarId = false,
+    bool clearProfileImagePath = false,
+    bool clearFrameId = false,
     List<String>? awards,
-    int? eloRating,
+    int? lpRating,
     LeagueScores? leagueScores,
     int? practiceScore,
     PracticeSession? practiceSession,
@@ -156,7 +191,19 @@ class UserProfile {
     DateTime? createdAt,
     int? dailyStreak,
     int? practiceGamesPlayed,
+    int? duelWinStreak,
     bool? hasCompletedPlacementTest,
+    int? coins,
+    int? duelWins,
+    int? duelLosses,
+    bool? isPremium,
+    String? frameId,
+    List<String>? unlockedCosmetics,
+    bool? hasReceivedWelcomeGift,
+    DateTime? lastDailyBonusClaimed,
+    DateTime? lastDailyRewardClaimed,
+    Map<String, Map<String, int>>? categoryStats,
+    List<String>? wrongWords,
   }) {
     return UserProfile(
       level: level ?? this.level,
@@ -165,10 +212,10 @@ class UserProfile {
       lastPlayed: lastPlayed ?? this.lastPlayed,
       username: username ?? this.username,
       email: email ?? this.email,
-      profileImagePath: profileImagePath ?? this.profileImagePath,
+      profileImagePath: clearProfileImagePath ? null : (profileImagePath ?? this.profileImagePath),
       avatarId: clearAvatarId ? null : (avatarId ?? this.avatarId),
       awards: awards ?? this.awards,
-      eloRating: eloRating ?? this.eloRating,
+      lpRating: lpRating ?? this.lpRating,
       leagueScores: leagueScores ?? this.leagueScores,
       practiceScore: practiceScore ?? this.practiceScore,
       practiceSession: practiceSession ?? this.practiceSession,
@@ -177,6 +224,18 @@ class UserProfile {
       createdAt: createdAt ?? this.createdAt,
       dailyStreak: dailyStreak ?? this.dailyStreak,
       practiceGamesPlayed: practiceGamesPlayed ?? this.practiceGamesPlayed,
+      duelWinStreak: duelWinStreak ?? this.duelWinStreak,
+      coins: coins ?? this.coins,
+      duelWins: duelWins ?? this.duelWins,
+      duelLosses: duelLosses ?? this.duelLosses,
+      isPremium: isPremium ?? this.isPremium,
+      frameId: clearFrameId ? null : (frameId ?? this.frameId),
+      unlockedCosmetics: unlockedCosmetics ?? this.unlockedCosmetics,
+      hasReceivedWelcomeGift: hasReceivedWelcomeGift ?? this.hasReceivedWelcomeGift,
+      lastDailyBonusClaimed: lastDailyBonusClaimed ?? this.lastDailyBonusClaimed,
+      lastDailyRewardClaimed: lastDailyRewardClaimed ?? this.lastDailyRewardClaimed,
+      categoryStats: categoryStats ?? this.categoryStats,
+      wrongWords: wrongWords ?? this.wrongWords,
     );
   }
 
@@ -191,7 +250,7 @@ class UserProfile {
       'profileImagePath': profileImagePath,
       'avatarId': avatarId,
       'awards': awards,
-      'eloRating': eloRating,
+      'lpRating': lpRating,
       'leagueScores': leagueScores.toJson(),
       'practiceScore': practiceScore,
       'practiceSession': practiceSession.toJson(),
@@ -200,6 +259,18 @@ class UserProfile {
       'createdAt': createdAt?.toIso8601String(),
       'dailyStreak': dailyStreak,
       'practiceGamesPlayed': practiceGamesPlayed,
+      'duelWinStreak': duelWinStreak,
+      'coins': coins,
+      'duelWins': duelWins,
+      'duelLosses': duelLosses,
+      'isPremium': isPremium,
+      'frameId': frameId,
+      'unlockedCosmetics': unlockedCosmetics,
+      'hasReceivedWelcomeGift': hasReceivedWelcomeGift,
+      'lastDailyBonusClaimed': lastDailyBonusClaimed?.toIso8601String(),
+      'lastDailyRewardClaimed': lastDailyRewardClaimed?.toIso8601String(),
+      'categoryStats': categoryStats,
+      'wrongWords': wrongWords,
     };
   }
 
@@ -209,14 +280,16 @@ class UserProfile {
       totalScore: json['totalScore'] ?? 0,
       gamesPlayed: json['gamesPlayed'] ?? 0,
       lastPlayed: json['lastPlayed'] != null
-          ? DateTime.parse(json['lastPlayed'])
+          ? (json['lastPlayed'] is Timestamp 
+              ? (json['lastPlayed'] as Timestamp).toDate() 
+              : DateTime.tryParse(json['lastPlayed'].toString()))
           : null,
       username: json['username'] ?? 'Player',
       email: json['email'],
       profileImagePath: json['profileImagePath'],
       avatarId: json['avatarId'],
       awards: List<String>.from(json['awards'] ?? []),
-      eloRating: json['eloRating'] ?? 0,
+      lpRating: json['lpRating'] ?? json['eloRating'] ?? 0,
       leagueScores: json['leagueScores'] != null
           ? LeagueScores.fromJson(json['leagueScores'])
           : const LeagueScores(),
@@ -228,11 +301,35 @@ class UserProfile {
           ?.map((e) => MatchHistoryItem.fromJson(e))
           .toList() ?? [],
       hasCompletedPlacementTest: json['hasCompletedPlacementTest'] ?? false,
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
+      // Yoksa veya parse edilemezse null — yanlışlıkla "bugün" göstermez
+      createdAt: _parseCreatedAtField(json['createdAt']),
       dailyStreak: json['dailyStreak'] ?? 0,
       practiceGamesPlayed: json['practiceGamesPlayed'] ?? 0,
+      duelWinStreak: json['duelWinStreak'] ?? 0,
+      coins: json['coins'] ?? 0,
+      duelWins: json['duelWins'] ?? 0,
+      duelLosses: json['duelLosses'] ?? 0,
+      isPremium: json['isPremium'] ?? false,
+      frameId: json['frameId'],
+      unlockedCosmetics: List<String>.from(json['unlockedCosmetics'] ?? []),
+      hasReceivedWelcomeGift: json['hasReceivedWelcomeGift'] ?? false,
+      lastDailyBonusClaimed: json['lastDailyBonusClaimed'] != null 
+          ? DateTime.tryParse(json['lastDailyBonusClaimed'].toString()) 
+          : null,
+      lastDailyRewardClaimed: json['lastDailyRewardClaimed'] != null 
+          ? DateTime.tryParse(json['lastDailyRewardClaimed'].toString()) 
+          : null,
+      categoryStats: json['categoryStats'] != null
+          ? (json['categoryStats'] as Map<String, dynamic>).map(
+              (key, value) => MapEntry(
+                key,
+                (value as Map<String, dynamic>).map(
+                  (k, v) => MapEntry(k, v as int),
+                ),
+              ),
+            )
+          : const {},
+      wrongWords: List<String>.from(json['wrongWords'] ?? []),
     );
   }
 }

@@ -25,12 +25,11 @@ class ConnectionService extends ChangeNotifier {
   }
 
   void _updateStatus(List<ConnectivityResult> results) {
-    // Eğer liste içinde mobile, wifi veya ethernet varsa online kabul et
-    final bool online = results.any((result) => 
-      result == ConnectivityResult.mobile || 
-      result == ConnectivityResult.wifi || 
-      result == ConnectivityResult.ethernet);
-      
+    // VPN, "other" veya boş liste gibi durumlarda yanlışlıkla offline saymayı önle.
+    // Sadece yalnızca [none] ise çevrimdışı kabul et.
+    final bool online = results.isEmpty ||
+        results.any((r) => r != ConnectivityResult.none);
+
     if (_isOnline != online) {
       _isOnline = online;
       notifyListeners();

@@ -2,110 +2,115 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 /// Ses efektleri servisi
 class SoundService {
   static final SoundService instance = SoundService._internal();
   SoundService._internal();
 
-  final AudioPlayer _coinPlayer = AudioPlayer();
-  final AudioPlayer _notificationPlayer = AudioPlayer();
-  
+  final AudioPlayer _player = AudioPlayer();
   bool _soundEnabled = true;
   bool _vibrationEnabled = true;
 
   bool get soundEnabled => _soundEnabled;
   bool get vibrationEnabled => _vibrationEnabled;
 
+  /// Ses ayarlarını başlat (önceki seçimleri yükle)
+  Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    _soundEnabled = prefs.getBool('sound_enabled') ?? true;
+    _vibrationEnabled = prefs.getBool('vibration_enabled') ?? true;
+  }
+
   /// Ses ayarlarını güncelle
-  void setSoundEnabled(bool enabled) {
+  void setSoundEnabled(bool enabled) async {
     _soundEnabled = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sound_enabled', enabled);
   }
 
   /// Titreşim ayarlarını güncelle  
-  void setVibrationEnabled(bool enabled) {
+  void setVibrationEnabled(bool enabled) async {
     _vibrationEnabled = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('vibration_enabled', enabled);
+  }
+
+  /// Belirli bir ses dosyasını çal
+  Future<void> _playSound(String fileName) async {
+    if (!_soundEnabled || kIsWeb) return;
+    try {
+      await _player.play(AssetSource('sounds/$fileName'));
+    } catch (e) {
+      debugPrint('Error playing sound $fileName: $e');
+    }
   }
 
   /// Coin kazanma/harcama sesi
   Future<void> playCoinSound() async {
-    if (!_soundEnabled) return;
-    // Yerel dosya hatalarını önlemek için şu aşamada sadece sistem sesi ve titreşim kullanıyoruz
-    _playSystemSound();
+    _playSound('correct.mp3');
     vibrate(HapticFeedbackType.medium);
   }
 
   /// Davet bildirim sesi
   Future<void> playInviteSound() async {
-    if (!_soundEnabled) return;
-    // Yerel dosya hatalarını önlemek için şu aşamada sadece sistem sesi ve titreşim kullanıyoruz
-    _playSystemSound();
+    _playSound('correct.mp3');
     vibrate(HapticFeedbackType.heavy);
   }
 
   /// Doğru cevap sesi
   void playCorrect() {
-    if (!_soundEnabled) return;
-    _playSystemSound();
+    _playSound('correct.mp3');
+    vibrate(HapticFeedbackType.light);
   }
 
   /// Yanlış cevap sesi
   void playWrong() {
-    if (!_soundEnabled) return;
-    _playSystemSound();
+    _playSound('wrong.mp3');
+    vibrate(HapticFeedbackType.medium);
   }
 
   /// Seviye atlama sesi
   void playLevelUp() {
-    if (!_soundEnabled) return;
-    _playSystemSound();
+    _playSound('correct.mp3');
+    vibrate(HapticFeedbackType.heavy);
   }
 
   /// Başarı sesi
   void playSuccess() {
-    if (!_soundEnabled) return;
-    _playSystemSound();
+    _playSound('victory.mp3');
+    vibrate(HapticFeedbackType.heavy);
   }
 
   /// Buton tıklama sesi
   void playClick() {
-    if (!_soundEnabled) return;
-    _playSystemSound();
+    // Hafif tık sesi ve titreşim
+    vibrate(HapticFeedbackType.selection);
   }
 
   /// Bildirim sesi
   void playNotification() {
-    if (!_soundEnabled) return;
-    _playSystemSound();
+    _playSound('correct.mp3');
+    vibrate(HapticFeedbackType.medium);
   }
 
   /// Geri sayım sesi
   void playCountdown() {
-    if (!_soundEnabled) return;
-    _playSystemSound();
+    _playSound('correct.mp3');
+    vibrate(HapticFeedbackType.light);
   }
 
   /// Oyun başlama sesi
   void playGameStart() {
-    if (!_soundEnabled) return;
-    _playSystemSound();
+    _playSound('correct.mp3');
+    vibrate(HapticFeedbackType.medium);
   }
 
   /// Oyun bitişi sesi
   void playGameEnd() {
-    if (!_soundEnabled) return;
-    _playSystemSound();
-  }
-
-  /// Sistem sesi çal (haptic feedback ile)
-  void _playSystemSound() {
-    try {
-      // Web platformunda ses desteği sınırlı olduğundan sadece haptic kullanıyoruz
-      if (!kIsWeb) {
-        SystemSound.play(SystemSoundType.click);
-      }
-    } catch (e) {
-      debugPrint('Sound error: $e');
-    }
+    _playSound('victory.mp3');
+    vibrate(HapticFeedbackType.heavy);
   }
 
   /// Titreşim feedback'i

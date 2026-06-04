@@ -12,6 +12,8 @@ import '../../services/word_pool_service.dart';
 import '../../services/achievement_service.dart';
 import '../../services/user_profile_service.dart';
 import '../../services/ranking_service.dart';
+import '../../services/weekly_practice_points_service.dart';
+import '../../widgets/home/weekly_milestone_reward_dialog.dart';
 import '../../widgets/game/achievement_celebration.dart';
 import 'package:confetti/confetti.dart';
 import '../../models/premium.dart';
@@ -22,7 +24,6 @@ import '../../services/sound_service.dart';
 import '../../widgets/common/level_up_dialog.dart';
 import '../../models/user_level.dart';
 import '../home/widgets/home_dialogs.dart';
-import '../../widgets/game/learning_summary_card.dart';
 
 class SeventyThirtyResultsScreen extends StatefulWidget {
   final PracticeSessionResult result;
@@ -38,6 +39,20 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _boundaryKey = GlobalKey();
   bool _showWordsList = true;
+  ScaffoldMessengerState? _scaffoldMessenger;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scaffoldMessenger ??= ScaffoldMessenger.maybeOf(context);
+    final practiceProvider = Provider.of<PracticeProvider>(context, listen: false);
+    if (practiceProvider.duelUnlocked && practiceProvider.totalSessionsCompleted == 3) {
+      // Sadece ilk kez açıldığında göster
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showDuelUnlockedAnimation(context);
+      });
+    }
+  }
   
   bool get allSelected => _savedIndices.length == result.answerHistory.length && result.answerHistory.isNotEmpty;
 
@@ -84,21 +99,10 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
 
   @override
   void dispose() {
+    _scaffoldMessenger?.clearSnackBars();
     _confettiController.dispose();
     _scrollController.dispose();
     super.dispose();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final practiceProvider = Provider.of<PracticeProvider>(context, listen: false);
-    if (practiceProvider.duelUnlocked && practiceProvider.totalSessionsCompleted == 3) {
-      // Sadece ilk kez açıldığında göster
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showDuelUnlockedAnimation(context);
-      });
-    }
   }
 
   Future<void> _checkAndShowNewAchievements() async {
@@ -118,11 +122,18 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
   }
 
   Future<void> _addPointsToWeeklyScore() async {
-    // Haftalık puana ekle
-    final pointsToAdd = result.sessionScore; // Artık gerçek puan toplamını kullanıyoruz
+    final pointsToAdd = result.sessionScore;
     if (pointsToAdd > 0) {
       final profile = await UserProfileService.instance.loadProfile();
       await RankingService.instance.addScore(profile.username, pointsToAdd);
+      final hits = await WeeklyPracticePointsService.instance
+          .addSessionPoints(pointsToAdd);
+      await WeeklyPracticePointsService.instance.refreshNotifier();
+      if (!mounted) return;
+      for (final t in hits) {
+        if (!mounted) return;
+        await WeeklyMilestoneRewardDialog.show(context, t);
+      }
     }
   }
 
@@ -242,24 +253,7 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
                             ),
                           ),
 
-  // 2. Öğrenme Özeti (Yanlış kelimeler)
-  Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    child: LearningSummaryCard(
-      answerHistory: result.answerHistory.map((r) => AnsweredEntry(
-        prompt: r.prompt,
-        selectedIndex: r.selectedAnswer == r.correctAnswer ? 1 : 0, // Mock index for summary card
-        correctIndex: 1, // Mock index
-        earnedPoints: r.points,
-        mode: QuestionMode.values[r.mode.index], // Enum conversion assuming they map
-        correctText: r.correctAnswer,
-        selectedText: r.selectedAnswer,
-        turkishMeaning: r.turkishMeaning,
-      )).toList(),
-    ),
-  ),
-
-                          // 3. Çıkmış Kelimeler (Sınırlı yükseklik ve içten kaydırma)
+                          // 2. Çıkmış Kelimeler (Sınırlı yükseklik ve içten kaydırma)
                           Container(
                             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             height: 280, // Sabit yükseklik: 3-4 kelime + buton sığacak şekilde
@@ -570,8 +564,8 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), 
-      margin: const EdgeInsets.symmetric(vertical: 4), 
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [cardColor.withAlpha(77), cardColor.withAlpha(26)],
@@ -583,40 +577,97 @@ class _SeventyThirtyResultsScreenState extends State<SeventyThirtyResultsScreen>
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            isGood ? Icons.star : isMedium ? Icons.thumb_up : Icons.school,
-            color: cardColor,
-            size: 26,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  context.watch<LanguageProvider>().getString('success_rate'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isGood ? Icons.star : isMedium ? Icons.thumb_up : Icons.school,
+                      color: cardColor,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '%$percentage',
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  performanceText,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: textColor.withAlpha(204),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(width: 12),
-          Column(
-            children: [
-              Text(
-                context.watch<LanguageProvider>().getString('success_rate'),
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Container(
+              width: 1,
+              height: 64,
+              color: Colors.white24,
+            ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  context.watch<LanguageProvider>().getString('points'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-              Text(
-                '%$percentage',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.stars, color: Colors.amber.shade400, size: 24),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${result.sessionScore}',
+                      style: TextStyle(
+                        color: Colors.amber.shade400,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              Text(
-                performanceText,
-                style: TextStyle(
-                  color: textColor.withAlpha(204),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+                const SizedBox(height: 2),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ],
       ),

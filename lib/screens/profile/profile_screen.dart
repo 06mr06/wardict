@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../models/user_level.dart';
 import '../../models/league.dart';
 import '../../services/user_profile_service.dart';
@@ -6,11 +6,13 @@ import '../../services/firebase/auth_service.dart';
 import '../../services/firebase/firestore_service.dart';
 import '../friends/friends_screen.dart';
 import '../auth/login_screen.dart';
-import 'my_words_screen.dart';
+import '../game/saved_pool_screen.dart';
 import '../../models/cosmetic_item.dart';
 import '../../models/achievement.dart';
 import '../../services/shop_service.dart';
 import '../../services/achievement_service.dart';
+import '../support/admin_support_list_screen.dart';
+import 'widgets/language_passport.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -141,6 +143,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildStatisticsSection(),
                 const SizedBox(height: 12),
 
+                // Language Passport
+                if (_profile != null) ...[
+                  LanguagePassport(profile: _profile!),
+                  const SizedBox(height: 12),
+                ],
+
                 // History Section
                 _buildMatchHistorySection(),
                 const SizedBox(height: 12),
@@ -153,6 +161,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildAwardsSection(),
                 const SizedBox(height: 16),
                 
+                // Admin Panel Butonu (Sadece yönetici yetkisi varsa)
+                if (AuthService.instance.isAdmin) ...[
+                  _buildAdminPanelButton(),
+                  const SizedBox(height: 12),
+                ],
+
                 // Çıkış Yap Butonu
                 _buildLogoutButton(),
                 const SizedBox(height: 24),
@@ -305,33 +319,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     
     return Column(
       children: [
-        GestureDetector(
-          onTap: () => _showEditUsernameDialog(),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _profile?.username ?? 'Player',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Icon(
-                  Icons.edit,
-                  color: Colors.white.withValues(alpha: 0.6),
-                  size: 20,
-                ),
-              ],
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+          ),
+          child: Text(
+            _profile?.username ?? 'Player',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
@@ -532,7 +532,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Expanded(
               child: _buildLeagueScoreCard(
                 League.beginner,
-                scores.beginnerElo,
+                scores.beginnerLp,
                 Colors.green,
                 _leagueRanks['A'] ?? 0,
               ),
@@ -541,7 +541,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Expanded(
               child: _buildLeagueScoreCard(
                 League.intermediate,
-                scores.intermediateElo,
+                scores.intermediateLp,
                 Colors.orange,
                 _leagueRanks['B'] ?? 0,
               ),
@@ -550,7 +550,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Expanded(
               child: _buildLeagueScoreCard(
                 League.advanced,
-                scores.advancedElo,
+                scores.advancedLp,
                 Colors.red,
                 _leagueRanks['C'] ?? 0,
               ),
@@ -624,7 +624,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Icon(Icons.school, color: Color(0xFFFF9800), size: 22),
           const SizedBox(width: 10),
           const Text(
-            'Practice (70/30) Puanı',
+            'Practice',
             style: TextStyle(
               color: Colors.white70,
               fontSize: 13,
@@ -971,7 +971,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const MyWordsScreen()),
+            MaterialPageRoute(builder: (_) => const SavedPoolScreen()),
           );
         },
         style: ElevatedButton.styleFrom(
@@ -1119,9 +1119,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             fontWeight: FontWeight.bold
                           ),
                         ),
-                        if (match.eloChange != 0)
+                        if (match.lpChange != 0)
                           Text(
-                            '${match.eloChange > 0 ? '+' : ''}${match.eloChange} LP',
+                            '${match.lpChange > 0 ? '+' : ''}${match.lpChange} LP',
                             style: TextStyle(
                               color: isWin ? Colors.green : Colors.red,
                               fontSize: 10
@@ -1134,6 +1134,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
               );
             }),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAdminPanelButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminSupportListScreen()),
+        ),
+        icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
+        label: const Text(
+          'YÖNETİCİ PANELİ',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.amber.shade800,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 8,
+          shadowColor: Colors.amber.withValues(alpha: 0.4),
+        ),
       ),
     );
   }
@@ -1196,8 +1227,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (confirm == true && mounted) {
       await AuthService.instance.signOut();
       if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
           (route) => false,
         );
       }

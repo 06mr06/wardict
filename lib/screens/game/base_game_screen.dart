@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../widgets/game/game_background.dart';
-import '../../widgets/game/game_progress_bar.dart';
+import '../../services/sound_service.dart';
 
 abstract class BaseGameScreen extends StatefulWidget {
   const BaseGameScreen({super.key});
@@ -20,6 +20,10 @@ abstract class BaseGameScreenState<T extends BaseGameScreen> extends State<T>
   late AnimationController animController;
   late Animation<double> fadeAnim;
   late Animation<Offset> slideAnim;
+  
+  // Background customization
+  String? get backgroundImage => null;
+  double get imageOpacity => 0.3;
 
   @override
   void initState() {
@@ -49,17 +53,20 @@ abstract class BaseGameScreenState<T extends BaseGameScreen> extends State<T>
       showCountdown = true;
       countdown = 3;
     });
+    SoundService.instance.playCountdown();
     _runCountdown();
   }
 
   void _runCountdown() {
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (!mounted) return;
+      SoundService.instance.playCountdown();
       setState(() => countdown = 2);
-      Future.delayed(const Duration(milliseconds: 500), () {
+      Future.delayed(const Duration(milliseconds: 300), () {
         if (!mounted) return;
+        SoundService.instance.playCountdown();
         setState(() => countdown = 1);
-        Future.delayed(const Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 300), () {
           if (!mounted) return;
           setState(() {
             showCountdown = false;
@@ -109,6 +116,8 @@ abstract class BaseGameScreenState<T extends BaseGameScreen> extends State<T>
     
     return Scaffold(
       body: GameBackground(
+        backgroundImage: backgroundImage,
+        imageOpacity: imageOpacity,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -128,6 +137,8 @@ abstract class BaseGameScreenState<T extends BaseGameScreen> extends State<T>
     // Default implementation, can be overridden
     return Scaffold(
       body: GameBackground(
+        backgroundImage: backgroundImage,
+        imageOpacity: imageOpacity,
         child: Center(
            child: buildCountdown(),
         ),
@@ -164,7 +175,7 @@ abstract class BaseGameScreenState<T extends BaseGameScreen> extends State<T>
                             : countdown == 2
                                 ? Colors.orange
                                 : Colors.red)
-                        .withValues(alpha: 0.5),
+                        .withAlpha(128),
                     blurRadius: 30,
                     spreadRadius: 5,
                   ),

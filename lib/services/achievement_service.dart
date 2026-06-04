@@ -334,7 +334,10 @@ class AchievementService {
           );
 
           // Ödülü ver
-           await ShopService.instance.addCoins(achievements[i].rewardCoins);
+           await ShopService.instance.addCoins(
+             achievements[i].rewardCoins,
+             reason: 'achievement_reward',
+           );
         } else {
           achievements[i] = achievements[i].copyWith(
             currentProgress: newProgress,
@@ -374,7 +377,10 @@ class AchievementService {
           FeedType.achievementUnlock, 
           '"${achievements[index].title}" başarısını açtın! ✨'
         );
-        await ShopService.instance.addCoins(achievements[index].rewardCoins);
+        await ShopService.instance.addCoins(
+          achievements[index].rewardCoins,
+          reason: 'achievement_reward',
+        );
       } else {
         achievements[index] = achievements[index].copyWith(
           currentProgress: newProgress,

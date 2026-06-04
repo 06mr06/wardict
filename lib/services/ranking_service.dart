@@ -37,6 +37,12 @@ class RankingService {
   static const String _weeklyScoresKey = 'weekly_scores_v1';
   static const String _lastResetKey = 'last_weekly_reset';
 
+  /// Bot düellosu sonrası puan ekle (Galibiyet: 20, Mağlubiyet: 5)
+  Future<void> addBotDuelScore(String username, {required bool isWin}) async {
+    final points = isWin ? 20 : 5;
+    await addScore(username, points);
+  }
+
   /// Haftalık puanı günceller (Hem yerel hem bulut)
   Future<void> addScore(String username, int gainedAmount) async {
     if (gainedAmount <= 0) return; // Sadece kazançlar eklenir

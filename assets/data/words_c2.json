@@ -1,304 +1,2490 @@
 [
-  {"turkish": "karmaşık", "english": "convoluted"},
-  {"turkish": "esrarengiz", "english": "enigmatic"},
-  {"turkish": "olağanüstü", "english": "prodigious"},
-  {"turkish": "sarsılmaz", "english": "steadfast"},
-  {"turkish": "keskin", "english": "incisive"},
-  {"turkish": "zararlı", "english": "deleterious"},
-  {"turkish": "küçümseme", "english": "contempt"},
-  {"turkish": "hor görmek", "english": "disdain"},
-  {"turkish": "uzlaşmaz", "english": "intransigent"},
-  {"turkish": "uzlaştırıcı", "english": "conciliatory"},
-  {"turkish": "önceden belirleme", "english": "preordination"},
-  {"turkish": "yürürlükten kaldırmak", "english": "abrogate"},
-  {"turkish": "titizlikle", "english": "meticulously"},
-  {"turkish": "gösterişli", "english": "pompous"},
-  {"turkish": "kısa ömürlü", "english": "ephemeral"},
-  {"turkish": "kopyalamak", "english": "replicate"},
-  {"turkish": "kapsamlı", "english": "exhaustive"},
-  {"turkish": "sert eleştirmek", "english": "castigate"},
-  {"turkish": "ücretlendirmek", "english": "remunerate"},
-  {"turkish": "geçersiz kılmak", "english": "negate"},
-  {"turkish": "kaçınılmaz olarak", "english": "inexorably"},
-  {"turkish": "aldatıcı", "english": "specious"},
-  {"turkish": "açgözlülük", "english": "voracity"},
-  {"turkish": "engelsiz", "english": "unfettered"},
-  {"turkish": "minnettar", "english": "beholden"},
-  {"turkish": "özgecilik", "english": "altruism"},
-  {"turkish": "bencillik", "english": "egotism"},
-  {"turkish": "safsata", "english": "fallacy"},
-  {"turkish": "varsayım", "english": "presumption"},
-  {"turkish": "her derde deva", "english": "panacea"},
-  {"turkish": "hüküm vermek", "english": "adjudicate"},
-  {"turkish": "hukuk bilimi", "english": "jurisprudence"},
-  {"turkish": "zorla", "english": "coercively"},
-  {"turkish": "iradi olarak", "english": "volitionally"},
-  {"turkish": "nadiren", "english": "seldom"},
-  {"turkish": "sayısız", "english": "myriad"},
-  {"turkish": "gizlice", "english": "surreptitiously"},
-  {"turkish": "açıkça", "english": "blatantly"},
-  {"turkish": "kesinlik", "english": "certitude"},
-  {"turkish": "şüphecilik", "english": "skepticism"},
-  {"turkish": "ayıklık", "english": "sobriety"},
-  {"turkish": "vakar", "english": "solemnity"},
-  {"turkish": "her yerde olan", "english": "ubiquitous"},
-  {"turkish": "tekrarlayıcı", "english": "reiterative"},
-  {"turkish": "yüzeysel", "english": "cursory"},
-  {"turkish": "tetikte", "english": "vigilant"},
-  {"turkish": "aydınlatmak", "english": "elucidate"},
-  {"turkish": "karıştırmak", "english": "obfuscate"},
-  {"turkish": "temizlemek", "english": "expurgate"},
-  {"turkish": "bozmak", "english": "vitiate"},
-  {"turkish": "desteklemek", "english": "buttress"},
-  {"turkish": "sınırlarını çizmek", "english": "delineate"},
-  {"turkish": "şekilsiz", "english": "amorphous"},
-  {"turkish": "doğuştan", "english": "innate"},
-  {"turkish": "edinilmiş", "english": "acquired"},
-  {"turkish": "her şeyi kapsayan", "english": "all-encompassing"},
-  {"turkish": "dışlayıcı", "english": "exclusionary"},
-  {"turkish": "zenginlik", "english": "affluence"},
-  {"turkish": "yoksulluk", "english": "penury"},
-  {"turkish": "zayıflatmak", "english": "attenuate"},
-  {"turkish": "yoğunlaştırmak", "english": "intensify"},
-  {"turkish": "taviz vermez", "english": "uncompromising"},
-  {"turkish": "uysal", "english": "pliant"},
-  {"turkish": "sınırlandırılmış", "english": "circumscribed"},
-  {"turkish": "belirsiz", "english": "nebulous"},
-  {"turkish": "kendine güven", "english": "aplomb"},
-  {"turkish": "korku", "english": "trepidation"},
-  {"turkish": "geçici", "english": "provisional"},
-  {"turkish": "kesin", "english": "definitive"},
-  {"turkish": "sinsi", "english": "insidious"},
-  {"turkish": "dobra", "english": "forthright"},
-  {"turkish": "özetlemek", "english": "recapitulate"},
-  {"turkish": "durumsal", "english": "circumstantial"},
-  {"turkish": "tartışmasız", "english": "incontrovertible"},
-  {"turkish": "muğlak", "english": "equivocal"},
-  {"turkish": "kaçamak", "english": "evasive"},
-  {"turkish": "gerçeklik görünümü", "english": "verisimilitude"},
-  {"turkish": "yalancılık", "english": "mendacity"},
-  {"turkish": "acil durum", "english": "exigency"},
-  {"turkish": "ayrıcalık", "english": "prerogative"},
-  {"turkish": "moratoryum", "english": "moratorium"},
-  {"turkish": "farkında olmadan", "english": "inadvertently"},
-  {"turkish": "bilerek", "english": "wittingly"},
-  {"turkish": "neredeyse", "english": "virtually"},
-  {"turkish": "makul şekilde", "english": "plausibly"},
-  {"turkish": "akıl almaz şekilde", "english": "inconceivably"},
-  {"turkish": "kesinlikle", "english": "categorically"},
-  {"turkish": "buna karşın", "english": "notwithstanding"},
-  {"turkish": "öyleyse", "english": "ergo"},
-  {"turkish": "bundan böyle", "english": "henceforth"},
-  {"turkish": "sözde", "english": "ostensibly"},
-  {"turkish": "temelde", "english": "fundamentally"},
-  {"turkish": "kristalleştirmek", "english": "crystallize"},
-  {"turkish": "doyurmak", "english": "saturate"},
-  {"turkish": "kirletmek", "english": "defile"},
-  {"turkish": "iyileştirmek", "english": "rehabilitate"},
-  {"turkish": "feragat etmek", "english": "renounce"},
-  {"turkish": "sinerjik", "english": "synergistic"},
-  {"turkish": "gelişigüzel", "english": "haphazard"},
-  {"turkish": "geçersiz kılınmış", "english": "nullified"},
-  {"turkish": "geri alınamaz", "english": "irrevocable"},
-  {"turkish": "savunulamaz", "english": "untenable"},
-  {"turkish": "yanılmaz", "english": "infallible"},
-  {"turkish": "gizli", "english": "clandestine"},
-  {"turkish": "tekrar etmek", "english": "recapitulate"},
-  {"turkish": "göstermelik", "english": "perfunctory"},
-  {"turkish": "derinden", "english": "profoundly"},
-  {"turkish": "önemsiz", "english": "trifling"},
-  {"turkish": "dayanılmaz", "english": "intolerable"},
-  {"turkish": "merkezi", "english": "pivotal"},
-  {"turkish": "bilgi kuramı", "english": "epistemology"},
-  {"turkish": "varlık bilim", "english": "ontology"},
-  {"turkish": "paradigma", "english": "paradigm"},
-  {"turkish": "metafor", "english": "metaphor"},
-  {"turkish": "tümdengelim", "english": "deduction"},
-  {"turkish": "tümevarım", "english": "induction"},
-  {"turkish": "zorlamak", "english": "coerce"},
-  {"turkish": "aklamak", "english": "exonerate"},
-  {"turkish": "suçlamak", "english": "indict"},
-  {"turkish": "azletmek", "english": "impeach"},
-  {"turkish": "hafifletmek", "english": "extenuate"},
-  {"turkish": "teşvik etmek", "english": "exhort"},
-  {"turkish": "ilgisizlik", "english": "apathy"},
-  {"turkish": "ateşli tutku", "english": "fervor"},
-  {"turkish": "karmaşık", "english": "intricate"},
-  {"turkish": "ayrıştırılmış", "english": "disaggregated"},
-  {"turkish": "yerini almak", "english": "supersede"},
-  {"turkish": "kazara", "english": "inadvertent"},
-  {"turkish": "tesadüfi keşif", "english": "serendipitous"},
-  {"turkish": "tarihi", "english": "momentous"},
-  {"turkish": "geçici", "english": "transient"},
-  {"turkish": "nüfuz eden", "english": "pervasive"},
-  {"turkish": "katı", "english": "stringent"},
-  {"turkish": "gevşek", "english": "lax"},
-  {"turkish": "kaçamaklı konuşma", "english": "prevarication"},
-  {"turkish": "hile", "english": "chicanery"},
-  {"turkish": "bilgelik", "english": "sagacity"},
-  {"turkish": "bölünme", "english": "schism"},
-  {"turkish": "yakınlık", "english": "affinity"},
-  {"turkish": "elverişli", "english": "conducive"},
-  {"turkish": "zararlı", "english": "detrimental"},
-  {"turkish": "çevresel", "english": "peripheral"},
-  {"turkish": "merkezi", "english": "pivotal"},
-  {"turkish": "ikilem", "english": "dichotomy"},
-  {"turkish": "önerme", "english": "postulate"},
-  {"turkish": "açmaz", "english": "quandary"},
-  {"turkish": "düzeltme", "english": "remediation"},
-  {"turkish": "benimsemek", "english": "espouse"},
-  {"turkish": "yıkmak", "english": "subvert"},
-  {"turkish": "kaçmak", "english": "abscond"},
-  {"turkish": "ortaya çıkmak", "english": "emerge"},
-  {"turkish": "fazlalık", "english": "redundancy"},
-  {"turkish": "serbestlik", "english": "latitude"},
-  {"turkish": "dar çerçeve", "english": "straitjacket"},
-  {"turkish": "kaçınılmaz", "english": "ineluctable"},
-  {"turkish": "bilinçli olarak", "english": "wittingly"},
-  {"turkish": "el altından", "english": "surreptitiously"},
-  {"turkish": "isnat etmek", "english": "impute"},
-  {"turkish": "dikkatle incelemek", "english": "scrutinize"},
-  {"turkish": "kaldıraç olarak kullanmak", "english": "leverage"},
-  {"turkish": "rayından çıkarmak", "english": "derail"},
-  {"turkish": "ezoterik", "english": "arcane"},
-  {"turkish": "açık", "english": "palpable"},
-  {"turkish": "şekillendirilebilir", "english": "malleable"},
-  {"turkish": "esnemez", "english": "inflexible"},
-  {"turkish": "bereket", "english": "cornucopia"},
-  {"turkish": "kıtlık", "english": "dearth"},
-  {"turkish": "sade", "english": "austere"},
-  {"turkish": "hoşgörülü", "english": "lenient"},
-  {"turkish": "doğaçlama", "english": "extemporaneous"},
-  {"turkish": "önceden tasarlanmış", "english": "premeditated"},
-  {"turkish": "kader belirleyici", "english": "fateful"},
-  {"turkish": "koşullu", "english": "contingent"},
-  {"turkish": "çekişmeli", "english": "contentious"},
-  {"turkish": "uyumlu", "english": "amenable"},
-  {"turkish": "küçümsemek", "english": "disparage"},
-  {"turkish": "övmek", "english": "extol"},
-  {"turkish": "yargılama", "english": "adjudication"},
-  {"turkish": "vurgulu şekilde", "english": "emphatically"},
-  {"turkish": "görünürde", "english": "ostensibly"},
-  {"turkish": "önsel", "english": "apriori"},
-  {"turkish": "sonuç olarak", "english": "ergo"},
-  {"turkish": "antinomi", "english": "antinomy"},
-  {"turkish": "aporia", "english": "aporia"},
-  {"turkish": "teleoloji", "english": "teleology"},
-  {"turkish": "deontoloji", "english": "deontology"},
-  {"turkish": "faydacılık", "english": "utilitarianism"},
-  {"turkish": "hedonizm", "english": "hedonism"},
-  {"turkish": "stoacılık", "english": "stoicism"},
-  {"turkish": "epikürümcülük", "english": "epicureanism"},
-  {"turkish": "nihilizm", "english": "nihilism"},
-  {"turkish": "solipsizm", "english": "solipsism"},
-  {"turkish": "determinizm", "english": "determinism"},
-  {"turkish": "libertaryanizm", "english": "libertarianism"},
-  {"turkish": "kompatibilizm", "english": "compatibilism"},
-  {"turkish": "indirgemecilik", "english": "reductionism"},
-  {"turkish": "bütüncülük", "english": "holism"},
-  {"turkish": "ampirisizm", "english": "empiricism"},
-  {"turkish": "rasyonalizm", "english": "rationalism"},
-  {"turkish": "pragmatizm", "english": "pragmatism"},
-  {"turkish": "pozitivizm", "english": "positivism"},
-  {"turkish": "relativizm", "english": "relativism"},
-  {"turkish": "yapısalcılık", "english": "structuralism"},
-  {"turkish": "postyapısalcılık", "english": "post-structuralism"},
-  {"turkish": "yapısöküm", "english": "deconstruction"},
-  {"turkish": "eleştirel teori", "english": "critical theory"},
-  {"turkish": "Frankfurt Okulu", "english": "Frankfurt School"},
-  {"turkish": "psikanaliz", "english": "psychoanalysis"},
-  {"turkish": "bilinçaltı", "english": "unconscious"},
-  {"turkish": "bastırma", "english": "repression"},
-  {"turkish": "yansıtma", "english": "projection"},
-  {"turkish": "aktarım", "english": "transference"},
-  {"turkish": "karşı aktarım", "english": "countertransference"},
-  {"turkish": "savunma mekanizması", "english": "defense mechanism"},
-  {"turkish": "süblimasyon", "english": "sublimation"},
-  {"turkish": "rasyonelleştirme", "english": "rationalization"},
-  {"turkish": "inkar", "english": "denial"},
-  {"turkish": "özdeşleşme", "english": "identification"},
-  {"turkish": "içselleştirme", "english": "internalization"},
-  {"turkish": "dışsallaştırma", "english": "externalization"},
-  {"turkish": "somutlaştırma", "english": "reification"},
-  {"turkish": "yabancılaşma", "english": "alienation"},
-  {"turkish": "fetişizm", "english": "fetishism"},
-  {"turkish": "meta fetişizmi", "english": "commodity fetishism"},
-  {"turkish": "hegemonya", "english": "hegemony"},
-  {"turkish": "ideoloji", "english": "ideology"},
-  {"turkish": "söylem", "english": "discourse"},
-  {"turkish": "söylemsel oluşum", "english": "discursive formation"},
-  {"turkish": "bilgi-iktidar", "english": "power-knowledge"},
-  {"turkish": "biyoiktidar", "english": "biopower"},
-  {"turkish": "gubernamentalite", "english": "governmentality"},
-  {"turkish": "panoptikon", "english": "panopticon"},
-  {"turkish": "gözetim toplumu", "english": "surveillance society"},
-  {"turkish": "disiplin toplumu", "english": "disciplinary society"},
-  {"turkish": "kontrol toplumu", "english": "control society"},
-  {"turkish": "risk toplumu", "english": "risk society"},
-  {"turkish": "ağ toplumu", "english": "network society"},
-  {"turkish": "sıvı modernite", "english": "liquid modernity"},
-  {"turkish": "geç modernite", "english": "late modernity"},
-  {"turkish": "yüksek modernite", "english": "high modernity"},
-  {"turkish": "postmodernite", "english": "postmodernity"},
-  {"turkish": "küreselleşme", "english": "globalization"},
-  {"turkish": "glokalizasyon", "english": "glocalization"},
-  {"turkish": "hibridizasyon", "english": "hybridization"},
-  {"turkish": "kreolizasyon", "english": "creolization"},
-  {"turkish": "senkretizm", "english": "syncretism"},
-  {"turkish": "çoğulculuk", "english": "pluralism"},
-  {"turkish": "kozmopolitanizm", "english": "cosmopolitanism"},
-  {"turkish": "milliyetçilik", "english": "nationalism"},
-  {"turkish": "etnosentrizm", "english": "ethnocentrism"},
-  {"turkish": "kültürel görelilik", "english": "cultural relativism"},
-  {"turkish": "oryantalizm", "english": "orientalism"},
-  {"turkish": "postkoloniyalizm", "english": "postcolonialism"},
-  {"turkish": "subaltern", "english": "subaltern"},
-  {"turkish": "diyaspora", "english": "diaspora"},
-  {"turkish": "transnasyonalizm", "english": "transnationalism"},
-  {"turkish": "deterritöryalizasyon", "english": "deterritorialization"},
-  {"turkish": "reterritöryalizasyon", "english": "reterritorialization"},
-  {"turkish": "rizom", "english": "rhizome"},
-  {"turkish": "yersizyurtsuzlaşma", "english": "nomadism"},
-  {"turkish": "göçebelik", "english": "nomadic"},
-  {"turkish": "diasporik kimlik", "english": "diasporic identity"},
-  {"turkish": "melez kimlik", "english": "hybrid identity"},
-  {"turkish": "kesişimsellik", "english": "intersectionality"},
-  {"turkish": "performatiflik", "english": "performativity"},
-  {"turkish": "toplumsal cinsiyet performansı", "english": "gender performativity"},
-  {"turkish": "queer teori", "english": "queer theory"},
-  {"turkish": "heteronormativite", "english": "heteronormativity"},
-  {"turkish": "homonormativite", "english": "homonormativity"},
-  {"turkish": "cis-normativite", "english": "cisnormativity"},
-  {"turkish": "ableizm", "english": "ableism"},
-  {"turkish": "ageizm", "english": "ageism"},
-  {"turkish": "türcülük", "english": "speciesism"},
-  {"turkish": "antroposentrizm", "english": "anthropocentrism"},
-  {"turkish": "ekosentrizm", "english": "ecocentrism"},
-  {"turkish": "biyosentrizm", "english": "biocentrism"},
-  {"turkish": "derin ekoloji", "english": "deep ecology"},
-  {"turkish": "sosyal ekoloji", "english": "social ecology"},
-  {"turkish": "ekofeminizm", "english": "ecofeminism"},
-  {"turkish": "posthumanizm", "english": "posthumanism"},
-  {"turkish": "transhumanizm", "english": "transhumanism"},
-  {"turkish": "siborg", "english": "cyborg"},
-  {"turkish": "teknolojik tekillik", "english": "technological singularity"},
-  {"turkish": "yapay genel zeka", "english": "artificial general intelligence"},
-  {"turkish": "makine bilinci", "english": "machine consciousness"},
-  {"turkish": "hesaplamalı düşünce", "english": "computational thinking"},
-  {"turkish": "algoritmik önyargı", "english": "algorithmic bias"},
-  {"turkish": "dijital uçurum", "english": "digital divide"},
-  {"turkish": "gözetim kapitalizmi", "english": "surveillance capitalism"},
-  {"turkish": "platform kapitalizmi", "english": "platform capitalism"},
-  {"turkish": "dikkat ekonomisi", "english": "attention economy"},
-  {"turkish": "bilişsel kapitalizm", "english": "cognitive capitalism"},
-  {"turkish": "duygusal emek", "english": "affective labor"},
-  {"turkish": "gayri maddi emek", "english": "immaterial labor"},
-  {"turkish": "prekaryat", "english": "precariat"},
-  {"turkish": "gig ekonomisi", "english": "gig economy"},
-  {"turkish": "platform işçiliği", "english": "platform work"},
-  {"turkish": "algoritmik yönetim", "english": "algorithmic management"},
-  {"turkish": "veri koloniyalizmi", "english": "data colonialism"},
-  {"turkish": "dijital egemenlik", "english": "digital sovereignty"},
-  {"turkish": "teknolojik determinizm", "english": "technological determinism"},
-  {"turkish": "sosyal inşacılık", "english": "social constructivism"}
+  {
+    "turkish": "-den çıkmak",
+    "english": "Emanate"
+  },
+  {
+    "turkish": "Acil",
+    "english": "Exigent"
+  },
+  {
+    "turkish": "acil durum",
+    "english": "exigency"
+  },
+  {
+    "turkish": "acımak",
+    "english": "commiserate"
+  },
+  {
+    "turkish": "Af",
+    "english": "Amnesty"
+  },
+  {
+    "turkish": "Ahmakça",
+    "english": "Fatuous"
+  },
+  {
+    "turkish": "aklamak",
+    "english": "exonerate"
+  },
+  {
+    "turkish": "Aklamak",
+    "english": "Exculpate"
+  },
+  {
+    "turkish": "akıl almaz şekilde",
+    "english": "inconceivably"
+  },
+  {
+    "turkish": "alay etmek",
+    "english": "deride"
+  },
+  {
+    "turkish": "aldatıcı",
+    "english": "specious"
+  },
+  {
+    "turkish": "algbilim",
+    "english": "phycology"
+  },
+  {
+    "turkish": "algoritmik yönetim",
+    "english": "algorithmic management"
+  },
+  {
+    "turkish": "Alçakgönüllü",
+    "english": "Magnanimous"
+  },
+  {
+    "turkish": "Alıştırmak",
+    "english": "Inure"
+  },
+  {
+    "turkish": "Anlatılamaz",
+    "english": "Ineffable"
+  },
+  {
+    "turkish": "Anlaşılması güç",
+    "english": "Abstruse"
+  },
+  {
+    "turkish": "anomalibilim",
+    "english": "teratology"
+  },
+  {
+    "turkish": "Anormallik",
+    "english": "Anomaly"
+  },
+  {
+    "turkish": "apofeni",
+    "english": "apophenia"
+  },
+  {
+    "turkish": "Artırmak",
+    "english": "Augment"
+  },
+  {
+    "turkish": "Arzu etmek",
+    "english": "Aspire"
+  },
+  {
+    "turkish": "arıcılık",
+    "english": "apiculture"
+  },
+  {
+    "turkish": "Askıya alma",
+    "english": "Abeyance"
+  },
+  {
+    "turkish": "ateşli tutku",
+    "english": "fervor"
+  },
+  {
+    "turkish": "aydınlatmak",
+    "english": "elucidate"
+  },
+  {
+    "turkish": "ayrıcalık",
+    "english": "prerogative"
+  },
+  {
+    "turkish": "ayrıştırılmış",
+    "english": "disaggregated"
+  },
+  {
+    "turkish": "ayıklık",
+    "english": "sobriety"
+  },
+  {
+    "turkish": "Az miktar",
+    "english": "Modicum"
+  },
+  {
+    "turkish": "Az ve öz",
+    "english": "Laconic"
+  },
+  {
+    "turkish": "Azalmak",
+    "english": "Wane"
+  },
+  {
+    "turkish": "azarlama",
+    "english": "berate"
+  },
+  {
+    "turkish": "Azgınlık",
+    "english": "Debauchery"
+  },
+  {
+    "turkish": "aziz saymak",
+    "english": "canonize"
+  },
+  {
+    "turkish": "azletmek",
+    "english": "impeach"
+  },
+  {
+    "turkish": "Azınlığın bildiği",
+    "english": "Esoteric"
+  },
+  {
+    "turkish": "Açgözlü",
+    "english": "Avaricious"
+  },
+  {
+    "turkish": "açgözlülük",
+    "english": "voracity"
+  },
+  {
+    "turkish": "açmaz",
+    "english": "quandary"
+  },
+  {
+    "turkish": "açık",
+    "english": "palpable"
+  },
+  {
+    "turkish": "açıkça",
+    "english": "blatantly"
+  },
+  {
+    "turkish": "Ağlak",
+    "english": "Maudlin"
+  },
+  {
+    "turkish": "Aşmak",
+    "english": "Transcend"
+  },
+  {
+    "turkish": "Aşılamak",
+    "english": "Inculcate"
+  },
+  {
+    "turkish": "Bahşetmek/Vermek",
+    "english": "Impart"
+  },
+  {
+    "turkish": "balıkbilim",
+    "english": "ichthyology"
+  },
+  {
+    "turkish": "Basmakalıp",
+    "english": "Platitudinous"
+  },
+  {
+    "turkish": "bastırma",
+    "english": "repression"
+  },
+  {
+    "turkish": "Bastırmak",
+    "english": "Quell"
+  },
+  {
+    "turkish": "Bataklık (mecaz)",
+    "english": "Quagmire"
+  },
+  {
+    "turkish": "bağcılık",
+    "english": "viticulture"
+  },
+  {
+    "turkish": "Bağnaz",
+    "english": "Zealot"
+  },
+  {
+    "turkish": "Başkasının yerine hissedilen",
+    "english": "Vicarious"
+  },
+  {
+    "turkish": "Başıboş",
+    "english": "Desultory"
+  },
+  {
+    "turkish": "Becerikli",
+    "english": "Adroit"
+  },
+  {
+    "turkish": "belirsiz",
+    "english": "nebulous"
+  },
+  {
+    "turkish": "bencillik",
+    "english": "egotism"
+  },
+  {
+    "turkish": "benimsemek",
+    "english": "espouse"
+  },
+  {
+    "turkish": "Berbat",
+    "english": "Egregious"
+  },
+  {
+    "turkish": "bereket",
+    "english": "cornucopia"
+  },
+  {
+    "turkish": "Berrak",
+    "english": "Lucid"
+  },
+  {
+    "turkish": "bilerek",
+    "english": "wittingly"
+  },
+  {
+    "turkish": "Bilge",
+    "english": "Sagacious"
+  },
+  {
+    "turkish": "bilgelik",
+    "english": "sagacity"
+  },
+  {
+    "turkish": "bilgi kuramı",
+    "english": "epistemology"
+  },
+  {
+    "turkish": "Bilgilendirmek (manevi)",
+    "english": "Edify"
+  },
+  {
+    "turkish": "bilinçaltı",
+    "english": "unconscious"
+  },
+  {
+    "turkish": "Bilmece",
+    "english": "Conundrum"
+  },
+  {
+    "turkish": "Birleşmek",
+    "english": "Coalesce"
+  },
+  {
+    "turkish": "Bol",
+    "english": "Copious"
+  },
+  {
+    "turkish": "bozmak",
+    "english": "vitiate"
+  },
+  {
+    "turkish": "Boş",
+    "english": "Vacuous"
+  },
+  {
+    "turkish": "bundan böyle",
+    "english": "henceforth"
+  },
+  {
+    "turkish": "böcekbilim",
+    "english": "coleopterology"
+  },
+  {
+    "turkish": "bölünme",
+    "english": "schism"
+  },
+  {
+    "turkish": "bütüncülük",
+    "english": "holism"
+  },
+  {
+    "turkish": "Cesaret (küstahça)",
+    "english": "Temerity"
+  },
+  {
+    "turkish": "Ciddiyetsiz",
+    "english": "Frivolous"
+  },
+  {
+    "turkish": "Cimri",
+    "english": "Penurious"
+  },
+  {
+    "turkish": "cis-normativite",
+    "english": "cisnormativity"
+  },
+  {
+    "turkish": "Coşku",
+    "english": "Euphoria"
+  },
+  {
+    "turkish": "Coşkulu",
+    "english": "Ebullient"
+  },
+  {
+    "turkish": "Coşkulu",
+    "english": "Effervescent"
+  },
+  {
+    "turkish": "Cömert",
+    "english": "Munificent"
+  },
+  {
+    "turkish": "Cömertlik",
+    "english": "Munificence"
+  },
+  {
+    "turkish": "Dalgalanmak",
+    "english": "Undulate"
+  },
+  {
+    "turkish": "Dalkavuk",
+    "english": "Sycophant"
+  },
+  {
+    "turkish": "Dar görüşlü",
+    "english": "Parochial"
+  },
+  {
+    "turkish": "dar çerçeve",
+    "english": "straitjacket"
+  },
+  {
+    "turkish": "dayanılmaz",
+    "english": "intolerable"
+  },
+  {
+    "turkish": "Derin düşünmek",
+    "english": "Ruminate"
+  },
+  {
+    "turkish": "derinden",
+    "english": "profoundly"
+  },
+  {
+    "turkish": "Derleme",
+    "english": "Eclectic"
+  },
+  {
+    "turkish": "desteklemek",
+    "english": "buttress"
+  },
+  {
+    "turkish": "desteklemek",
+    "english": "bolster"
+  },
+  {
+    "turkish": "Değişken",
+    "english": "Capricious"
+  },
+  {
+    "turkish": "Değişken",
+    "english": "Mercurial"
+  },
+  {
+    "turkish": "Değişkenlik (hayatın)",
+    "english": "Vicissitude"
+  },
+  {
+    "turkish": "diasporik kimlik",
+    "english": "diasporic identity"
+  },
+  {
+    "turkish": "dijital egemenlik",
+    "english": "digital sovereignty"
+  },
+  {
+    "turkish": "Dik kafalı",
+    "english": "Recalcitrant"
+  },
+  {
+    "turkish": "Dik/Ani",
+    "english": "Precipitous"
+  },
+  {
+    "turkish": "dikkatle incelemek",
+    "english": "scrutinize"
+  },
+  {
+    "turkish": "Dikkatli",
+    "english": "Wary"
+  },
+  {
+    "turkish": "dobra",
+    "english": "forthright"
+  },
+  {
+    "turkish": "dolaylı konuşmak",
+    "english": "circumlocute"
+  },
+  {
+    "turkish": "doyurmak",
+    "english": "saturate"
+  },
+  {
+    "turkish": "Doyurmak",
+    "english": "Satiate"
+  },
+  {
+    "turkish": "doğaçlama",
+    "english": "extemporaneous"
+  },
+  {
+    "turkish": "Doğrucu",
+    "english": "Veracious"
+  },
+  {
+    "turkish": "doğrulamak",
+    "english": "corroborate"
+  },
+  {
+    "turkish": "Doğruluk",
+    "english": "Veracity"
+  },
+  {
+    "turkish": "Doğruluğunu sorgulamak",
+    "english": "Impugn"
+  },
+  {
+    "turkish": "Doğurmak (neden olmak)",
+    "english": "Engender"
+  },
+  {
+    "turkish": "doğuştan",
+    "english": "innate"
+  },
+  {
+    "turkish": "Durgunlaşmak",
+    "english": "Stagnate"
+  },
+  {
+    "turkish": "durumsal",
+    "english": "circumstantial"
+  },
+  {
+    "turkish": "duygusal emek",
+    "english": "affective labor"
+  },
+  {
+    "turkish": "Duygusuz",
+    "english": "Callous"
+  },
+  {
+    "turkish": "Dürüst",
+    "english": "Scrupulous"
+  },
+  {
+    "turkish": "Dürüstlük",
+    "english": "Probity"
+  },
+  {
+    "turkish": "düzeltme",
+    "english": "remediation"
+  },
+  {
+    "turkish": "Düşüncesizce",
+    "english": "Impetuous"
+  },
+  {
+    "turkish": "dışlayıcı",
+    "english": "exclusionary"
+  },
+  {
+    "turkish": "dışsallaştırma",
+    "english": "externalization"
+  },
+  {
+    "turkish": "edinilmiş",
+    "english": "acquired"
+  },
+  {
+    "turkish": "eksiltmek",
+    "english": "detract"
+  },
+  {
+    "turkish": "elverişli",
+    "english": "conducive"
+  },
+  {
+    "turkish": "embriyoloji",
+    "english": "embryology"
+  },
+  {
+    "turkish": "En alt nokta",
+    "english": "Nadir"
+  },
+  {
+    "turkish": "en iyi olmayan şekilde/yetersizce",
+    "english": "suboptimally"
+  },
+  {
+    "turkish": "En iyi örnek",
+    "english": "Epitome"
+  },
+  {
+    "turkish": "Engel olmak",
+    "english": "Preclude"
+  },
+  {
+    "turkish": "engelsiz",
+    "english": "unfettered"
+  },
+  {
+    "turkish": "Erken gelişmiş",
+    "english": "Precocious"
+  },
+  {
+    "turkish": "eskatoloji",
+    "english": "eschatology"
+  },
+  {
+    "turkish": "esnemez",
+    "english": "inflexible"
+  },
+  {
+    "turkish": "esrarengiz",
+    "english": "enigmatic"
+  },
+  {
+    "turkish": "Estetik",
+    "english": "Aesthetic"
+  },
+  {
+    "turkish": "Etkilenmez",
+    "english": "Impervious"
+  },
+  {
+    "turkish": "Etkinlik",
+    "english": "Efficacy"
+  },
+  {
+    "turkish": "etrafından dolaşmak",
+    "english": "circumvent"
+  },
+  {
+    "turkish": "ezoterik",
+    "english": "arcane"
+  },
+  {
+    "turkish": "Eğilim",
+    "english": "Penchant"
+  },
+  {
+    "turkish": "eşek arısı bilimi",
+    "english": "hymenopterology"
+  },
+  {
+    "turkish": "farkında olmadan",
+    "english": "inadvertently"
+  },
+  {
+    "turkish": "faydacılık",
+    "english": "utilitarianism"
+  },
+  {
+    "turkish": "fazlalık",
+    "english": "redundancy"
+  },
+  {
+    "turkish": "feragat etmek",
+    "english": "renounce"
+  },
+  {
+    "turkish": "fetişizm",
+    "english": "fetishism"
+  },
+  {
+    "turkish": "filogenetik",
+    "english": "phylogenetics"
+  },
+  {
+    "turkish": "Gayretli",
+    "english": "Assiduous"
+  },
+  {
+    "turkish": "Gayretli",
+    "english": "Sedulous"
+  },
+  {
+    "turkish": "gayri maddi emek",
+    "english": "immaterial labor"
+  },
+  {
+    "turkish": "Geciktiren",
+    "english": "Dilatory"
+  },
+  {
+    "turkish": "Gelenek karşıtı",
+    "english": "Iconoclastic"
+  },
+  {
+    "turkish": "gelişigüzel",
+    "english": "haphazard"
+  },
+  {
+    "turkish": "Gereksiz kılmak",
+    "english": "Obviate"
+  },
+  {
+    "turkish": "geri almak",
+    "english": "countermand"
+  },
+  {
+    "turkish": "geri alınamaz",
+    "english": "irrevocable"
+  },
+  {
+    "turkish": "geri dönüşsüz/kalıcı olarak",
+    "english": "irrevocably"
+  },
+  {
+    "turkish": "gerçeklik görünümü",
+    "english": "verisimilitude"
+  },
+  {
+    "turkish": "Geveze",
+    "english": "Garrulous"
+  },
+  {
+    "turkish": "Geveze",
+    "english": "Loquacious"
+  },
+  {
+    "turkish": "gevşek",
+    "english": "lax"
+  },
+  {
+    "turkish": "geçersiz kılmak",
+    "english": "negate"
+  },
+  {
+    "turkish": "geçersiz kılınmış",
+    "english": "nullified"
+  },
+  {
+    "turkish": "geçici",
+    "english": "provisional"
+  },
+  {
+    "turkish": "geçici",
+    "english": "transient"
+  },
+  {
+    "turkish": "gig ekonomisi",
+    "english": "gig economy"
+  },
+  {
+    "turkish": "Gizem",
+    "english": "Enigma"
+  },
+  {
+    "turkish": "Gizemli",
+    "english": "Inscrutable"
+  },
+  {
+    "turkish": "gizli",
+    "english": "clandestine"
+  },
+  {
+    "turkish": "gizlice",
+    "english": "surreptitiously"
+  },
+  {
+    "turkish": "Gizlice yapılan",
+    "english": "Surreptitious"
+  },
+  {
+    "turkish": "Gönlünü almak",
+    "english": "Propitiate"
+  },
+  {
+    "turkish": "gösterişli",
+    "english": "pompous"
+  },
+  {
+    "turkish": "Gösterişli",
+    "english": "Ostentatious"
+  },
+  {
+    "turkish": "göstermelik",
+    "english": "perfunctory"
+  },
+  {
+    "turkish": "göz yummak",
+    "english": "connive"
+  },
+  {
+    "turkish": "Gözü yaşlı",
+    "english": "Lachrymose"
+  },
+  {
+    "turkish": "göçebelik",
+    "english": "nomadic"
+  },
+  {
+    "turkish": "Gücenme",
+    "english": "Umbrage"
+  },
+  {
+    "turkish": "Gürültü",
+    "english": "Cacophony"
+  },
+  {
+    "turkish": "Gürültülü/Taşkın",
+    "english": "Boisterous"
+  },
+  {
+    "turkish": "Güçten düşürmek",
+    "english": "Enervate"
+  },
+  {
+    "turkish": "Gıpta etmek",
+    "english": "Emulate"
+  },
+  {
+    "turkish": "Hafifletici",
+    "english": "Palliative"
+  },
+  {
+    "turkish": "hafifletmek",
+    "english": "extenuate"
+  },
+  {
+    "turkish": "Hafifletmek",
+    "english": "Assuage"
+  },
+  {
+    "turkish": "Hafifletmek",
+    "english": "Mitigate"
+  },
+  {
+    "turkish": "Hain",
+    "english": "Nefarious"
+  },
+  {
+    "turkish": "hakemlik yapmak",
+    "english": "arbitrate"
+  },
+  {
+    "turkish": "Haklı çıkarmak",
+    "english": "Vindicate"
+  },
+  {
+    "turkish": "Haksız yere üstlenmek",
+    "english": "Arrogate"
+  },
+  {
+    "turkish": "Halsiz",
+    "english": "Languid"
+  },
+  {
+    "turkish": "hamartiyoloji",
+    "english": "hamartiology"
+  },
+  {
+    "turkish": "Hanım hanımcık",
+    "english": "Demure"
+  },
+  {
+    "turkish": "Hayali",
+    "english": "Chimerical"
+  },
+  {
+    "turkish": "Hazcılık",
+    "english": "Hedonism"
+  },
+  {
+    "turkish": "Henüz başlamış",
+    "english": "Inchoate"
+  },
+  {
+    "turkish": "her derde deva",
+    "english": "panacea"
+  },
+  {
+    "turkish": "her yerde olan",
+    "english": "ubiquitous"
+  },
+  {
+    "turkish": "her şeyi kapsayan",
+    "english": "all-encompassing"
+  },
+  {
+    "turkish": "Hevesli (yüzeysel)",
+    "english": "Dilettante"
+  },
+  {
+    "turkish": "Hicvetmek",
+    "english": "Lampoon"
+  },
+  {
+    "turkish": "hile",
+    "english": "chicanery"
+  },
+  {
+    "turkish": "hor görmek",
+    "english": "disdain"
+  },
+  {
+    "turkish": "hoş görmek",
+    "english": "condone"
+  },
+  {
+    "turkish": "hoşgörülü",
+    "english": "lenient"
+  },
+  {
+    "turkish": "hukuk bilimi",
+    "english": "jurisprudence"
+  },
+  {
+    "turkish": "Huysuz",
+    "english": "Fractious"
+  },
+  {
+    "turkish": "hüküm vermek",
+    "english": "adjudicate"
+  },
+  {
+    "turkish": "Hırsızlık",
+    "english": "Larceny"
+  },
+  {
+    "turkish": "Hırçın",
+    "english": "Acrimonious"
+  },
+  {
+    "turkish": "Hırçın",
+    "english": "Petulant"
+  },
+  {
+    "turkish": "Hızla gelişmek",
+    "english": "Burgeon"
+  },
+  {
+    "turkish": "iftira etmek",
+    "english": "calumniate"
+  },
+  {
+    "turkish": "iftira etmek",
+    "english": "defame"
+  },
+  {
+    "turkish": "ihlal etmek",
+    "english": "contravene"
+  },
+  {
+    "turkish": "ihtar etmek",
+    "english": "admonish"
+  },
+  {
+    "turkish": "ikilem",
+    "english": "dichotomy"
+  },
+  {
+    "turkish": "ilgisizlik",
+    "english": "apathy"
+  },
+  {
+    "turkish": "inkar",
+    "english": "denial"
+  },
+  {
+    "turkish": "ipek böcekçiliği",
+    "english": "sericulture"
+  },
+  {
+    "turkish": "iradi olarak",
+    "english": "volitionally"
+  },
+  {
+    "turkish": "Islah olmaz",
+    "english": "Incorrigible"
+  },
+  {
+    "turkish": "isnat etmek",
+    "english": "impute"
+  },
+  {
+    "turkish": "itiraf etmek",
+    "english": "avow"
+  },
+  {
+    "turkish": "iyileştirmek",
+    "english": "rehabilitate"
+  },
+  {
+    "turkish": "iyileştirmek",
+    "english": "ameliorate"
+  },
+  {
+    "turkish": "içselleştirme",
+    "english": "internalization"
+  },
+  {
+    "turkish": "Işıldamak",
+    "english": "Scintillate"
+  },
+  {
+    "turkish": "İddia etmek",
+    "english": "Aver"
+  },
+  {
+    "turkish": "İfşa etmek",
+    "english": "Divulge"
+  },
+  {
+    "turkish": "İhtiyatlı",
+    "english": "Circumspect"
+  },
+  {
+    "turkish": "İkna edici",
+    "english": "Cogent"
+  },
+  {
+    "turkish": "İlahlaştırma",
+    "english": "Apotheosis"
+  },
+  {
+    "turkish": "İlan etmek",
+    "english": "Promulgate"
+  },
+  {
+    "turkish": "İma",
+    "english": "Innuendo"
+  },
+  {
+    "turkish": "İnatçı",
+    "english": "Obdurate"
+  },
+  {
+    "turkish": "İnkâr etmek",
+    "english": "Gainsay"
+  },
+  {
+    "turkish": "İptal etmek",
+    "english": "Rescind"
+  },
+  {
+    "turkish": "İsteklilik",
+    "english": "Alacrity"
+  },
+  {
+    "turkish": "İtiraz etmek",
+    "english": "Demur"
+  },
+  {
+    "turkish": "İyimser",
+    "english": "Sanguine"
+  },
+  {
+    "turkish": "İçine çekmek/Özümsemek",
+    "english": "Imbibe"
+  },
+  {
+    "turkish": "İğrenç",
+    "english": "Heinous"
+  },
+  {
+    "turkish": "İşlemek (suç vb.)",
+    "english": "Perpetrate"
+  },
+  {
+    "turkish": "kabukbilim",
+    "english": "conchology"
+  },
+  {
+    "turkish": "kader belirleyici",
+    "english": "fateful"
+  },
+  {
+    "turkish": "kaldıraç olarak kullanmak",
+    "english": "leverage"
+  },
+  {
+    "turkish": "Kandırarak yaptırmak",
+    "english": "Wheedle"
+  },
+  {
+    "turkish": "kanserbilim",
+    "english": "carcinology"
+  },
+  {
+    "turkish": "Kanıtlamak",
+    "english": "Substantiate"
+  },
+  {
+    "turkish": "Kaplanmak/Sarmak",
+    "english": "Suffuse"
+  },
+  {
+    "turkish": "kapsamlı",
+    "english": "exhaustive"
+  },
+  {
+    "turkish": "karalamak",
+    "english": "denigrate"
+  },
+  {
+    "turkish": "Karalamak",
+    "english": "Vilify"
+  },
+  {
+    "turkish": "Kararsız kalmak",
+    "english": "Vacillate"
+  },
+  {
+    "turkish": "karmaşık",
+    "english": "convoluted"
+  },
+  {
+    "turkish": "karmaşık",
+    "english": "intricate"
+  },
+  {
+    "turkish": "karıştırmak",
+    "english": "obfuscate"
+  },
+  {
+    "turkish": "Karıştırmak/Şaşırtmak",
+    "english": "Confound"
+  },
+  {
+    "turkish": "karşı aktarım",
+    "english": "countertransference"
+  },
+  {
+    "turkish": "katı",
+    "english": "stringent"
+  },
+  {
+    "turkish": "Kavgacı",
+    "english": "Pugnacious"
+  },
+  {
+    "turkish": "Kayıtsız",
+    "english": "Complacent"
+  },
+  {
+    "turkish": "kazara",
+    "english": "inadvertent"
+  },
+  {
+    "turkish": "kaçamak",
+    "english": "evasive"
+  },
+  {
+    "turkish": "Kaçamak cevap vermek",
+    "english": "Equivocate"
+  },
+  {
+    "turkish": "kaçamaklı konuşma",
+    "english": "prevarication"
+  },
+  {
+    "turkish": "kaçmak",
+    "english": "abscond"
+  },
+  {
+    "turkish": "kaçınılmaz",
+    "english": "ineluctable"
+  },
+  {
+    "turkish": "kaçınılmaz olarak",
+    "english": "inexorably"
+  },
+  {
+    "turkish": "kaçınılmaz şekilde/kaçınılmaz olarak",
+    "english": "unavoidably"
+  },
+  {
+    "turkish": "Kefaret etmek",
+    "english": "Expiate"
+  },
+  {
+    "turkish": "kelebekbilim",
+    "english": "lepidopterology"
+  },
+  {
+    "turkish": "kemikbilim",
+    "english": "osteology"
+  },
+  {
+    "turkish": "kendine güven",
+    "english": "aplomb"
+  },
+  {
+    "turkish": "kesin",
+    "english": "definitive"
+  },
+  {
+    "turkish": "kesin bir şekilde/şüphesizce",
+    "english": "unequivocally"
+  },
+  {
+    "turkish": "kesinlik",
+    "english": "certitude"
+  },
+  {
+    "turkish": "kesinlikle",
+    "english": "categorically"
+  },
+  {
+    "turkish": "kesişimsellik",
+    "english": "intersectionality"
+  },
+  {
+    "turkish": "keskin",
+    "english": "incisive"
+  },
+  {
+    "turkish": "Keskin",
+    "english": "Trenchant"
+  },
+  {
+    "turkish": "Keskin zekalı",
+    "english": "Perspicacious"
+  },
+  {
+    "turkish": "Kibir",
+    "english": "Hubris"
+  },
+  {
+    "turkish": "Kibirli",
+    "english": "Supercilious"
+  },
+  {
+    "turkish": "kilisebilim",
+    "english": "ecclesiology"
+  },
+  {
+    "turkish": "Kin",
+    "english": "Rancor"
+  },
+  {
+    "turkish": "Kinci",
+    "english": "Rancorous"
+  },
+  {
+    "turkish": "Kinci",
+    "english": "Vindictive"
+  },
+  {
+    "turkish": "kirletmek",
+    "english": "defile"
+  },
+  {
+    "turkish": "kladistik",
+    "english": "cladistics"
+  },
+  {
+    "turkish": "kopyalamak",
+    "english": "replicate"
+  },
+  {
+    "turkish": "korku",
+    "english": "trepidation"
+  },
+  {
+    "turkish": "Korkusuz",
+    "english": "Intrepid"
+  },
+  {
+    "turkish": "koşullu",
+    "english": "contingent"
+  },
+  {
+    "turkish": "kristalleştirmek",
+    "english": "crystallize"
+  },
+  {
+    "turkish": "kristalografi",
+    "english": "crystallography"
+  },
+  {
+    "turkish": "Kuralcı",
+    "english": "Punctilious"
+  },
+  {
+    "turkish": "Kurnazlık",
+    "english": "Guile"
+  },
+  {
+    "turkish": "Kurtarmak",
+    "english": "Extricate"
+  },
+  {
+    "turkish": "kusur bulmak",
+    "english": "cavil"
+  },
+  {
+    "turkish": "Kusursuzluk örneği",
+    "english": "Paragon"
+  },
+  {
+    "turkish": "kutsamak",
+    "english": "consecrate"
+  },
+  {
+    "turkish": "kuşbilim",
+    "english": "ornithology"
+  },
+  {
+    "turkish": "Kötü niyetli",
+    "english": "Malevolent"
+  },
+  {
+    "turkish": "Kötüleştirmek",
+    "english": "Exacerbate"
+  },
+  {
+    "turkish": "Kötümser",
+    "english": "Cynical"
+  },
+  {
+    "turkish": "küfretmek",
+    "english": "blaspheme"
+  },
+  {
+    "turkish": "Küfretmek/Azarlamak",
+    "english": "Vituperate"
+  },
+  {
+    "turkish": "Küfür/Hakaret",
+    "english": "Invective"
+  },
+  {
+    "turkish": "küçümseme",
+    "english": "contempt"
+  },
+  {
+    "turkish": "küçümsemek",
+    "english": "disparage"
+  },
+  {
+    "turkish": "kınamak",
+    "english": "censure"
+  },
+  {
+    "turkish": "kınamak",
+    "english": "deprecate"
+  },
+  {
+    "turkish": "kısa ömürlü",
+    "english": "ephemeral"
+  },
+  {
+    "turkish": "Kısa ömürlü",
+    "english": "Evanescent"
+  },
+  {
+    "turkish": "Kısa/Sert",
+    "english": "Terse"
+  },
+  {
+    "turkish": "Kıskandırıcı",
+    "english": "Invidious"
+  },
+  {
+    "turkish": "Kısıtlamak",
+    "english": "Curtail"
+  },
+  {
+    "turkish": "kıtlık",
+    "english": "dearth"
+  },
+  {
+    "turkish": "Kıtlık",
+    "english": "Paucity"
+  },
+  {
+    "turkish": "Kışkırtmak",
+    "english": "Foment"
+  },
+  {
+    "turkish": "Lanet",
+    "english": "Anathema"
+  },
+  {
+    "turkish": "logaritmik olarak/yavaşça artarak",
+    "english": "logarithmically"
+  },
+  {
+    "turkish": "Lütuf",
+    "english": "Boon"
+  },
+  {
+    "turkish": "makul şekilde",
+    "english": "plausibly"
+  },
+  {
+    "turkish": "mantarbilim",
+    "english": "mycology"
+  },
+  {
+    "turkish": "Mantıklı",
+    "english": "Plausible"
+  },
+  {
+    "turkish": "melez kimlik",
+    "english": "hybrid identity"
+  },
+  {
+    "turkish": "memelibilim",
+    "english": "mammalogy"
+  },
+  {
+    "turkish": "Merhamet",
+    "english": "Clemency"
+  },
+  {
+    "turkish": "merkezi",
+    "english": "pivotal"
+  },
+  {
+    "turkish": "meshetmek",
+    "english": "anoint"
+  },
+  {
+    "turkish": "meta fetişizmi",
+    "english": "commodity fetishism"
+  },
+  {
+    "turkish": "metafor",
+    "english": "metaphor"
+  },
+  {
+    "turkish": "Metanetli",
+    "english": "Stoic"
+  },
+  {
+    "turkish": "meyvecilik",
+    "english": "pomology"
+  },
+  {
+    "turkish": "minnettar",
+    "english": "beholden"
+  },
+  {
+    "turkish": "Muhtaç",
+    "english": "Indigent"
+  },
+  {
+    "turkish": "muğlak",
+    "english": "equivocal"
+  },
+  {
+    "turkish": "mücevherbilim",
+    "english": "gemmology"
+  },
+  {
+    "turkish": "Müsrif",
+    "english": "Profligate"
+  },
+  {
+    "turkish": "Mızmız",
+    "english": "Querulous"
+  },
+  {
+    "turkish": "nadiren",
+    "english": "seldom"
+  },
+  {
+    "turkish": "Nefret",
+    "english": "Antipathy"
+  },
+  {
+    "turkish": "Nefret",
+    "english": "Odium"
+  },
+  {
+    "turkish": "nefret etmek",
+    "english": "detest"
+  },
+  {
+    "turkish": "Nefsine hakim",
+    "english": "Abstemious"
+  },
+  {
+    "turkish": "neredeyse",
+    "english": "virtually"
+  },
+  {
+    "turkish": "niyetlilik",
+    "english": "intentionality"
+  },
+  {
+    "turkish": "nutuk çekmek",
+    "english": "declaim"
+  },
+  {
+    "turkish": "nüfuz eden",
+    "english": "pervasive"
+  },
+  {
+    "turkish": "Obur",
+    "english": "Voracious"
+  },
+  {
+    "turkish": "oenoloji",
+    "english": "oenology"
+  },
+  {
+    "turkish": "olağanüstü",
+    "english": "prodigious"
+  },
+  {
+    "turkish": "ontogenetik",
+    "english": "ontogenetics"
+  },
+  {
+    "turkish": "orman yetiştiriciliği",
+    "english": "silviculture"
+  },
+  {
+    "turkish": "ortaya çıkmak",
+    "english": "emerge"
+  },
+  {
+    "turkish": "Parasız",
+    "english": "Impecunious"
+  },
+  {
+    "turkish": "Pasaklı",
+    "english": "Slovenly"
+  },
+  {
+    "turkish": "paylamak",
+    "english": "chide"
+  },
+  {
+    "turkish": "performatiflik",
+    "english": "performativity"
+  },
+  {
+    "turkish": "periyodiksiz/asimetrik şekilde",
+    "english": "aperiodically"
+  },
+  {
+    "turkish": "platform işçiliği",
+    "english": "platform work"
+  },
+  {
+    "turkish": "pnömatoloji",
+    "english": "pneumatology"
+  },
+  {
+    "turkish": "prekaryat",
+    "english": "precariat"
+  },
+  {
+    "turkish": "queer teori",
+    "english": "queer theory"
+  },
+  {
+    "turkish": "Rahatsızlık",
+    "english": "Malaise"
+  },
+  {
+    "turkish": "rayından çıkarmak",
+    "english": "derail"
+  },
+  {
+    "turkish": "razı olmak",
+    "english": "acquiesce"
+  },
+  {
+    "turkish": "Reddetmek",
+    "english": "Repudiate"
+  },
+  {
+    "turkish": "ritimsiz şekilde/düzensizce",
+    "english": "arrhythymically"
+  },
+  {
+    "turkish": "Sadakat",
+    "english": "Fidelity"
+  },
+  {
+    "turkish": "sade",
+    "english": "austere"
+  },
+  {
+    "turkish": "safsata",
+    "english": "fallacy"
+  },
+  {
+    "turkish": "Sahte",
+    "english": "Spurious"
+  },
+  {
+    "turkish": "Salınmak",
+    "english": "Oscillate"
+  },
+  {
+    "turkish": "Samimiyetsiz",
+    "english": "Disingenuous"
+  },
+  {
+    "turkish": "Sapkın",
+    "english": "Aberrant"
+  },
+  {
+    "turkish": "sarsılmadan/kararlılıkla",
+    "english": "unwaveringly"
+  },
+  {
+    "turkish": "sarsılmaz",
+    "english": "steadfast"
+  },
+  {
+    "turkish": "Savaşçı",
+    "english": "Bellicose"
+  },
+  {
+    "turkish": "savunulamaz",
+    "english": "untenable"
+  },
+  {
+    "turkish": "Saygı duymak",
+    "english": "Venerate"
+  },
+  {
+    "turkish": "Saygın",
+    "english": "Venerable"
+  },
+  {
+    "turkish": "saygısızca davranmak",
+    "english": "desecrate"
+  },
+  {
+    "turkish": "Saygısızlık",
+    "english": "Impiety"
+  },
+  {
+    "turkish": "sayısız",
+    "english": "myriad"
+  },
+  {
+    "turkish": "Sağlıklı",
+    "english": "Salubrious"
+  },
+  {
+    "turkish": "Sefil",
+    "english": "Abject"
+  },
+  {
+    "turkish": "Sempatik",
+    "english": "Winsome"
+  },
+  {
+    "turkish": "senkronize olmayan şekilde/farklı zamanlarda",
+    "english": "asynchronously"
+  },
+  {
+    "turkish": "serbestlik",
+    "english": "latitude"
+  },
+  {
+    "turkish": "Sert",
+    "english": "Vitriolic"
+  },
+  {
+    "turkish": "Sert (ses)",
+    "english": "Strident"
+  },
+  {
+    "turkish": "sert eleştirmek",
+    "english": "castigate"
+  },
+  {
+    "turkish": "Sertlik",
+    "english": "Acrimony"
+  },
+  {
+    "turkish": "Sessiz",
+    "english": "Quiescent"
+  },
+  {
+    "turkish": "Sessiz",
+    "english": "Reticent"
+  },
+  {
+    "turkish": "Silinmez",
+    "english": "Indelible"
+  },
+  {
+    "turkish": "Silmek",
+    "english": "Efface"
+  },
+  {
+    "turkish": "sindirmek",
+    "english": "browbeat"
+  },
+  {
+    "turkish": "sinekbilim",
+    "english": "dipterology"
+  },
+  {
+    "turkish": "sinerjik",
+    "english": "synergistic"
+  },
+  {
+    "turkish": "sinestezi",
+    "english": "synesthesia"
+  },
+  {
+    "turkish": "Sinirli",
+    "english": "Irascible"
+  },
+  {
+    "turkish": "sinsi",
+    "english": "insidious"
+  },
+  {
+    "turkish": "somutlaştırma",
+    "english": "reification"
+  },
+  {
+    "turkish": "Sosyal",
+    "english": "Gregarious"
+  },
+  {
+    "turkish": "sosyal inşacılık",
+    "english": "social constructivism"
+  },
+  {
+    "turkish": "soteryoloji",
+    "english": "soteriology"
+  },
+  {
+    "turkish": "Soğukkanlı",
+    "english": "Phlegmatic"
+  },
+  {
+    "turkish": "Soğukkanlılık",
+    "english": "Equanimity"
+  },
+  {
+    "turkish": "suçlamak",
+    "english": "indict"
+  },
+  {
+    "turkish": "Suçlu",
+    "english": "Culpable"
+  },
+  {
+    "turkish": "söylem",
+    "english": "discourse"
+  },
+  {
+    "turkish": "söylemsel oluşum",
+    "english": "discursive formation"
+  },
+  {
+    "turkish": "sözde",
+    "english": "ostensibly"
+  },
+  {
+    "turkish": "Sözünü geri almak",
+    "english": "Recant"
+  },
+  {
+    "turkish": "sürüngenbilim",
+    "english": "herpetology"
+  },
+  {
+    "turkish": "sınırlamak",
+    "english": "circumscribe"
+  },
+  {
+    "turkish": "sınırlandırmak",
+    "english": "delimit"
+  },
+  {
+    "turkish": "sınırlandırılmış",
+    "english": "circumscribed"
+  },
+  {
+    "turkish": "sınırlarını çizmek",
+    "english": "delineate"
+  },
+  {
+    "turkish": "Tahmin etmek",
+    "english": "Prognosticate"
+  },
+  {
+    "turkish": "Tahmin etmek",
+    "english": "Surmise"
+  },
+  {
+    "turkish": "Tahmin yürütmek",
+    "english": "Conjecture"
+  },
+  {
+    "turkish": "taksonomi",
+    "english": "taxonomy"
+  },
+  {
+    "turkish": "tanrılaştırmak",
+    "english": "deify"
+  },
+  {
+    "turkish": "tarihi",
+    "english": "momentous"
+  },
+  {
+    "turkish": "tartışmasız",
+    "english": "incontrovertible"
+  },
+  {
+    "turkish": "tartışılmaz şekilde/şüphesizce",
+    "english": "indisputably"
+  },
+  {
+    "turkish": "Taslak halinde sunmak",
+    "english": "Adumbrate"
+  },
+  {
+    "turkish": "Tatlı esinti",
+    "english": "Zephyr"
+  },
+  {
+    "turkish": "Tatsız",
+    "english": "Insipid"
+  },
+  {
+    "turkish": "taviz vermez",
+    "english": "uncompromising"
+  },
+  {
+    "turkish": "teknolojik determinizm",
+    "english": "technological determinism"
+  },
+  {
+    "turkish": "tekrarlayıcı",
+    "english": "reiterative"
+  },
+  {
+    "turkish": "Telaffuz etmek",
+    "english": "Enunciate"
+  },
+  {
+    "turkish": "Telafi etmek",
+    "english": "Redress"
+  },
+  {
+    "turkish": "telef etmek",
+    "english": "decimate"
+  },
+  {
+    "turkish": "temelde",
+    "english": "fundamentally"
+  },
+  {
+    "turkish": "temizlemek",
+    "english": "expurgate"
+  },
+  {
+    "turkish": "Terbiye",
+    "english": "Decorum"
+  },
+  {
+    "turkish": "tesadüfi keşif",
+    "english": "serendipitous"
+  },
+  {
+    "turkish": "teslim olmak",
+    "english": "capitulate"
+  },
+  {
+    "turkish": "tetikte",
+    "english": "vigilant"
+  },
+  {
+    "turkish": "teşvik etmek",
+    "english": "exhort"
+  },
+  {
+    "turkish": "Titiz",
+    "english": "Fastidious"
+  },
+  {
+    "turkish": "Titiz",
+    "english": "Meticulous"
+  },
+  {
+    "turkish": "titizlikle",
+    "english": "meticulously"
+  },
+  {
+    "turkish": "toplumsal cinsiyet performansı",
+    "english": "gender performativity"
+  },
+  {
+    "turkish": "Tufan öncesi (çok eski)",
+    "english": "Antediluvian"
+  },
+  {
+    "turkish": "tümdengelim",
+    "english": "deduction"
+  },
+  {
+    "turkish": "tümevarım",
+    "english": "induction"
+  },
+  {
+    "turkish": "Uydurma",
+    "english": "Apocryphal"
+  },
+  {
+    "turkish": "uydurmak",
+    "english": "confabulate"
+  },
+  {
+    "turkish": "Uydurmak",
+    "english": "Fabricate"
+  },
+  {
+    "turkish": "uysal",
+    "english": "pliant"
+  },
+  {
+    "turkish": "Uysal",
+    "english": "Tractable"
+  },
+  {
+    "turkish": "uyumlu",
+    "english": "amenable"
+  },
+  {
+    "turkish": "Uyumsuz",
+    "english": "Dissonant"
+  },
+  {
+    "turkish": "uyumsuz şekilde/çatışkılı biçimde",
+    "english": "discordantly"
+  },
+  {
+    "turkish": "uyumsuz şekilde/çelişkili biçimde",
+    "english": "incongruently"
+  },
+  {
+    "turkish": "Uyuyan",
+    "english": "Dormant"
+  },
+  {
+    "turkish": "Uyuşuk",
+    "english": "Torpid"
+  },
+  {
+    "turkish": "uzlaşmaz",
+    "english": "intransigent"
+  },
+  {
+    "turkish": "uzlaştırıcı",
+    "english": "conciliatory"
+  },
+  {
+    "turkish": "Vahşi",
+    "english": "Feral"
+  },
+  {
+    "turkish": "vakar",
+    "english": "solemnity"
+  },
+  {
+    "turkish": "varlık bilim",
+    "english": "ontology"
+  },
+  {
+    "turkish": "varsayım",
+    "english": "presumption"
+  },
+  {
+    "turkish": "veri koloniyalizmi",
+    "english": "data colonialism"
+  },
+  {
+    "turkish": "Verimli",
+    "english": "Fecund"
+  },
+  {
+    "turkish": "Verimli",
+    "english": "Prolific"
+  },
+  {
+    "turkish": "vurgulu şekilde",
+    "english": "emphatically"
+  },
+  {
+    "turkish": "yabancılaşma",
+    "english": "alienation"
+  },
+  {
+    "turkish": "yakınlık",
+    "english": "affinity"
+  },
+  {
+    "turkish": "yakınmak",
+    "english": "bemoan"
+  },
+  {
+    "turkish": "Yalan söylemek/Atlatmak",
+    "english": "Prevaricate"
+  },
+  {
+    "turkish": "Yalancı",
+    "english": "Mendacious"
+  },
+  {
+    "turkish": "yalancılık",
+    "english": "mendacity"
+  },
+  {
+    "turkish": "Yan yana getirmek",
+    "english": "Juxtapose"
+  },
+  {
+    "turkish": "Yan yana koyma",
+    "english": "Juxtaposition"
+  },
+  {
+    "turkish": "yanlış göstermek",
+    "english": "belie"
+  },
+  {
+    "turkish": "yanılmaz",
+    "english": "infallible"
+  },
+  {
+    "turkish": "yargılama",
+    "english": "adjudication"
+  },
+  {
+    "turkish": "yatıştırmak",
+    "english": "appease"
+  },
+  {
+    "turkish": "Yatıştırmak",
+    "english": "Palliate"
+  },
+  {
+    "turkish": "Yaygaracı",
+    "english": "Vociferous"
+  },
+  {
+    "turkish": "Yaymak",
+    "english": "Disseminate"
+  },
+  {
+    "turkish": "Yayılmak",
+    "english": "Pervade"
+  },
+  {
+    "turkish": "Yağcı",
+    "english": "Obsequious"
+  },
+  {
+    "turkish": "Yağcı",
+    "english": "Unctuous"
+  },
+  {
+    "turkish": "Yağcılık",
+    "english": "Adulation"
+  },
+  {
+    "turkish": "yağmalamak",
+    "english": "despoil"
+  },
+  {
+    "turkish": "Yeminle vazgeçmek",
+    "english": "Abjure"
+  },
+  {
+    "turkish": "Yeniden görüşmek",
+    "english": "Renegotiate"
+  },
+  {
+    "turkish": "yerini almak",
+    "english": "supersede"
+  },
+  {
+    "turkish": "yersizyurtsuzlaşma",
+    "english": "nomadism"
+  },
+  {
+    "turkish": "yok etmek",
+    "english": "annihilate"
+  },
+  {
+    "turkish": "yoksulluk",
+    "english": "penury"
+  },
+  {
+    "turkish": "yosunbilim",
+    "english": "lichenology"
+  },
+  {
+    "turkish": "yosunbilim",
+    "english": "bryology"
+  },
+  {
+    "turkish": "yozlaşmak",
+    "english": "degenerate"
+  },
+  {
+    "turkish": "yoğunlaştırmak",
+    "english": "intensify"
+  },
+  {
+    "turkish": "yumuşakçabilim",
+    "english": "malacology"
+  },
+  {
+    "turkish": "Yumuşatmak",
+    "english": "Mollify"
+  },
+  {
+    "turkish": "yürürlükten kaldırmak",
+    "english": "abrogate"
+  },
+  {
+    "turkish": "yüzeysel",
+    "english": "cursory"
+  },
+  {
+    "turkish": "yıkmak",
+    "english": "subvert"
+  },
+  {
+    "turkish": "yıkmak",
+    "english": "devastate"
+  },
+  {
+    "turkish": "yılanbilim",
+    "english": "ophiology"
+  },
+  {
+    "turkish": "Zahmetli",
+    "english": "Onerous"
+  },
+  {
+    "turkish": "zararlı",
+    "english": "deleterious"
+  },
+  {
+    "turkish": "zararlı",
+    "english": "detrimental"
+  },
+  {
+    "turkish": "Zararlı",
+    "english": "Pernicious"
+  },
+  {
+    "turkish": "Zararsız",
+    "english": "Innocuous"
+  },
+  {
+    "turkish": "Zayıf",
+    "english": "Tenuous"
+  },
+  {
+    "turkish": "zayıflatmak",
+    "english": "attenuate"
+  },
+  {
+    "turkish": "zenginlik",
+    "english": "affluence"
+  },
+  {
+    "turkish": "Zirve",
+    "english": "Zenith"
+  },
+  {
+    "turkish": "zorla",
+    "english": "coercively"
+  },
+  {
+    "turkish": "zorlamak",
+    "english": "coerce"
+  },
+  {
+    "turkish": "zorunlu olarak/zorunlulukla",
+    "english": "compulsorily"
+  },
+  {
+    "turkish": "Çağa aykırı",
+    "english": "Anachronistic"
+  },
+  {
+    "turkish": "Çağrıştırmak",
+    "english": "Connote"
+  },
+  {
+    "turkish": "Çekingen",
+    "english": "Diffident"
+  },
+  {
+    "turkish": "çekişmeli",
+    "english": "contentious"
+  },
+  {
+    "turkish": "çevresel",
+    "english": "peripheral"
+  },
+  {
+    "turkish": "Çileden çıkarmak",
+    "english": "Exasperate"
+  },
+  {
+    "turkish": "Çiğnemek",
+    "english": "Masticate"
+  },
+  {
+    "turkish": "Çok az",
+    "english": "Exiguous"
+  },
+  {
+    "turkish": "Çoğalmak",
+    "english": "Proliferate"
+  },
+  {
+    "turkish": "çürütülemez şekilde/kesin olarak",
+    "english": "irrefutably"
+  },
+  {
+    "turkish": "önceden belirleme",
+    "english": "preordination"
+  },
+  {
+    "turkish": "önceden tasarlanmış",
+    "english": "premeditated"
+  },
+  {
+    "turkish": "önemsiz",
+    "english": "trifling"
+  },
+  {
+    "turkish": "önerme",
+    "english": "postulate"
+  },
+  {
+    "turkish": "önsel",
+    "english": "apriori"
+  },
+  {
+    "turkish": "örümcekbilim",
+    "english": "arachnology"
+  },
+  {
+    "turkish": "övmek",
+    "english": "extol"
+  },
+  {
+    "turkish": "öyleyse",
+    "english": "ergo"
+  },
+  {
+    "turkish": "özdeşleşme",
+    "english": "identification"
+  },
+  {
+    "turkish": "özerk şekilde/kendi kendine",
+    "english": "autonomously"
+  },
+  {
+    "turkish": "özetlemek",
+    "english": "recapitulate"
+  },
+  {
+    "turkish": "Özetlemek/Temsil etmek",
+    "english": "Epitomize"
+  },
+  {
+    "turkish": "özgecilik",
+    "english": "altruism"
+  },
+  {
+    "turkish": "Özgün",
+    "english": "Idiosyncratic"
+  },
+  {
+    "turkish": "Öğretici",
+    "english": "Didactic"
+  },
+  {
+    "turkish": "ücretlendirmek",
+    "english": "remunerate"
+  },
+  {
+    "turkish": "Ürkek",
+    "english": "Timorous"
+  },
+  {
+    "turkish": "Ürün vermek/Boyun eğmek",
+    "english": "Yield"
+  },
+  {
+    "turkish": "Şakacı",
+    "english": "Facetious"
+  },
+  {
+    "turkish": "Şakacı",
+    "english": "Jocular"
+  },
+  {
+    "turkish": "şarapbilim",
+    "english": "enology"
+  },
+  {
+    "turkish": "Şatafatlı (söz)",
+    "english": "Bombastic"
+  },
+  {
+    "turkish": "şaşırtmak",
+    "english": "bewilder"
+  },
+  {
+    "turkish": "Şeffaf",
+    "english": "Diaphanous"
+  },
+  {
+    "turkish": "Şeffaf",
+    "english": "Pellucid"
+  },
+  {
+    "turkish": "şekillendirilebilir",
+    "english": "malleable"
+  },
+  {
+    "turkish": "şekilsiz",
+    "english": "amorphous"
+  },
+  {
+    "turkish": "Şen şakrak",
+    "english": "Convivial"
+  },
+  {
+    "turkish": "Şevkli",
+    "english": "Zealous"
+  },
+  {
+    "turkish": "Şiddetle eleştirmek",
+    "english": "Inveigh"
+  },
+  {
+    "turkish": "Şikayet etmek",
+    "english": "Remonstrate"
+  },
+  {
+    "turkish": "Şişman/İri",
+    "english": "Corpulent"
+  },
+  {
+    "turkish": "şüphecilik",
+    "english": "skepticism"
+  },
+  {
+    "turkish": "Harekete geçirmek, canlandırmak",
+    "english": "Galvanize"
+  },
+  {
+    "turkish": "Ayak bağı olmak, engellemek",
+    "english": "Impediment"
+  },
+  {
+    "turkish": "Şiddetle eleştirmek",
+    "english": "Lambaste"
+  },
+  {
+    "turkish": "Baltalamak, zayıflatmak",
+    "english": "Undermine"
+  },
+  {
+    "turkish": "Yapar gibi görünmek, numara yapmak",
+    "english": "Feign"
+  },
+  {
+    "turkish": "Engel olmak, aksatmak",
+    "english": "Hinder"
+  },
+  {
+    "turkish": "Tekrar etmek, yinelemek",
+    "english": "Reiterate"
+  },
+  {
+    "turkish": "Engel olmak, boşa çıkarmak",
+    "english": "Thwart"
+  },
+  {
+    "turkish": "Birleştirmek (iki farklı şeyi)",
+    "english": "Conflate"
+  },
+  {
+    "turkish": "Kışkırtmak, başlatmak",
+    "english": "Instigate"
+  },
+  {
+    "turkish": "Kararsız, çelişkili duyguları olan",
+    "english": "Ambivalent"
+  },
+  {
+    "turkish": "Hayalperest, gerçek dışı",
+    "english": "Quixotic"
+  },
+  {
+    "turkish": "Garip, antika, şakacı",
+    "english": "Whimsical"
+  },
+  {
+    "turkish": "Düzensiz, kararsız",
+    "english": "Erratic"
+  },
+  {
+    "turkish": "Kavgacı, saldırgan",
+    "english": "Belligerent"
+  },
+  {
+    "turkish": "Yorulmak bilmez",
+    "english": "Indefatigable"
+  },
+  {
+    "turkish": "Maddi, paraya dayalı",
+    "english": "Pecuniary"
+  },
+  {
+    "turkish": "Zımni, üstü kapalı",
+    "english": "Tacit"
+  },
+  {
+    "turkish": "Yardımsever, iyi niyetli",
+    "english": "Benevolent"
+  },
+  {
+    "turkish": "Tutumlu, idareli",
+    "english": "Frugal"
+  },
+  {
+    "turkish": "Olumsuz yönde",
+    "english": "Adversely"
+  },
+  {
+    "turkish": "Şiddetle, coşkuyla",
+    "english": "Vehemently"
+  },
+  {
+    "turkish": "Hatırlayamamak",
+    "english": "Draw a blank"
+  },
+  {
+    "turkish": "Paydos etmek",
+    "english": "Call it a day"
+  },
+  {
+    "turkish": "Göze çarpan",
+    "english": "Conspicuous"
+  },
+  {
+    "turkish": "Öz ve kısa bir şekilde",
+    "english": "Succinctly"
+  },
+  {
+    "turkish": "Doğrulamak, teyit etmek",
+    "english": "Bear out"
+  },
+  {
+    "turkish": "En başa dönmek",
+    "english": "Back to square one"
+  },
+  {
+    "turkish": "Sadede gelmek",
+    "english": "Cut to the chase"
+  },
+  {
+    "turkish": "Aykırılıklar, sapmalar",
+    "english": "Anomalies"
+  },
+  {
+    "turkish": "Katalizör, tetikleyici",
+    "english": "Catalyst"
+  },
+  {
+    "turkish": "Safdillik, kolay inanma",
+    "english": "Gullibility"
+  },
+  {
+    "turkish": "Teşvik, güdü",
+    "english": "Incentive"
+  },
+  {
+    "turkish": "Akrabalık, yakınlık",
+    "english": "Kinship"
+  },
+  {
+    "turkish": "Belirti, gösterge",
+    "english": "Manifestation"
+  },
+  {
+    "turkish": "İhmal, dışarıda bırakma",
+    "english": "Omission"
+  },
+  {
+    "turkish": "Egemenlik",
+    "english": "Sovereignty"
+  },
+  {
+    "turkish": "Uzlaşı, fikir birliği",
+    "english": "Consensus"
+  },
+  {
+    "turkish": "Hayırseverlik",
+    "english": "Benevolence"
+  },
+  {
+    "turkish": "Hiyerarşi, aşama sırası",
+    "english": "Hierarchy"
+  },
+  {
+    "turkish": "Mesleki dil, ağız",
+    "english": "Jargon"
+  },
+  {
+    "turkish": "Yükümlülük, engel",
+    "english": "Liability"
+  },
+  {
+    "turkish": "Nüans, ince fark",
+    "english": "Nuance"
+  },
+  {
+    "turkish": "Model, değerler dizisi",
+    "english": "Paradigm"
+  },
+  {
+    "turkish": "Direnç, geri esneme gücü",
+    "english": "Resilience"
+  },
+  {
+    "turkish": "Azim, kararlılık",
+    "english": "Tenacity"
+  },
+  {
+    "turkish": "İhlal, gedik",
+    "english": "Breach"
+  },
+  {
+    "turkish": "Caydırıcı unsur",
+    "english": "Deterrent"
+  }
 ]

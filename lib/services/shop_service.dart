@@ -8,12 +8,15 @@ import '../models/achievement.dart';
 // import 'sound_service.dart';
 import 'quest_service.dart';
 import '../models/quest.dart';
+import 'user_profile_service.dart';
+import 'economy_service.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:math' as math;
 
 class ShopService {
   static final ShopService instance = ShopService._();
   ShopService._();
 
-  static const String _coinsKey = 'user_coins';
   static const String _inventoryKey = 'powerup_inventory';
   static const String _subscriptionKey = 'premium_subscription';
   static const String _unlockedCosmeticsKey = 'unlocked_cosmetics';
@@ -22,77 +25,171 @@ class ShopService {
   static const String _isInitializedKey = 'shop_initialized';
   static const String _usedPromoCodesKey = 'used_promo_codes';
   static const String _streakShieldKey = 'streak_shield_expiry';
+  static const String _unlockedPacksKey = 'unlocked_word_packs';
+  static const String _lastDuelDateKey = 'last_duel_date';
+  static const String _duelsPlayedTodayKey = 'duels_played_today';
+  static const String _lastLuckChestKey = 'last_luck_chest_open';
+  static const int maxFreeDuels = 5;
 
-  /// Promosyon kodları ve süreleri (gün cinsinden)
-  static const Map<String, int> _promoCodes = {
-    'ATOTTURKCE': 30,      // 1 aylık ücretsiz premium
-    'WARDICT2024': 7,       // 1 haftalık premium
-    'WELCOME': 3,           // 3 günlük premium
-  };
+  /// Checks if the user can play a duel based on their subscription and daily limit.
+  /// Returns a map with 'canPlay' (bool) and 'message' (String).
+  Future<Map<String, dynamic>> canPlayDuel() async {
+    return {'canPlay': true, 'message': 'Sınırsız düello.'};
+  }
+
+  /// Records that a duel has been played for non-premium users.
+  Future<void> recordDuelPlay() async {
+    // Sınır kaldırıldığı için işlem yapmaya gerek yok
+  }
+
+  // Eski hardcoded promo kodları sunucuya taşındı (promoCodes koleksiyonu).
+  // Yeni kod eklemek için Firebase Console → Firestore → promoCodes/{CODE}:
+  //   { rewardCoins?: int, premiumDays?: int, maxUses?: int, expiresAt?: Timestamp }
 
   // Get user's coin balance
   Future<int> getCoins() async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    // İlk kez açılıyorsa 100 altın ver
-    final isInitialized = prefs.getBool(_isInitializedKey) ?? false;
-    if (!isInitialized) {
-      await prefs.setInt(_coinsKey, 100);
-      await prefs.setBool(_isInitializedKey, true);
-      await prefs.setString(_lastLoginBonusKey, DateTime.now().toIso8601String());
-      return 100;
-    }
-    
-    // 24 saatlik giriş bonusu kontrolü (birikme olmadan)
-    await _checkLoginBonus();
-    
-    return prefs.getInt(_coinsKey) ?? 100;
+    final profile = await UserProfileService.instance.loadProfile();
+    return profile.coins;
   }
   
-  // Her 24 saatte giriş yapılırsa 25 altın (birikme yok)
-  Future<void> _checkLoginBonus() async {
+  // NOT: Eski `_checkLoginBonus` kaldırıldı — bu akış artık sunucu tarafı
+  // `claimDailyBonus` içinde ele alınıyor (22h cooldown + streak).
+
+  /// Altın ekleme. Sunucu taraflı (Cloud Function `secureAddCoins`).
+  ///
+  /// [reason] sunucuda whitelist ile doğrulanır: game_reward / ad_reward /
+  /// luck_chest / streak_milestone / welcome_gift.
+  ///
+  /// Offline veya sunucu hatası durumunda istek `OfflineQueueService`'e düşer.
+  /// Yerelde optimistik artış yapılır, bağlantı gelince sunucu bakiyesiyle
+  /// hizalanır.
+  Future<void> addCoins(int amount, {String reason = 'game_reward'}) async {
+    if (amount <= 0) return;
+
+    // YENİ EKLENEN: Geçici olarak local bakiyeyi hemen güncelle ki UI tepki versin
+    final tempProfile = await UserProfileService.instance.loadProfile();
+    final tempProfileUpdated = tempProfile.copyWith(coins: tempProfile.coins + amount);
+    await UserProfileService.instance.saveProfile(tempProfileUpdated);
+
+    // Sunucuda doğrula + ledger yaz
+    final serverBalance =
+        await EconomyService.instance.addCoins(amount: amount, reason: reason);
+
+    final profile = await UserProfileService.instance.loadProfile();
+    // Sunucudan gelen bakiye geçerliyse onu kullan, yoksa yerelde kal
+    final int newCoins =
+        serverBalance >= 0 ? serverBalance : profile.coins;
+    final updatedProfile = profile.copyWith(coins: newCoins);
+    await UserProfileService.instance.saveProfile(updatedProfile);
+  }
+
+  /// Günlük Şans Sandığı açılabilir mi kontrolü
+  Future<bool> canOpenLuckChest() async {
     final prefs = await SharedPreferences.getInstance();
-    final lastBonusStr = prefs.getString(_lastLoginBonusKey);
-    
-    if (lastBonusStr == null) {
-      // İlk giriş - bonus ver ve tarihi kaydet
-      final current = prefs.getInt(_coinsKey) ?? 100;
-      await prefs.setInt(_coinsKey, current + 25);
-      await prefs.setString(_lastLoginBonusKey, DateTime.now().toIso8601String());
-      return;
-    }
-    
-    final lastBonus = DateTime.parse(lastBonusStr);
+    final lastOpenStr = prefs.getString(_lastLuckChestKey);
+    if (lastOpenStr == null) return true;
+
+    final lastOpen = DateTime.parse(lastOpenStr);
     final now = DateTime.now();
-    final difference = now.difference(lastBonus);
+    return now.difference(lastOpen).inHours >= 24;
+  }
+
+  /// Şans sandığını aç ve ödülü döndür
+  Future<Map<String, dynamic>> openLuckChest() async {
+    if (!await canOpenLuckChest()) {
+      return {'success': false, 'message': 'Sandık için beklemelisin.'};
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
+    await prefs.setString(_lastLuckChestKey, now.toIso8601String());
+
+    return _generateChestReward('luck_chest');
+  }
+
+  /// Maç sonu ganimet sandığını aç (sürpriz sandık)
+  Future<Map<String, dynamic>> openMatchChest() async {
+    return _generateChestReward('game_reward'); // Maç sonu sandığı game_reward olarak geçer
+  }
+  
+  /// Ortak sandık ödül üreticisi
+  Future<Map<String, dynamic>> _generateChestReward(String reason) async {
+    final random = math.Random();
+    int rewardType = random.nextInt(10); // 0-9 arası
     
-    // Son bonustan 24 saat geçtiyse bonus ver (sadece 1 kez, birikme yok)
-    if (difference.inHours >= 24) {
-      final current = prefs.getInt(_coinsKey) ?? 100;
-      await prefs.setInt(_coinsKey, current + 25);
-      await prefs.setString(_lastLoginBonusKey, now.toIso8601String());
+    if (rewardType < 8) {
+      // %80 olasılıkla Coin (25-100 arası)
+      int coins = 25 + random.nextInt(76);
+      await addCoins(coins, reason: reason);
+      return {
+        'success': true,
+        'type': 'coins',
+        'amount': coins,
+        'icon': '💰',
+      };
+    } else {
+      // %20 olasılıkla rastgele bir Power-up
+      final powerups = [PowerupType.fiftyFifty, PowerupType.doubleChance, PowerupType.freezeTime, PowerupType.revealAnswer];
+      final selected = powerups[random.nextInt(powerups.length)];
+      await addPowerupToInventory(selected, 1); 
+      
+      return {
+        'success': true,
+        'type': 'powerup',
+        'id': selected.id,
+        'amount': 1,
+        'icon': selected.emoji,
+      };
     }
   }
 
-  // Add coins
-  Future<void> addCoins(int amount) async {
-    final prefs = await SharedPreferences.getInstance();
-    final current = prefs.getInt(_coinsKey) ?? 100;
-    await prefs.setInt(_coinsKey, current + amount);
-    
-    // Başarım ilerlemesi
-    AchievementService.instance.updateProgress(AchievementCategory.economy, amount);
-    
-    // Coin kazanma sesi çal
-    // SoundService.instance.playCoinSound();
-  }
+  /// Altın harcama — sunucu tarafında atomik kontrol.
+  /// Bakiye yetersizse false döner ve yerel profil değişmez.
+  ///
+  /// Cloud Function (App Check, ağ, `internal`) başarısız olursa kuyruğa yazılmaz;
+  /// yerelde yeterli coin varsa mağaza işleminin aksamaması için yerel düşüm yapılır.
+  Future<bool> spendCoins(int amount, {String reason = 'purchase'}) async {
+    if (amount <= 0) return true;
+    final profile = await UserProfileService.instance.loadProfile();
+    if (profile.coins < amount) return false; // erken hata
 
-  // Spend coins
-  Future<bool> spendCoins(int amount) async {
-    final prefs = await SharedPreferences.getInstance();
-    final current = prefs.getInt(_coinsKey) ?? 100;
-    if (current >= amount) {
-      await prefs.setInt(_coinsKey, current - amount);
+    final serverBalance = await EconomyService.instance.spendCoins(
+      amount: amount,
+      reason: reason,
+      enqueueIfRetryableFailure: false,
+    );
+
+    if (serverBalance >= 0) {
+      final int expectedAfter = (profile.coins - amount).clamp(0, 2000000000);
+      int newCoins = serverBalance;
+      // Sunucu bazen bakiyeyi düşürmeden önceki değeri döndürebilir; yerel düşümle hizala.
+      if (newCoins > expectedAfter) {
+        newCoins = expectedAfter;
+        debugPrint(
+          '⚠️ spendCoins: sunucu bakiyesi ($serverBalance) beklenen ($expectedAfter) üstünde — yerel düşüm uygulanıyor.',
+        );
+      }
+      final updated = profile.copyWith(coins: newCoins);
+      await UserProfileService.instance.saveProfile(updated);
+      // Firestore’daki coins alanı güncel kalsın; aksi halde mağaza yenilenince
+      // fetchProfileFromFirestore eski bakiyeyle üzerine yazar.
+      await UserProfileService.instance.syncProfileToFirestore();
+      return true;
+    }
+
+    // Sunucu açıkça yetersiz bakiye dedi — yereli eşitlemeyiz
+    if (serverBalance == -2) {
+      return false;
+    }
+
+    // Sunucu yanıt veremedi; UI’da görünen bakiye genelde yerel — satın alımı tamamla
+    if (profile.coins >= amount) {
+      final updated = profile.copyWith(coins: profile.coins - amount);
+      await UserProfileService.instance.saveProfile(updated);
+      debugPrint(
+        '⚠️ spendCoins: sunucu yok, yerel düşüm ($amount coin). İleride CF ile hizalanır.',
+      );
+      await UserProfileService.instance.syncProfileToFirestore();
       return true;
     }
     return false;
@@ -112,6 +209,14 @@ class ShopService {
   Future<void> saveInventory(PowerupInventory inventory) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_inventoryKey, jsonEncode(inventory.toJson()));
+  }
+
+  /// Belirli bir powerup'ı envantere ekle (ödüller için)
+  Future<void> addPowerupToInventory(PowerupType type, int count) async {
+    final inventory = await getInventory();
+    final updatedInventory = inventory.add(type, count);
+    await saveInventory(updatedInventory);
+    debugPrint('📦 Envantere eklendi: ${type.name} x$count');
   }
 
   // Buy a powerup
@@ -155,7 +260,7 @@ class ShopService {
     await prefs.setString(_subscriptionKey, jsonEncode(subscription.toJson()));
   }
 
-  // Activate premium (for testing)
+  // Activate premium (for testing or purchase)
   Future<void> activatePremium(PremiumTier tier, int days) async {
     final subscription = PremiumSubscription(
       tier: tier,
@@ -163,45 +268,44 @@ class ShopService {
       autoRenew: true,
     );
     await saveSubscription(subscription);
+    
+    // Profili güncelle ve Firestore'a senkronize et
+    try {
+      final profile = await UserProfileService.instance.loadProfile();
+      final updatedProfile = profile.copyWith(isPremium: true);
+      await UserProfileService.instance.saveProfile(updatedProfile);
+      await UserProfileService.instance.syncProfileToFirestore();
+    } catch (e) {
+      debugPrint('⚠️ Premium profile sync error: $e');
+    }
   }
 
-  /// Promosyon kodu kullan
+  /// Promosyon kodu kullan — SUNUCU doğrulamalı.
+  /// Artık client'ta hardcoded kod listesi yok. Kodlar Firestore'da
+  /// `promoCodes/{code}` belgesinde tanımlıdır.
   /// Returns: {'success': bool, 'message': String, 'days': int?}
   Future<Map<String, dynamic>> redeemPromoCode(String code) async {
-    final prefs = await SharedPreferences.getInstance();
     final normalizedCode = code.trim().toUpperCase();
-    
-    // Kod geçerli mi kontrol et
-    if (!_promoCodes.containsKey(normalizedCode)) {
+    final result = await EconomyService.instance.redeemPromoCode(normalizedCode);
+
+    if (!result.success) {
       return {
         'success': false,
-        'message': 'Geçersiz promosyon kodu',
+        'message': result.errorMessage ?? 'Kod geçersiz veya zaten kullanılmış.',
         'days': null,
       };
     }
-    
-    // Daha önce kullanılmış mı kontrol et
-    final usedCodesJson = prefs.getStringList(_usedPromoCodesKey) ?? [];
-    if (usedCodesJson.contains(normalizedCode)) {
-      return {
-        'success': false,
-        'message': 'Bu kod daha önce kullanılmış',
-        'days': null,
-      };
-    }
-    
-    // Kodu kullan ve premium aktifle
-    final days = _promoCodes[normalizedCode]!;
-    await activatePremium(PremiumTier.premium, days);
-    
-    // Kullanılan kodları kaydet
-    usedCodesJson.add(normalizedCode);
-    await prefs.setStringList(_usedPromoCodesKey, usedCodesJson);
-    
+
+    // Bulutta entitlement güncellendi; yerel profili tazele
+    await UserProfileService.instance.fetchProfileFromFirestore();
+
     return {
       'success': true,
-      'message': 'Promosyon kodu başarıyla uygulandı! $days gün premium kazandınız.',
-      'days': days,
+      'message': result.premiumDays > 0
+          ? 'Promosyon kodu uygulandı! ${result.premiumDays} gün premium kazandın.'
+          : 'Promosyon kodu uygulandı! ${result.rewardCoins} altın kazandın.',
+      'days': result.premiumDays,
+      'coins': result.rewardCoins,
     };
   }
 
@@ -233,48 +337,45 @@ class ShopService {
       coins += 20; // Bonus for perfect game
     }
     
-    await addCoins(coins);
+    await addCoins(coins, reason: 'game_reward');
   }
 
   // Award daily login bonus with streak rewards
   Future<Map<String, dynamic>> claimDailyBonus() async {
     final prefs = await SharedPreferences.getInstance();
-    final lastClaim = prefs.getString('last_daily_claim');
-    final now = DateTime.now();
-    
-    if (lastClaim != null) {
-      final lastDate = DateTime.parse(lastClaim);
-      if (lastDate.year == now.year && 
-          lastDate.month == now.month && 
-          lastDate.day == now.day) {
-        return {'coins': 0, 'streak': prefs.getInt('daily_streak') ?? 0, 'rewards': <String>[]}; // Already claimed today
-      }
-    }
-    
-    // Get streak
-    int streak = prefs.getInt('daily_streak') ?? 0;
-    final yesterday = now.subtract(const Duration(days: 1));
-    
-    if (lastClaim != null) {
-      final lastDate = DateTime.parse(lastClaim);
-      if (lastDate.year == yesterday.year && 
-          lastDate.month == yesterday.month && 
-          lastDate.day == yesterday.day) {
-        streak++; // Continue streak
-      } else {
-        streak = 1; // Reset streak
-      }
+
+    // Sunucuda günlük bonus + streak hesabı
+    final result = await EconomyService.instance.claimDailyBonus();
+
+    final profile = await UserProfileService.instance.loadProfile();
+    int streak = profile.dailyStreak;
+    int bonusCoins = 0;
+    int newBalance = profile.coins;
+
+    if (result.success) {
+      streak = result.streak;
+      bonusCoins = result.bonusCoins;
+      newBalance = result.balance;
     } else {
-      streak = 1;
+      // Aynı gün veya hata: mevcut değerleri koru
+      return {
+        'coins': 0,
+        'streak': profile.dailyStreak,
+        'rewards': <String>[],
+      };
     }
+
+    final now = DateTime.now();
+    final updatedProfile = profile.copyWith(
+      coins: newBalance,
+      lastPlayed: now,
+      dailyStreak: streak,
+      lastDailyRewardClaimed: now,
+    );
+    await UserProfileService.instance.saveProfile(updatedProfile);
     
-    // Bonus coins based on streak: streak * 20, max 200 (at day 10)
-    // Day 1: 20, Day 2: 40, Day 3: 60, ... Day 10+: 200
-    final bonusCoins = (streak * 20).clamp(20, 200);
-    
-    await addCoins(bonusCoins);
+    // SharedPreferences yedeği (Gerekli değil ama kalsın)
     await prefs.setString('last_daily_claim', now.toIso8601String());
-    await prefs.setInt('daily_streak', streak);
     
     // Rozet ilerlemesini güncelle (Sadakat)
     await AchievementService.instance.updateProgress(AchievementCategory.skill, streak, setExact: true);
@@ -304,7 +405,7 @@ class ShopService {
     
     // 15 days: 100 gold
     if (streak >= 15 && !claimedMilestones.contains('streak_15')) {
-      await addCoins(100);
+      await addCoins(100, reason: 'streak_milestone');
       claimedMilestones.add('streak_15');
       rewards.add('🪙 100 altın kazandınız!');
     }
@@ -314,14 +415,15 @@ class ShopService {
     return {'coins': bonusCoins, 'streak': streak, 'rewards': rewards};
   }
 
+  /// Hoşgeldin hediyesi altın miktarı (UI ile aynı olmalı).
+  static const int welcomeGiftCoins = 200;
+
   // Check and give welcome gift for first time users
   Future<bool> checkAndGiveWelcomeGift() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasReceivedGift = prefs.getBool('welcome_gift_received') ?? false;
+    final profile = await UserProfileService.instance.loadProfile();
     
-    if (!hasReceivedGift) {
-      // Başlangıç hediyesi: 100 altın
-      await addCoins(100);
+    if (!profile.hasReceivedWelcomeGift) {
+      await addCoins(welcomeGiftCoins, reason: 'welcome_gift');
       
       // Give 2 of each powerup as welcome gift
       var inventory = await getInventory();
@@ -329,7 +431,16 @@ class ShopService {
         inventory = inventory.add(powerup, 2);
       }
       await saveInventory(inventory);
-      await prefs.setBool('welcome_gift_received', true);
+      
+      // Profili tekrar yükle (addCoins güncelledi)
+      final currentProfile = await UserProfileService.instance.loadProfile();
+      
+      // Profili güncelle ve Firestore'a senkronize et
+      final updatedProfile = currentProfile.copyWith(hasReceivedWelcomeGift: true);
+      await UserProfileService.instance.saveProfile(updatedProfile);
+      await UserProfileService.instance.syncProfileToFirestore();
+      
+      debugPrint('🎁 Welcome gift granted ($welcomeGiftCoins coins + powerups)');
       return true;
     }
     return false;
@@ -338,7 +449,24 @@ class ShopService {
   // Get unlocked cosmetic IDs
   Future<List<String>> getUnlockedCosmetics() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getStringList(_unlockedCosmeticsKey) ?? [];
+    List<String> unlocked = prefs.getStringList(_unlockedCosmeticsKey) ?? [];
+    
+    // Cloud sync check for persistence
+    final profile = await UserProfileService.instance.loadProfile();
+    if (profile.unlockedCosmetics.isNotEmpty) {
+      bool changed = false;
+      for (final id in profile.unlockedCosmetics) {
+        if (!unlocked.contains(id)) {
+          unlocked.add(id);
+          changed = true;
+        }
+      }
+      if (changed) {
+        await prefs.setStringList(_unlockedCosmeticsKey, unlocked);
+      }
+    }
+    
+    return unlocked;
   }
 
   // Buy a cosmetic item
@@ -357,6 +485,11 @@ class ShopService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_unlockedCosmeticsKey, unlocked);
       
+      // Sync to UserProfile
+      final profile = await UserProfileService.instance.loadProfile();
+      final updatedProfile = profile.copyWith(unlockedCosmetics: unlocked);
+      await UserProfileService.instance.saveProfile(updatedProfile);
+      
       // Başarım ilerlemesini güncelle (Koleksiyoncu)
       await AchievementService.instance.updateProgress(AchievementCategory.economy, 1);
       // Görev: Alışveriş Zamanı
@@ -370,12 +503,36 @@ class ShopService {
   // Get selected cosmetic for a type
   Future<String?> getSelectedCosmetic(CosmeticType type) async {
     final prefs = await SharedPreferences.getInstance();
+    
+    // Önce yerel tercihi kontrol et
     final data = prefs.getString(_selectedCosmeticsKey);
+    String? localId;
     if (data != null) {
       final Map<String, dynamic> map = jsonDecode(data);
-      return map[type.name];
+      localId = map[type.name];
     }
-    return null;
+    
+    // Eğer yerelde yoksa veya bulutla senkronize değilse Profile bak
+    final profile = await UserProfileService.instance.loadProfile();
+    final profileId = type == CosmeticType.avatar ? profile.avatarId : profile.frameId;
+
+    // Eğer yerel ve profil farklıysa (veya yerelde yoksa) senkronizasyon yapalım
+    if (localId != profileId && profileId != null) {
+      debugPrint('🔄 Syncing selected ${type.name} from profile: $profileId');
+      await setSelectedCosmetic(profileId, type);
+      return profileId;
+    }
+    
+    return localId;
+  }
+
+  // Get all selected cosmetics
+  Future<Map<CosmeticType, String?>> getSelectedCosmetics() async {
+    Map<CosmeticType, String?> selected = {};
+    for (final type in CosmeticType.values) {
+      selected[type] = await getSelectedCosmetic(type);
+    }
+    return selected;
   }
 
   // Set selected cosmetic
@@ -388,6 +545,9 @@ class ShopService {
     }
     map[type.name] = id;
     await prefs.setString(_selectedCosmeticsKey, jsonEncode(map));
+    
+    // Görev: Yeni Görünüm
+    QuestService.instance.updateProgress(QuestType.equipItem, 1);
   }
 
   // ============ STREAK SHIELD (Seri Koruma) ============
@@ -448,5 +608,34 @@ class ShopService {
     final expiry = await getStreakShieldExpiry();
     if (expiry == null) return 0;
     return expiry.difference(DateTime.now()).inDays + 1;
+  }
+
+  // ============ WORD PACKS (Kelime Paketleri) ============
+
+  /// Satın alınan paketleri getir
+  Future<List<String>> getUnlockedPacks() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_unlockedPacksKey) ?? [];
+  }
+
+  /// Paket satın al (49 TL - Simüle edilmiş veya Coin ile)
+  /// Kullanıcı 49 TL dediği için normalde PurchaseService kullanmalı.
+  /// Ama burada ShopService içinde de takibini yapıyoruz.
+  Future<void> unlockPack(String packId) async {
+    final unlocked = await getUnlockedPacks();
+    if (!unlocked.contains(packId)) {
+      unlocked.add(packId);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_unlockedPacksKey, unlocked);
+      
+      // Başarım ilerlemesini güncelle
+      await AchievementService.instance.updateProgress(AchievementCategory.economy, 1);
+    }
+  }
+
+  /// Pakete sahip mi?
+  Future<bool> holdsPack(String packId) async {
+    final unlocked = await getUnlockedPacks();
+    return unlocked.contains(packId);
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/daily_123.dart';
+import '../../models/user_level.dart';
 import '../../services/daily_123_service.dart';
 import '../../providers/daily_123_provider.dart';
 import '../../providers/game_provider.dart';
@@ -17,9 +18,8 @@ import '../../widgets/common/top_toast.dart';
 
 import '../../services/share_service.dart';
 import '../../services/shop_service.dart';
+import '../../services/user_profile_service.dart';
 import '../home/widgets/home_dialogs.dart';
-
-import '../../widgets/game/learning_summary_card.dart';
 
 class Daily123ResultsScreen extends StatefulWidget {
   final int finalScore;
@@ -45,25 +45,41 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
   Daily123Stats? _stats;
   Map<String, dynamic>? _rankingData;
   bool _isLoading = true;
+  String _displayUsername = 'Player';
   final GlobalKey _boundaryKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!AdService.instance.isPremium) {
+        AdService.instance.preloadRewardedAd();
+      }
+    });
   }
 
   Future<void> _loadData() async {
     try {
-      final stats = await Daily123Service.instance.getStats();
-      final ranking = await Daily123Service.instance.getRankingData(
-        score: widget.finalScore,
-        seconds: widget.timeSpent
-      );
+      final results = await Future.wait<Object>([
+        Daily123Service.instance.getStats(),
+        Daily123Service.instance.getRankingData(
+          score: widget.finalScore,
+          seconds: widget.timeSpent,
+        ),
+        UserProfileService.instance.loadProfile(),
+      ]);
+      final stats = results[0] as Daily123Stats;
+      final ranking = results[1] as Map<String, dynamic>;
+      final profile = results[2] as UserProfile;
+      final displayName =
+          profile.username.trim().isNotEmpty ? profile.username.trim() : 'Player';
       if (mounted) {
         setState(() {
           _stats = stats;
           _rankingData = ranking;
+          _displayUsername = displayName;
           if (widget.isWin) {
             SoundService.instance.playSuccess();
           }
@@ -124,70 +140,102 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
         ],
       ),
       body: GameBackground(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(top: 100, left: 24, right: 24, bottom: 24),
-          child: Column(
-            children: [
-                RepaintBoundary(
-                  key: _boundaryKey,
-                  child: Container(
-                    color: const Color(0xFF102A43), // Background for sharing
-                    child: Column(
-                      children: [
-                        IntrinsicHeight(
-                          child: Row(
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.only(
+              top: MediaQuery.paddingOf(context).top + kToolbarHeight,
+            ),
+            child: Column(
+              children: [
+                Expanded(
+                  child: ClipRect(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.sizeOf(context).width - 32,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Expanded(child: _buildMainResult(lang)),
-                              const SizedBox(width: 12),
-                              Expanded(child: _buildAdButton(lang)),
+                              RepaintBoundary(
+                                key: _boundaryKey,
+                                child: Container(
+                                  color: const Color(0xFF102A43),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IntrinsicHeight(
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                                          children: [
+                                            Expanded(child: _buildMainResult(lang)),
+                                            const SizedBox(width: 8),
+                                            Expanded(child: _buildAdButton(lang)),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      _buildScoreAndAnswerRow(lang),
+                                      const SizedBox(height: 8),
+                                      _buildStatsGrid(lang),
+                                      const SizedBox(height: 8),
+                                      _buildRankingSection(lang),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Center(
+                                child: AdBannerWidget(
+                                  isMediumRectangle: false,
+                                  height: 50,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        _buildScoreAndAnswerRow(lang),
-                        const SizedBox(height: 20),
-                        _buildStatsGrid(lang),
-                        const SizedBox(height: 20),
-                        LearningSummaryCard(answerHistory: [...widget.correctAnswers, ...widget.wrongAnswers].map((q) => AnsweredEntry(
-                          prompt: q.prompt,
-                          selectedIndex: q.isCorrect ? 1 : 0, // Mock index
-                          correctIndex: 1, // Mock index
-                          earnedPoints: 0,
-                          mode: QuestionMode.trToEn,
-                          correctText: q.correctAnswer,
-                          selectedText: q.userAnswer,
-                          turkishMeaning: q.turkishMeaning,
-                        )).toList()),
-                        const SizedBox(height: 20),
-                        _buildRankingSection(lang),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-                // Skor tabloarında kare şeklinde reklam (Medium Rectangle)
-                const Center(
-                  child: AdBannerWidget(isMediumRectangle: true),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2AA7FF),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: ElevatedButton(
+                      onPressed: () =>
+                          Navigator.of(context).popUntil((route) => route.isFirst),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2AA7FF),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        lang.getString('main_menu'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                    child: Text(lang.getString('main_menu'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                 ),
               ],
             ),
           ),
         ),
-      );
+      ),
+    );
   }
   
   Widget _buildScoreAndAnswerRow(LanguageProvider lang) {
@@ -195,9 +243,9 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: MediaQuery.of(context).size.width < 360 ? 2 : 4,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 1.0,
+      mainAxisSpacing: 6,
+      crossAxisSpacing: 6,
+      childAspectRatio: 1.35,
       children: [
         _resultBox(
           icon: Icons.timer,
@@ -253,26 +301,26 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
     Color? borderColor,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       decoration: BoxDecoration(
         color: backgroundColor,
         gradient: gradient,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor ?? Colors.white24, width: borderColor != null ? 2 : 1),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: iconColor, size: 24),
-          const SizedBox(height: 4),
+          Icon(icon, color: iconColor, size: 20),
+          const SizedBox(height: 2),
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
               value,
-              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 9)),
         ],
       ),
     );
@@ -313,12 +361,15 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
         );
 
         // Gerçek reklam göster
-        final rewardAmount = await AdService.instance.showRewardedAd();
+        final rewardAmount =
+            await AdService.instance.showRewardedAd(defaultReward: 1);
         
         if (!mounted) return;
         Navigator.of(context).pop(); // Yükleniyor diyaloğunu kapat
         
         if (rewardAmount > 0) {
+          // Reklam ile tekrar oynama hakkını aç
+          await Daily123Service.instance.grantAdReplay();
           await context.read<Daily123Provider>().resetWithAd();
           if (mounted) {
             Navigator.of(context).popUntil((route) => route.isFirst);
@@ -334,29 +385,29 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
         }
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: Colors.amber.withAlpha(102),
-              blurRadius: 15,
-              spreadRadius: 3,
+              blurRadius: 12,
+              spreadRadius: 2,
             ),
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.play_circle_filled, color: Colors.white, size: 36),
-            const SizedBox(height: 6),
-            Text(lang.getString('watch_ad'), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-            Text('& ${lang.getString('replay')}', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+            const Icon(Icons.play_circle_filled, color: Colors.white, size: 28),
+            const SizedBox(height: 4),
+            Text(lang.getString('watch_ad'), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+            Text('& ${lang.getString('replay')}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -384,40 +435,45 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
 
   Widget _buildMainResult(LanguageProvider lang) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: widget.isWin 
             ? [const Color(0xFF00F5A0), const Color(0xFF00D9F5)]
             : [const Color(0xFFFF4B2B), const Color(0xFFFF416C)],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: (widget.isWin ? Colors.green : Colors.red).withAlpha(77),
-            blurRadius: 15,
-            spreadRadius: 3,
+            blurRadius: 12,
+            spreadRadius: 2,
           ),
         ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             widget.isWin ? Icons.emoji_events : Icons.timer_off,
-            size: 36,
+            size: 28,
             color: Colors.white,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             widget.isWin ? lang.getString('congrats') : lang.getString('time_up'),
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
           ),
-          if (!widget.isWin)
+          if (!widget.isWin) ...[
+            const SizedBox(height: 2),
             Text(
               lang.getString('see_you_tomorrow'),
-              style: const TextStyle(color: Colors.white70, fontSize: 12, fontStyle: FontStyle.italic),
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 10, fontStyle: FontStyle.italic),
             ),
+          ],
         ],
       ),
     );
@@ -426,16 +482,17 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
   Widget _buildStatsGrid(LanguageProvider lang) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(lang.getString('career_stats'), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 16),
+        Text(lang.getString('career_stats'), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.5,
+          mainAxisSpacing: 6,
+          crossAxisSpacing: 6,
+          childAspectRatio: 2.1,
           children: [
             _statItem(lang.getString('game_count'), '${_stats?.totalGames ?? 0}'),
             _statItem(lang.getString('win_rate'), '%${_stats?.winPercentage.toStringAsFixed(1) ?? '0'}'),
@@ -449,18 +506,19 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
 
   Widget _statItem(String label, String value) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(13),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withAlpha(26)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: TextStyle(color: Colors.white.withAlpha(153), fontSize: 12)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(label, style: TextStyle(color: Colors.white.withAlpha(153), fontSize: 10)),
+          const SizedBox(height: 2),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -481,7 +539,7 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
           myScore: widget.finalScore,
           myTime: widget.timeSpent,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         _rankingRow(
           lang,
           title: lang.getString('global_ranking'),
@@ -509,47 +567,54 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
     final isDaily = prevPlayer != null || nextPlayer != null;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(13),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: accentColor.withAlpha(51)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              Flexible(
+                child: Text(
+                  title,
+                  style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, letterSpacing: 0.8, fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               if (isDaily)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: accentColor.withAlpha(51),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     '${lang.getString('total_players')}: $total',
-                    style: TextStyle(color: accentColor, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: accentColor, fontSize: 9, fontWeight: FontWeight.bold),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           
           if (isDaily) ...[
             // Nearby Players List
             if (prevPlayer != null) _buildNeighborItem(prevPlayer, (rank as int) - 1, false, accentColor),
             _buildNeighborItem({
-              'username': 'SİZ',
+              'username': _displayUsername,
               'score': myScore,
               'seconds': myTime,
             }, (rank as int), true, accentColor),
             if (nextPlayer != null) _buildNeighborItem(nextPlayer, (rank) + 1, false, accentColor),
             
-            const SizedBox(height: 16),
-            const Divider(color: Colors.white10),
             const SizedBox(height: 8),
+            const Divider(color: Colors.white10, height: 1),
+            const SizedBox(height: 6),
             Center(
               child: _rankInfo(lang.getString('avg_points'), '$avg'),
             ),
@@ -570,49 +635,49 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
 
   Widget _buildNeighborItem(Map<String, dynamic> data, int rank, bool isMe, Color accentColor) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: isMe ? accentColor.withAlpha(40) : Colors.white.withAlpha(8),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: isMe ? accentColor : Colors.white12, width: isMe ? 1.5 : 1),
       ),
       child: Row(
         children: [
           SizedBox(
-            width: 30,
+            width: 26,
             child: Text(
               '#$rank',
               style: TextStyle(
                 color: isMe ? accentColor : Colors.white54,
                 fontWeight: FontWeight.bold,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Expanded(
             child: Text(
               data['username'] ?? 'Player',
               style: TextStyle(
                 color: isMe ? Colors.white : Colors.white70,
                 fontWeight: isMe ? FontWeight.bold : FontWeight.normal,
-                fontSize: 14,
+                fontSize: 12,
               ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 '${data['score']} P',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
               ),
               Text(
                 '${data['seconds']} sn',
-                style: TextStyle(color: isMe ? accentColor : Colors.cyanAccent, fontSize: 10, fontWeight: FontWeight.w600),
+                style: TextStyle(color: isMe ? accentColor : Colors.cyanAccent, fontSize: 9, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -623,10 +688,11 @@ class _Daily123ResultsScreenState extends State<Daily123ResultsScreen> {
 
   Widget _rankInfo(String label, String value) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label, style: TextStyle(color: Colors.white.withAlpha(128), fontSize: 11)),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(color: Colors.white.withAlpha(128), fontSize: 9)),
+        const SizedBox(height: 2),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
       ],
     );
   }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/question.dart';
 import '../models/question_mode.dart';
 
 abstract class BaseGameProvider extends ChangeNotifier {
@@ -14,6 +13,7 @@ abstract class BaseGameProvider extends ChangeNotifier {
   // UI Helpers (Model Agnostic)
   String get currentPrompt;
   List<String> get currentOptions;
+  List<String> get currentOptionMeanings => [];
   int get currentCorrectIndex;
   QuestionMode get currentMode;
   

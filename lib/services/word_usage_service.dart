@@ -94,8 +94,11 @@ class WordUsageService {
         ? 1 
         : _usageMap.values.reduce((a, b) => a > b ? a : b) + 1;
 
+    // Tematik gruplanmayı engellemek için listeyi en başta karıştır
+    final itemsToProcess = List<T>.from(items)..shuffle();
+
     final weightedItems = <MapEntry<T, double>>[];
-    for (final item in items) {
+    for (final item in itemsToProcess) {
       final usage = getUsageCount(getWord(item));
       // Ağırlık: maxUsage - usage + 1 (böylece hiç kullanılmamış en yüksek ağırlığa sahip)
       final weight = (maxUsage - usage + 1).toDouble();

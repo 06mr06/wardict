@@ -103,9 +103,9 @@ class CoinPackage {
   int get totalCoins => coins + (bonusCoins ?? 0);
 
   static const List<CoinPackage> packages = [
-    CoinPackage(id: 'coins_100', coins: 100, priceUSD: 0.99),
-    CoinPackage(id: 'coins_500', coins: 500, priceUSD: 3.99, bonusCoins: 50),
-    CoinPackage(id: 'coins_1200', coins: 1200, priceUSD: 7.99, bonusCoins: 300, isBestValue: true),
-    CoinPackage(id: 'coins_3000', coins: 3000, priceUSD: 17.99, bonusCoins: 2000),
+    CoinPackage(id: 'coins_500', coins: 500, priceUSD: 0.99),
+    CoinPackage(id: 'coins_1250', coins: 1250, priceUSD: 1.99, bonusCoins: 250),
+    CoinPackage(id: 'coins_2500', coins: 2500, priceUSD: 2.99, bonusCoins: 500, isBestValue: true),
+    CoinPackage(id: 'coins_3750', coins: 3750, priceUSD: 3.99, bonusCoins: 750),
   ];
 }

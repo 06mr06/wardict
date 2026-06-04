@@ -19,12 +19,13 @@ class GameProgressBar extends StatelessWidget {
             height: 8,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(4),
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.white.withAlpha(51),
             ),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
-              widthFactor: ((currentIndex + 1).clamp(0, totalQuestions)) /
-                  totalQuestions,
+              widthFactor: totalQuestions > 0 
+                  ? ((currentIndex + 1).clamp(0, totalQuestions)) / totalQuestions 
+                  : 0.0,
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(4),
@@ -40,9 +41,9 @@ class GameProgressBar extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
+            color: Colors.white.withAlpha(38),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+            border: Border.all(color: Colors.white.withAlpha(77)),
           ),
           child: Text(
             '${(currentIndex + 1).clamp(0, totalQuestions)}/$totalQuestions',

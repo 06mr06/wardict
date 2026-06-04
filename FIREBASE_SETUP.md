@@ -124,6 +124,20 @@ service cloud.firestore {
       allow update: if request.auth != null && resource.data.userId == request.auth.uid;
       // Silme yasak
       allow delete: if false;
+    // Bildirimler - Kullanıcı sadece kendine gelenleri okuyabilir, herkes (giriş yapmış) gönderebilir
+    match /notifications/{docId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.toUserId;
+      allow create: if request.auth != null;
+    }
+
+    // Düello Maçları - Giriş yapmış herkes maç oluşturabilir ve dahil olduğu maçı okuyabilir/güncelleyebilir
+    match /matches/{matchId} {
+      allow create: if request.auth != null;
+      allow read, update: if request.auth != null && (
+        request.auth.uid == resource.data.hostUserId || 
+        request.auth.uid == resource.data.guestUserId ||
+        resource.data.status == "waiting"
+      );
     }
   }
 }
@@ -136,7 +150,37 @@ service cloud.firestore {
 3. **Publish** butonuna tıklayın
 4. Kuralların yayınlanması 1-2 dakika sürebilir
 
-## 🧪 Adım 6: Test Etme
+## 📊 Adım 7: Realtime Database (Düellolar İçin)
+
+Düello eşleşmelerinin hızlı olması için Realtime Database (RTDB) kullanılır.
+
+1.  **Firebase Console** -> **Realtime Database**
+2.  **"Veritabanı oluştur"** tıklayın
+3.  Konum: `europe-west1` (Firestore ile aynı olsun)
+4.  **"Test modunda başlat"** seçin
+5.  Oluşturulan URL'yi kopyalayın (`https://...firebaseio.com/` gibi)
+6.  Gerekli Güvenlik Kurallarını (Rules) Firebase Console -> Realtime Database -> Rules sekmesinden ekleyin:
+
+```json
+{
+  "rules": {
+    "online_duels": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "presence": {
+      ".read": "auth != null",
+      "$user_id": {
+        ".write": "$user_id === auth.uid"
+      }
+    }
+  }
+}
+```
+
+7.  Bu URL'yi `.env` dosyanıza `FIREBASE_DATABASE_URL` olarak ekleyin.
+
+## 🧪 Adım 8: Test Etme
 
 ```bash
 flutter run -d chrome

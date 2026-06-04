@@ -1,5 +1,4 @@
-﻿import 'dart:io' show File;
-import 'dart:typed_data';
+import 'dart:io' show File;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -7,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart' as pp;
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'referral_service.dart';
 
@@ -39,10 +39,13 @@ class ShareService {
       await file.writeAsBytes(bytes, flush: true);
 
       final referral = await ReferralService.instance.getMyReferralCode();
-      final msg = customMessage ??
-          '$headline\n\n'
-              'LUGORENA ile Ä°ngilizce kelimeleri oynayarak Ã¶ÄŸren!\n'
-              'Davet kodum: $referral â†’ ilk giriÅŸinde 250 altÄ±n hediye ðŸŽ';
+      final prefs = await SharedPreferences.getInstance();
+      final lang = prefs.getString('app_language') ?? 'tr';
+      final baseText = ReferralService.buildShareText(
+        code: referral,
+        turkish: lang == 'tr',
+      );
+      final msg = customMessage ?? '$headline\n\n$baseText';
 
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
@@ -75,9 +78,14 @@ class ShareService {
     String? customMessage,
   ) async {
     final referral = await ReferralService.instance.getMyReferralCode();
+    final prefs = await SharedPreferences.getInstance();
+    final lang = prefs.getString('app_language') ?? 'tr';
+    final baseText = ReferralService.buildShareText(
+      code: referral,
+      turkish: lang == 'tr',
+    );
     final msg = customMessage ??
-        '$headline â€” LUGORENA\'da Ä°ngilizce Ã¶ÄŸreniyorum. '
-            'Davet kodum: $referral â†’ 250 altÄ±n hediye!';
+        '$headline — LUGORENA\n$baseText';
     await Share.share(msg, subject: 'LUGORENA');
   }
 }

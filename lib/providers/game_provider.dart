@@ -10,6 +10,9 @@ import '../models/question_mode.dart';
 import '../models/answered_entry.dart';
 import '../models/powerup.dart';
 import '../services/word_pool_service.dart';
+import '../services/word_category_service.dart';
+import '../services/user_profile_service.dart';
+import '../utils/quest_points_helper.dart';
 import 'base_game_provider.dart';
 
 class GameProvider extends BaseGameProvider {
@@ -136,40 +139,29 @@ class GameProvider extends BaseGameProvider {
     final q = currentQuestionModel;
     final correctIndex = currentCorrectIndex;
     final options = currentOptions;
-    
-    double multiplier = 1.0;
-    if (remainingSeconds >= 8) {
-      multiplier = 1.5;
-    } else if (remainingSeconds >= 5) {
-      multiplier = 1.2;
-    } else if (remainingSeconds >= 3) {
-      multiplier = 1.0;
-    } else {
-      multiplier = 0.7;
-    }
 
-    double streakBonusMultiplier = 1.0;
     final isCorrect = selected == correctIndex && selected != -1;
-    
+
     if (isCorrect) {
       streak++;
       correctCount++;
       if (streak > maxStreak) maxStreak = streak;
-      streakBonusMultiplier += (streak - 1) * 0.1; 
-      if (streakBonusMultiplier > 1.3) streakBonusMultiplier = 1.3;
-      
-      // Başarım: En yüksek seri
+
+      lastScore = duelStyleRoundPoints(
+        remainingSeconds: remainingSeconds,
+        streakAfterCorrect: streak,
+        usedPowerups: usedPowerups,
+      );
+
       AchievementService.instance.updateProgress(AchievementCategory.skill, streak, setExact: true);
     } else {
       streak = 0;
-    }
-    
-    if (isCorrect) {
-      lastScore = (q.baseScore * multiplier * streakBonusMultiplier).round();
-      lastScore += streak * 2;
-    } else {
       lastScore = 0;
     }
+
+    // Kategori bazlı istatistikleri güncelle
+    final category = WordCategoryService.instance.getCategory(q.options[q.answerIndex]);
+    UserProfileService.instance.updateCategoryStats(category, isCorrect);
     
     score += lastScore; // Update Base score
     
@@ -203,6 +195,7 @@ class GameProvider extends BaseGameProvider {
       mode: q.mode,
       correctText: options[correctIndex],
       selectedText: selected == -1 ? null : options[selected],
+      turkishMeaning: q.turkishMeaning,
       usedPowerups: usedPowerups,
     ));
     
@@ -244,12 +237,64 @@ class GameProvider extends BaseGameProvider {
   void addToPool(AnsweredEntry entry) {
     final exists = savedPool.any((e) => e.prompt == entry.prompt && e.correctText == entry.correctText && e.mode == entry.mode);
     if (!exists) {
+      entry.lastReviewedAt = DateTime.now();
+      entry.srsLevel = 1;
       savedPool.add(entry);
       _saveSavedPool();
       // Görev: Kelime Dağarcığı
       QuestService.instance.updateProgress(QuestType.addWord, 1);
       notifyListeners();
     }
+  }
+
+  // --- SRS (Spaced Repetition) Logic ---
+
+  /// Kelimenin SRS seviyesini güncelle (Doğru/Yanlış durumuna göre)
+  void updateSrsLevel(AnsweredEntry entry, bool isCorrect) {
+    final poolIndex = savedPool.indexWhere((e) => 
+      e.prompt == entry.prompt && e.correctText == entry.correctText && e.mode == entry.mode
+    );
+    if (poolIndex == -1) return;
+
+    final poolEntry = savedPool[poolIndex];
+    if (isCorrect) {
+      if (poolEntry.srsLevel < 5) {
+        poolEntry.srsLevel++;
+      }
+    } else {
+      // Yanlış cevapta seviyeyi 1'e çek (ceza)
+      poolEntry.srsLevel = 1;
+    }
+    poolEntry.lastReviewedAt = DateTime.now();
+    _saveSavedPool();
+    notifyListeners();
+  }
+
+  /// Tekrar edilmesi gereken kelime sayısını getir
+  int get readyForReviewCount => readyForReview.length;
+
+  /// Tekrar edilmeye hazır (vakti gelmiş) kelimeleri getir
+  List<AnsweredEntry> get readyForReview {
+    final now = DateTime.now();
+    return savedPool.where((e) {
+      if (e.lastReviewedAt == null) return true;
+      
+      final diff = now.difference(e.lastReviewedAt!);
+      // Leitner Kutuları Mantığı:
+      // Seviye 1: Her gün (diff >= 0)
+      // Seviye 2: 1 gün sonra
+      // Seviye 3: 3 gün sonra
+      // Seviye 4: 7 gün sonra
+      // Seviye 5: Mastered (Artık sormaya gerek yok veya 30 gün sonra)
+      switch (e.srsLevel) {
+        case 1: return diff.inHours >= 12; // 12 saatte bir
+        case 2: return diff.inDays >= 1;   // 1 gün sonra
+        case 3: return diff.inDays >= 3;   // 3 gün sonra
+        case 4: return diff.inDays >= 7;   // 7 gün sonra
+        case 5: return diff.inDays >= 21;  // 21 gün sonra (Mastered)
+        default: return true;
+      }
+    }).toList();
   }
 
   bool isSaved(AnsweredEntry entry) {
@@ -304,6 +349,7 @@ class GameProvider extends BaseGameProvider {
         options: gq.options,
         answerIndex: gq.correctIndex,
         mode: mode,
+        turkishMeaning: gq.turkishMeaning,
       );
     }).toList();
 

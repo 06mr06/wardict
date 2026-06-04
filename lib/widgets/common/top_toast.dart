@@ -1,50 +1,125 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
-void showTopToast(BuildContext context, String message, {bool isError = false}) {
-  final overlay = Overlay.of(context);
-  final overlayEntry = OverlayEntry(
-    builder: (context) => Positioned(
-      top: MediaQuery.of(context).padding.top + 10,
-      left: 16,
-      right: 16,
-      child: Material(
-        color: Colors.transparent,
-        child: _TopToastWidget(message: message, isError: isError),
-      ),
-    ),
-  );
-
-  overlay.insert(overlayEntry);
-  Future.delayed(const Duration(seconds: 2), () {
-    overlayEntry.remove();
-  });
-}
-
-class _TopToastWidget extends StatefulWidget {
+class TopToast extends StatelessWidget {
+  final String title;
   final String message;
-  final bool isError;
+  final IconData icon;
+  final Color color;
 
-  const _TopToastWidget({required this.message, required this.isError});
+  const TopToast({
+    super.key,
+    required this.title,
+    required this.message,
+    this.icon = Icons.check_circle_rounded,
+    this.color = const Color(0xFF6C27FF),
+  });
+
+  static OverlayEntry? _activeEntry;
+
+  static void show(
+    BuildContext context, {
+    required String title,
+    required String message,
+    IconData icon = Icons.check_circle_rounded,
+    Color color = const Color(0xFF6C27FF),
+  }) {
+    if (!context.mounted) return;
+
+    _activeEntry?.remove();
+    _activeEntry = null;
+
+    final overlay = Overlay.maybeOf(context) ??
+        Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) return;
+
+    late final OverlayEntry entry;
+
+    void dismissEntry() {
+      try {
+        entry.remove();
+      } catch (_) {}
+      if (identical(_activeEntry, entry)) _activeEntry = null;
+    }
+
+    entry = OverlayEntry(
+      builder: (context) => _WardictPopupWidget(
+        title: title,
+        message: message,
+        icon: icon,
+        color: color,
+        onDismiss: dismissEntry,
+      ),
+    );
+
+    _activeEntry = entry;
+    overlay.insert(entry);
+  }
 
   @override
-  State<_TopToastWidget> createState() => _TopToastWidgetState();
+  Widget build(BuildContext context) {
+    return const SizedBox.shrink();
+  }
 }
 
-class _TopToastWidgetState extends State<_TopToastWidget> with SingleTickerProviderStateMixin {
+class _WardictPopupWidget extends StatefulWidget {
+  final String title;
+  final String message;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onDismiss;
+
+  const _WardictPopupWidget({
+    required this.title,
+    required this.message,
+    required this.icon,
+    required this.color,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_WardictPopupWidget> createState() => _WardictPopupWidgetState();
+}
+
+class _WardictPopupWidgetState extends State<_WardictPopupWidget> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _blurAnimation;
+  late Animation<double> _opacityAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 300));
-    _fadeAnim = Tween<double>(begin: 0, end: 1).animate(_controller);
-    _slideAnim = Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.7, end: 1.0).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.elasticOut,
+    ));
+
+    _blurAnimation = Tween<double>(begin: 0.0, end: 5.0).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+
+    _opacityAnimation = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+    ));
+
     _controller.forward();
+
+    Future.delayed(const Duration(seconds: 2, milliseconds: 500), () async {
+      try {
+        if (mounted) await _controller.reverse();
+      } catch (_) {
+        // Controller zaten dispose edilmiş olabilir
+      }
+      widget.onDismiss();
+    });
   }
 
   @override
@@ -55,45 +130,100 @@ class _TopToastWidgetState extends State<_TopToastWidget> with SingleTickerProvi
 
   @override
   Widget build(BuildContext context) {
-    return SlideTransition(
-      position: _slideAnim,
-      child: FadeTransition(
-        opacity: _fadeAnim,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: widget.isError ? Colors.red.shade600 : Colors.green.shade600,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                widget.isError ? Icons.error_outline : Icons.check_circle_outline,
-                color: Colors.white,
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Stack(
+          children: [
+            // Backdrop Blur
+            if (_blurAnimation.value > 0.1)
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: _blurAnimation.value, sigmaY: _blurAnimation.value),
+                child: Container(color: Colors.black.withAlpha((_opacityAnimation.value * 128).toInt())),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  widget.message,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+            
+            // Pop-up Card
+            Center(
+              child: Opacity(
+                opacity: _opacityAnimation.value,
+                child: Transform.scale(
+                  scale: _scaleAnimation.value,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      width: 280,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            widget.color.withAlpha(50),
+                            Colors.black.withAlpha(230),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(32),
+                        border: Border.all(color: widget.color.withAlpha(180), width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.color.withAlpha(100),
+                            blurRadius: 40,
+                            spreadRadius: -5,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Glowing Icon
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: widget.color.withAlpha(40),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: widget.color.withAlpha(60),
+                                  blurRadius: 20,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: Icon(widget.icon, color: widget.color, size: 48),
+                          ),
+                          const SizedBox(height: 24),
+                          // Title
+                          Text(
+                            widget.title,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 22,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // Message
+                          Text(
+                            widget.message,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withAlpha(200),
+                              fontSize: 16,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -1,5 +1,13 @@
-plugins {
-    id("com.google.gms.google-services") version "4.4.4" apply false
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // Mevcut classpath satırları burada kalsın, örneğin:
+        // classpath("com.android.tools.build:gradle:...")
+        // classpath("com.google.gms:google-services:4.4.4")
+    }
 }
 
 allprojects {
@@ -7,6 +15,10 @@ allprojects {
         google()
         mavenCentral()
     }
+}
+plugins {
+    id("com.google.gms.google-services") version "4.4.4" apply false
+    id("com.google.firebase.crashlytics") version "3.0.2" apply false
 }
 
 val newBuildDir: Directory =

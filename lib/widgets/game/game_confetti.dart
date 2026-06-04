@@ -34,7 +34,9 @@ class _GameConfettiState extends State<GameConfetti> {
           Colors.orange,
           Colors.purple
         ], 
-        createParticlePath: drawStar, // define a custom shape/path.
+        // Simple shape for better performance on Web/Chrome
+        // Default (null) provides square/circle particles which are much faster than complex paths
+        createParticlePath: null, 
       ),
     );
   }

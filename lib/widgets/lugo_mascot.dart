@@ -5,11 +5,11 @@ class LugoMascot extends StatelessWidget {
   final double size;
   final bool flipped;
   const LugoMascot({
-    Key? key,
+    super.key,
     required this.message,
     this.size = 180,
     this.flipped = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +26,9 @@ class LugoMascot extends StatelessWidget {
               width: size,
               height: size,
               fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(Icons.smart_toy, size: size, color: Colors.amber);
+              },
             ),
           ],
         ),
@@ -44,7 +47,7 @@ class LugoMascot extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withAlpha(20),
             blurRadius: 8,
             offset: const Offset(2, 4),
           ),

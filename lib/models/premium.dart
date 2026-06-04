@@ -1,13 +1,20 @@
 /// Premium üyelik durumu
 enum PremiumTier {
-  free('Ücretsiz', 0),
-  premium('Premium', 4.99);
+  free('Ücretsiz', 0, 0),
+  premium('Premium', 99.0, 799.0);
 
   final String name;
-  final double monthlyPriceUSD;
+  final double monthlyPrice;
+  final double yearlyPrice;
 
-  const PremiumTier(this.name, this.monthlyPriceUSD);
+  const PremiumTier(this.name, this.monthlyPrice, this.yearlyPrice);
   
+  String get monthlyPriceLabel => '₺${monthlyPrice.toStringAsFixed(0)}';
+  String get yearlyPriceLabel => '₺${yearlyPrice.toStringAsFixed(0)}';
+  
+  // Legacy support for shop_screen.dart
+  double get monthlyPriceUSD => monthlyPrice;
+
   /// VIP'ten premium'a geçiş için uyumluluk
   /// Eski VIP kullanıcıları premium olarak kabul edilir
   static PremiumTier fromLegacy(String name) {
@@ -26,7 +33,6 @@ class PremiumFeatures {
   static const Map<String, PremiumTier> featureRequirements = {
     'profile_photo': PremiumTier.premium,      // Profil fotoğrafı yükleme
     'custom_avatar': PremiumTier.premium,       // Özel avatar seçimi
-    'unlimited_duels': PremiumTier.premium,     // Sınırsız duel
     'ad_free': PremiumTier.premium,             // Reklamsız deneyim
     'exclusive_powerups': PremiumTier.premium,  // Özel powerup'lar
     'leaderboard_badge': PremiumTier.premium,   // Liderlik tablosu rozeti
@@ -59,7 +65,7 @@ class PremiumSubscription {
   });
 
   bool get isActive {
-    if (tier == PremiumTier.free) return true;
+    if (tier == PremiumTier.free) return false;
     if (expiresAt == null) return false;
     return DateTime.now().isBefore(expiresAt!);
   }
