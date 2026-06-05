@@ -16,7 +16,6 @@ workflows:
         script: flutter pub get
       - name: Install pods
         script: |
-          # Flutter'a bu projenin bir iOS projesi olduğunu zorla hatırlatıp eksik dosyaları ürettiriyoruz:
           flutter create . --platforms=ios
           flutter build ios --config-only
           cd ios
@@ -79,7 +78,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - aktasemre@gmail.com
+          - emreaktas260@gmail.com
       app_store_connect:
         api_key: $APP_STORE_CONNECT_KEY
         key_id: $APP_STORE_CONNECT_KEY_ID
