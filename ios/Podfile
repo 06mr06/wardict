@@ -1,16 +1,4 @@
-# Eski .flutter-plugins-dependencies dosyasını arayan satırları tamamen kaldırdık.
-# Güncel Flutter yapısı doğrudan generated_pods.rb dosyasına bakar.
-
-plugin_pods_path = File.expand_path(File.join('..', '.flutter-plugins-dependencies'), __dir__)
-if File.exist?(plugin_pods_path)
-  require plugin_pods_path
-end
-
-# Flutter'ın asıl ihtiyaç duyduğu güncel entegrasyon dosyası:
-generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __dir__)
-unless File.exist?(generated_xcode_build_settings_path)
-  raise "Generated.xcconfig not found. Run 'flutter pub get' and build the project first."
-end
+# Tamamen temizlenmiş ve Codemagic'i hataya zorlayan eski satırlardan arındırılmış Podfile
 
 platform :ios, '13.0'
 
@@ -18,11 +6,14 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  # Eğer generated_pods.rb mevcutsa yükle (Flutter 3.x+ standartı)
+  # Doğrudan Flutter'ın kendi ürettiği güncel bof dosyasına bakıyoruz
   generated_pods_definition_path = File.expand_path(File.join('..', 'Flutter', 'generated_pods.rb'), __dir__)
+  
   if File.exist?(generated_pods_definition_path)
     require generated_pods_definition_path
     flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  else
+    raise "generated_pods.rb bulunamadı. Lütfen yerelde 'flutter pub get' çalıştırın."
   end
 end
 
