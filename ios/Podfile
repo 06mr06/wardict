@@ -1,11 +1,19 @@
+# Flutter'ın yerelde veya bulutta ürettiği tüm plug-in bağımlılık şemalarını güvenle yükleyen kısım
+flutter_ios_podfile_setup_path = File.expand_path(File.join('..', '.flutter-plugins-dependencies'), __dir__)
+require flutter_ios_podfile_setup_path if File.exist?(flutter_ios_podfile_setup_path)
+
 platform :ios, '13.0'
 
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  # Flutter 3.x+ sürümlerinin aradığı tek ve dinamik entegrasyon satırı:
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  # Eğer generated_pods.rb varsa (yani Flutter 3.x+ mimarisiyse) güvenle çağırır
+  generated_pods_definition_path = File.expand_path(File.join('..', 'Flutter', 'generated_pods.rb'), __dir__)
+  if File.exist?(generated_pods_definition_path)
+    require generated_pods_definition_path
+    flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  end
 end
 
 post_install do |installer|
