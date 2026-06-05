@@ -4,14 +4,8 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  generated_pods_definition_path = File.expand_path(File.join('..', 'Flutter', 'generated_pods.rb'), __dir__)
-
-  if File.exist?(generated_pods_definition_path)
-    require generated_pods_definition_path
-    flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-  else
-    raise "generated_pods.rb bulunamadı. Lütfen yerelde 'flutter pub get' çalıştırın."
-  end
+  # Flutter 3.x+ sürümlerinin aradığı tek ve dinamik entegrasyon satırı:
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
 post_install do |installer|
