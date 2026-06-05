@@ -5,7 +5,7 @@ workflows:
     environment:
       vars:
         GOOGLE_SERVICES_PLIST: ENCRYPTED[!]
-      flutter: status
+      flutter: stable
       xcode: latest
       cocoapods: default
     scripts:
