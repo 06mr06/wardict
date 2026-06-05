@@ -1,16 +1,11 @@
-# Klasör değil, GERÇEKTEN bir dosya olup olmadığını kontrol etmek için File.file? kullandık.
-flutter_ios_podfile_setup_path = File.expand_path(File.join('..', '.flutter-plugins-dependencies'), __dir__)
-if File.file?(flutter_ios_podfile_setup_path)
-  require flutter_ios_podfile_setup_path
-end
-
 platform :ios, '13.0'
 
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  # Aynı şekilde generated_pods.rb dosyasını da sadece gerçek bir dosyaysa çağırıyoruz
+  # Sadece yeni nesil Flutter entegrasyon dosyasını çağırıyoruz.
+  # Eğer o da bulutta henüz oluşmadıysa CocoaPods hata fırlatmasın diye korumaya aldık.
   generated_pods_definition_path = File.expand_path(File.join('..', 'Flutter', 'generated_pods.rb'), __dir__)
   if File.file?(generated_pods_definition_path)
     require generated_pods_definition_path
