@@ -4,13 +4,8 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  # Sadece yeni nesil Flutter entegrasyon dosyasını çağırıyoruz.
-  # Eğer o da bulutta henüz oluşmadıysa CocoaPods hata fırlatmasın diye korumaya aldık.
-  generated_pods_definition_path = File.expand_path(File.join('..', 'Flutter', 'generated_pods.rb'), __dir__)
-  if File.file?(generated_pods_definition_path)
-    require generated_pods_definition_path
-    flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-  end
+  # Flutter'ın tüm pubspec paketlerini iOS'e tıkır tıkır bağlayan ana damar:
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
 post_install do |installer|
