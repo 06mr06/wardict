@@ -12,6 +12,11 @@ workflows:
       - name: Decode Firebase config
         script: |
           echo $GOOGLE_SERVICES_PLIST | base64 --decode > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
+      - name: Create Mock Env File
+        script: |
+          # .env dosyası git'te olmadığı için build'in çökmesini engellemek amacıyla sahte bir dosya üretiyoruz:
+          touch $CM_BUILD_DIR/.env
+          echo "ENVIRONMENT=production" > $CM_BUILD_DIR/.env
       - name: Get packages
         script: flutter pub get
       - name: Disable Swift Package Manager
@@ -24,7 +29,6 @@ workflows:
           sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = 13.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g" ios/Runner.xcodeproj/project.pbxproj
       - name: Build debug (Simülatör mimarisi, sertifika istemez)
         script: |
-          # --simulator bayrağı sayesinde Xcode imzalama hatası vermeden build'i başarıyla tamamlayacak
           flutter build ios --debug --simulator
     artifacts:
       - build/ios/iphonesimulator/*.app
@@ -47,6 +51,10 @@ workflows:
       - name: Decode Firebase config
         script: |
           echo $GOOGLE_SERVICES_PLIST | base64 --decode > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
+      - name: Create Mock Env File
+        script: |
+          touch $CM_BUILD_DIR/.env
+          echo "ENVIRONMENT=production" > $CM_BUILD_DIR/.env
       - name: Set up keychain
         script: keychain initialize
       - name: Fetch signing files
