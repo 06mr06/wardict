@@ -20,14 +20,14 @@ workflows:
       - name: Recreate iOS Configuration
         script: |
           flutter create . --platforms=ios
-          # Podfile ve Xcode proje ayarlarındaki varsayılan iOS sürümünü 15.0'e yükseltiyoruz
           sed -i '' "s/platform :ios, '13.0'/platform :ios, '15.0'/g" ios/Podfile
           sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = 13.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g" ios/Runner.xcodeproj/project.pbxproj
-      - name: Build debug (Flutter will run pod install automatically)
+      - name: Build debug (Simülatör mimarisi, sertifika istemez)
         script: |
-          flutter build ios --debug --no-codesign
+          # --simulator bayrağı sayesinde Xcode imzalama hatası vermeden build'i başarıyla tamamlayacak
+          flutter build ios --debug --simulator
     artifacts:
-      - build/ios/iphoneos/*.app
+      - build/ios/iphonesimulator/*.app
     publishing:
       email:
         recipients:
@@ -63,7 +63,6 @@ workflows:
       - name: Recreate iOS Configuration
         script: |
           flutter create . --platforms=ios
-          # Sürüm hedefini sürüm (release) akışı için de yükseltiyoruz
           sed -i '' "s/platform :ios, '13.0'/platform :ios, '15.0'/g" ios/Podfile
           sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = 13.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g" ios/Runner.xcodeproj/project.pbxproj
       - name: Build release (Flutter will run pod install automatically)
