@@ -14,10 +14,13 @@ workflows:
           echo $GOOGLE_SERVICES_PLIST | base64 --decode > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
       - name: Get packages
         script: flutter pub get
+      - name: Recreate iOS Configuration
+        script: |
+          # Git reposundan sildiğimiz Podfile ve iOS bağımlılık şemalarını 
+          # bulut makinesinde sıfırdan, en güncel ve hatasız haliyle ürettiriyoruz:
+          flutter create . --platforms=ios
       - name: Build debug (Flutter will run pod install automatically)
         script: |
-          # Flutter bu komutla önce eksik tüm dosyaları üretecek, 
-          # ardından pod kurulumunu arka planda kendisi güvenle tamamlayacak.
           flutter build ios --debug --no-codesign
     artifacts:
       - build/ios/iphoneos/*.app
@@ -50,6 +53,9 @@ workflows:
           keychain add-certificates
       - name: Get packages
         script: flutter pub get
+      - name: Recreate iOS Configuration
+        script: |
+          flutter create . --platforms=ios
       - name: Build release (Flutter will run pod install automatically)
         script: |
           flutter build ios --release
@@ -68,9 +74,9 @@ workflows:
     publishing:
       email:
         recipients:
-          - emreaktas260@gmail.com
+          - aktaesemre@gmail
       app_store_connect:
         api_key: $APP_STORE_CONNECT_KEY
         key_id: $APP_STORE_CONNECT_KEY_ID
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        issuer_id: $APP_CONNECT_ISSUER_ID
         submit_to_testflight: true
